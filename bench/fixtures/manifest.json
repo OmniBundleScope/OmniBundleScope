@@ -1,0 +1,121 @@
+{
+  "$comment": "Fixture manifest. Real fixtures are pinned by commit; artifacts are built by fetch scripts and never committed (see ADR-0005).",
+  "updated": "2026-09-02",
+  "real": [
+    {
+      "name": "preact",
+      "version": "10.29.8",
+      "license": "MIT",
+      "repo": "https://github.com/preactjs/preact",
+      "upstream_build": "microbundle (rollup)",
+      "our_build": "webpack config in fixtures/build/webpack.preact.mjs → stats.json + .map",
+      "ingest_paths": ["stats", "source_map"],
+      "why": "a few hundred modules across compat/, hooks/, jsx-runtime: the primary fusion fixture"
+    },
+    {
+      "name": "marked",
+      "version": "18.0.14",
+      "license": "MIT",
+      "repo": "https://github.com/markedjs/marked",
+      "upstream_build": "esbuild (esbuild.config.js)",
+      "our_build": "upstream build + --metafile",
+      "ingest_paths": ["esbuild_metafile", "source_map"],
+      "why": "the esbuild ingest path, and a fast end-to-end smoke test"
+    },
+    {
+      "name": "chalk",
+      "version": "6.0.1",
+      "license": "MIT",
+      "repo": "https://github.com/chalk/chalk",
+      "upstream_build": "none (ships source)",
+      "our_build": "tsc --sourceMap --declaration",
+      "ingest_paths": ["source_map"],
+      "why": "the tiny end of the scale; TypeScript sources, zero dependencies"
+    },
+    {
+      "name": "dayjs",
+      "version": "1.11.23",
+      "license": "MIT",
+      "repo": "https://github.com/iamkun/dayjs",
+      "upstream_build": "babel + rollup",
+      "our_build": "upstream build",
+      "ingest_paths": ["source_map"],
+      "why": "the rollup path with several entry points"
+    },
+    {
+      "name": "smoke set",
+      "license": "MIT",
+      "members": ["p-limit", "nanoid", "ms", "mitt", "ufo", "h3"],
+      "ingest_paths": ["source_map", "stats"],
+      "why": "CI smoke tests that finish in under a minute"
+    }
+  ],
+  "synthetic": [
+    {
+      "name": "stats-400mb",
+      "generator": "bench/harness/gen-stats.mjs",
+      "args": "381000000",
+      "shape": "1500 assets, 200 chunks, modules with embedded source strings",
+      "measured_modules": 160728,
+      "used_for": ["B1", "B3", "B9-shape"]
+    },
+    {
+      "name": "stats-1gb",
+      "generator": "bench/harness/gen-stats.mjs",
+      "args": "1100000000",
+      "shape": "same, scaled",
+      "measured_modules": 441976,
+      "used_for": ["B2", "B4", "B8"]
+    },
+    {
+      "name": "map-10k-sources",
+      "generator": "bench/harness/gen-map.mjs",
+      "shape": "10k+ sources with sourcesContent, long mappings string",
+      "used_for": ["B5", "B6"]
+    },
+    {
+      "name": "assets-25600",
+      "generator": "bench/fixtures/build/gen-assets.mjs",
+      "shape": "25600 tiny files for the gzip stage",
+      "used_for": ["B7"]
+    }
+  ],
+  "measured_baselines": [
+    {
+      "tool": "webpack-bundle-analyzer@4.10.2",
+      "input": "stats-400mb",
+      "wall_ms": 61355,
+      "peak_rss_mb": 1985,
+      "fixture_class": "synthetic",
+      "note": "stats-only path; bundles not parsed"
+    },
+    {
+      "tool": "webpack-bundle-analyzer@4.10.2",
+      "input": "stats-1gb",
+      "wall_ms": 176307,
+      "peak_rss_mb": 1437,
+      "fixture_class": "synthetic"
+    },
+    {
+      "tool": "node readFileSync+JSON.parse",
+      "input": "stats-400mb",
+      "wall_ms": 940,
+      "peak_rss_mb": 919,
+      "fixture_class": "synthetic"
+    },
+    {
+      "tool": "omnibundle streaming prototype",
+      "input": "stats-400mb",
+      "wall_ms": 990,
+      "peak_rss_mb": 17,
+      "fixture_class": "synthetic"
+    },
+    {
+      "tool": "omnibundle streaming prototype",
+      "input": "stats-1gb",
+      "wall_ms": 2787,
+      "peak_rss_mb": 59,
+      "fixture_class": "synthetic"
+    }
+  ]
+}

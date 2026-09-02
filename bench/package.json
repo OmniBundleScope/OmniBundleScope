@@ -1,0 +1,18 @@
+{
+  "name": "omnibundle-bench",
+  "private": true,
+  "type": "module",
+  "description": "Benchmark harness: reference tools, fixture generation, result records",
+  "scripts": {
+    "gen:stats": "node harness/gen-stats.mjs",
+    "gen:map": "node harness/gen-map.mjs",
+    "check:i18n": "node harness/check-i18n.mjs",
+    "wba": "node harness/run-tool.mjs --tool wba",
+    "sme": "node harness/run-tool.mjs --tool sme",
+    "node-floor": "node harness/run-tool.mjs --tool node"
+  },
+  "dependencies": {
+    "source-map-explorer": "^2.5.3",
+    "webpack-bundle-analyzer": "^4.10.2"
+  }
+}

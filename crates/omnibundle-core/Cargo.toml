@@ -1,0 +1,20 @@
+[package]
+name = "omnibundle-core"
+description = "Portable bundle analysis engine: stats + source map ingestion, fusion, report data"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+rayon = { workspace = true }
+flate2 = { workspace = true }
+blake3 = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

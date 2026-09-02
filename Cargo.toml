@@ -1,0 +1,36 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/omnibundle/omnibundle"
+authors = ["OmniBundle contributors"]
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rayon = "1"
+flate2 = "1"
+memmap2 = "0.9"
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+thiserror = "2"
+blake3 = "1"
+crossbeam-channel = "0.5"
+
+# Workstream lints: `omnibundle-core` must stay portable (no IO in the model),
+# so the workspace denies a few things that would block the WASM target later.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"

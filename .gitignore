@@ -1,0 +1,16 @@
+/target
+**/*.rs.bk
+*.pdb
+
+# bench artifacts (fixtures are fetched, not committed)
+/bench/fixtures/repos
+/bench/fixtures/artifacts
+/bench/results
+*.stats.json
+*.js.map
+
+# local caches
+.omnibundle-cache/
+node_modules/
+dist/
+report*.html

@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omnibundle.dev/schemas/report-v1.json",
+  "title": "OmniBundle unified graph / report payload",
+  "description": "Single payload emitted by the CLI (--mode json, report.html) and by the WASM surface. Every other schema in the project is a projection of this one. Changes require a new ADR and a schema_version bump.",
+  "type": "object",
+  "required": ["schema_version", "inputs", "assets", "chunks", "modules", "totals", "diagnostics"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "inputs": {
+      "type": "array",
+      "description": "Merge order matters: later artifacts correct earlier ones.",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["kind", "tool"],
+            "properties": {
+              "kind": { "const": "stats" },
+              "tool": { "type": "string", "examples": ["webpack", "rspack"] }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["kind", "name"],
+            "properties": {
+              "kind": { "const": "source_map" },
+              "name": { "type": "string", "description": "the .map file or asset it belongs to" }
+            }
+          },
+          { "type": "object", "required": ["kind"], "properties": { "kind": { "const": "esbuild_metafile" } } },
+          {
+            "type": "object",
+            "required": ["kind", "tool"],
+            "properties": {
+              "kind": { "const": "visualizer_stats" },
+              "tool": { "type": "string", "examples": ["rollup-plugin-visualizer", "vite"] }
+            }
+          }
+        ]
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "size", "chunks", "sizes"],
+        "properties": {
+          "name": { "type": "string" },
+          "size": { "type": "integer", "minimum": 0, "description": "alias of sizes.stat, kept for wba familiarity" },
+          "chunks": { "type": "array", "items": { "type": "integer" } },
+          "sizes": { "$ref": "#/$defs/sizes" }
+        }
+      }
+    },
+    "chunks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "names", "initial", "assets", "size"],
+        "properties": {
+          "id": { "type": "integer" },
+          "names": { "type": "array", "items": { "type": "string" } },
+          "initial": { "type": "boolean" },
+          "assets": { "type": "array", "items": { "type": "string" } },
+          "size": { "type": "integer", "minimum": 0 },
+          "sizes": { "$ref": "#/$defs/sizes" }
+        }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "description": "Keyed by the stable join key (see unified-graph.md). BTreeMap => serialised in sorted order, which the parity tests rely on.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["id", "name", "reasons", "chunks", "sizes", "attribution_delta"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "issuer": { "type": ["string", "null"] },
+          "reasons": { "type": "array", "items": { "type": "string" } },
+          "package": {
+            "type": ["object", "null"],
+            "required": ["name", "path"],
+            "properties": {
+              "name": { "type": "string" },
+              "version": { "type": ["string", "null"] },
+              "path": { "type": "string" }
+            }
+          },
+          "chunks": { "type": "array", "items": { "type": "integer" } },
+          "sizes": { "$ref": "#/$defs/sizes" },
+          "attribution_delta": {
+            "type": "integer",
+            "description": "attributed - stat, in bytes. Non-zero is the whole point of fusion."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "bytes"],
+              "properties": {
+                "file": { "type": "string" },
+                "bytes": { "type": "integer", "minimum": 0 },
+                "line": { "type": ["integer", "null"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "required": ["total_size", "module_count", "asset_count", "package_count", "size_dimension", "module_size_sum"],
+      "properties": {
+        "total_size": { "type": "integer", "minimum": 0 },
+        "module_count": { "type": "integer", "minimum": 0 },
+        "asset_count": { "type": "integer", "minimum": 0 },
+        "package_count": { "type": "integer", "minimum": 0 },
+        "size_dimension": { "enum": ["stat", "parsed", "gzip", "attributed"] },
+        "module_size_sum": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "fusion": {
+      "type": ["object", "null"],
+      "required": ["ghost_modules", "hidden_sources", "total_attribution_delta", "significant_corrections"],
+      "properties": {
+        "ghost_modules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["module", "declared_size", "chunks", "reason"],
+            "properties": {
+              "module": { "type": "string" },
+              "declared_size": { "type": "integer", "minimum": 0 },
+              "chunks": { "type": "array", "items": { "type": "integer" } },
+              "reason": { "enum": ["unmapped", "empty_attribution", "missing_asset"] }
+            }
+          }
+        },
+        "hidden_sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "bytes"],
+            "properties": {
+              "file": { "type": "string" },
+              "bytes": { "type": "integer", "minimum": 0 },
+              "location": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "total_attribution_delta": { "type": "integer" },
+        "significant_corrections": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "code", "message"],
+        "properties": {
+          "severity": { "enum": ["info", "warning", "error"] },
+          "code": { "type": "string", "description": "stable, machine readable, e.g. OB0042" },
+          "message": { "type": "string" },
+          "subject": { "type": ["string", "null"] },
+          "data": {}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sizes": {
+      "type": "object",
+      "required": ["stat", "parsed", "gzip"],
+      "description": "Three measurements plus ground truth. `effective()` order: attributed > parsed > stat.",
+      "properties": {
+        "stat": { "type": "integer", "minimum": 0, "description": "what the bundler declared" },
+        "parsed": { "type": "integer", "minimum": 0, "description": "measured from the emitted file" },
+        "gzip": { "type": "integer", "minimum": 0, "description": "gzip level 6, must byte-match the reference tools" },
+        "attributed": { "type": ["integer", "null"], "minimum": 0, "description": "source map ground truth" }
+      }
+    }
+  }
+}
