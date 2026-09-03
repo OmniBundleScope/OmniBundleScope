@@ -23,7 +23,7 @@ Rules that are not negotiable:
 | B3 | 400 MB full pipeline | synthetic | ≤ 5 s, ≤ 200 MB | unverified | WS-2 |
 | B4 | 1 GB full pipeline | synthetic | ≤ 15 s, ≤ 400 MB | unverified | WS-2 |
 | B5 | `.map` 50 MB / 10k sources, parse + attribute | real + synthetic | ≤ 1 s | unverified | WS-3 |
-| B6 | `source-map-explorer` baseline on the same `.map` | real | any number, must exist | unverified | **WS-S** |
+| B6 | `source-map-explorer` baseline on the same `.map` | real + synthetic | any number, must exist | **0.22-0.25 s (small real), 18.4 s median (10k sources), 562 s (50k sources); 31-642 MB** | **WS-S ✅** |
 | B7 | gzip 25,600 assets | synthetic | — | **2,177 ms → 342 ms (6.4x)** | WS-2 |
 | B8 | fusion memory, 1 GB stats + 50 MB map | synthetic | < 500 MB peak | unverified | WS-4 |
 | B9 | parity diff vs WBA / SME | real | ≤ 0.1 %, ordering only | unverified | WS-7 |
@@ -38,6 +38,15 @@ Rules that are not negotiable:
 | node `readFileSync` + `JSON.parse` | stats 381 MB | 0.94 s | 919 MB | synthetic |
 | OmniBundle streaming prototype | stats 381 MB | 0.99 s | 17 MB | synthetic |
 | OmniBundle streaming prototype | stats 1,049 MB | 2.78 s | 59 MB | synthetic |
+| source-map-explorer 2.5.3 | preact 97 KB map | 0.25 s | 31 MB | real |
+| source-map-explorer 2.5.3 | marked 177 KB map | 0.22 s | 48 MB | real |
+| source-map-explorer 2.5.3 | 10k sources, 7.1 MB map | **18.4 s** (median of 3) | 277 MB | synthetic |
+| source-map-explorer 2.5.3 | 50k sources, 36.5 MB map | **562.3 s** | 642 MB | synthetic |
+
+The 5x-data / 30.6x-time ratio between the last two rows is the clearest signal
+in this project: source-map attribution in SME is superlinear, while small
+projects are unaffected (their cost is process start-up). Full detail and the
+protocol deviation at 50k sources: `bench/results/ws-s-sme-baseline-2026-09-03.json`.
 
 The "Cannot create a string longer than 0x1fffffe8" crash from WBA issue #492
 did **not** reproduce on node 24 — V8's string ceiling moved. We claim the

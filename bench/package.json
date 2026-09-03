@@ -14,5 +14,8 @@
   "dependencies": {
     "source-map-explorer": "^2.5.3",
     "webpack-bundle-analyzer": "^4.10.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

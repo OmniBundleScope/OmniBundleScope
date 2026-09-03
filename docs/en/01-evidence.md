@@ -75,31 +75,55 @@ Three things follow, and they are the technical core of this project:
 after parsing) is *not* yet reimplemented. B3/B4 in `bench-spec.md` are the
 first real test of the "< 5 s for 400 MB" target, and WS-2 owns it.
 
-## 3. The source-map-explorer question (WS-S, in progress)
+## 3. The source-map-explorer measurement (WS-S, **done 2026-09-03**)
 
-This is the load-bearing unknown of the whole product, so it is measured first.
+This was the load-bearing unknown of the whole product, so it went first. Result:
+**the answer is "it depends on scale", and that is more useful than a yes/no.**
 
-From SME's own issues (upstream, not our measurement):
+All numbers below are ours, on the reference machine, peak RSS sampled at
+100 ms (`bench/harness/run-bench.ps1`). Full record:
+`bench/results/ws-s-sme-baseline-2026-09-03.json`.
 
-- `#186`: a combined bundle of 10,000 files, directory depth 11 — 45 s inside
-  `getWebTreeMapData` alone, versus 3 s for the entire rest of the pipeline.
-- `#158` ("Version 2.2 too slow"): 462.79 s on a 5.2 MB angular bundle — but this
-  is a 2020 regression that upstream fixed, so it cannot be used as a baseline.
-- `#65`: 64.95 % of bytes unmapped in one report.
-- Project state: last release v2.5.3 on **2022-09-26**, 3,930 stars, 57 open
-  issues. Abandoned-ish, which is opportunity *and* risk (nobody will fix the
-  bugs we find).
+| fixture | class | map | bundle | SME 2.5.3 wall | peak RSS |
+|---|---|---|---|---|---|
+| chalk 6.0.1 | real | 29 KB | 14 KB | 1,645 ms *(cold run)* | 48 MB |
+| preact 10.29.8 | real | 97 KB | 35 KB | **252 ms** | 31 MB |
+| preact (minified) | real | 97 KB | 13 KB | **237 ms** | 49 MB |
+| marked 18.0.14 | real | 177 KB | 84 KB | **224 ms** | 48 MB |
+| marked (minified) | real | 177 KB | 45 KB | **226 ms** | 48 MB |
+| synthetic, 10k sources | synthetic | 7.1 MB | 3.5 MB | **18,380 / 18,325 / 23,173 ms → median 18,380 ms** | 277 MB |
+| synthetic, 50k sources | synthetic | 36.5 MB | 17.6 MB | **562,269 ms (9.4 minutes)** | 642 MB |
 
-Root cause named in the issues is allocation, not parsing: building a
-file-length string on every mapping iteration. That matters because a Rust
-*parser* is only ~1.6x faster than `@babel/parser` on small files (301 ms vs
-480 ms for 20k files) — the win has to come from zero-allocation VLQ decoding
-and binary search over sorted mappings, not from "Rust parses faster".
+**Two findings, and the second one is the product.**
 
-**WS-S will replace the issue numbers above with measurements on our own real
-fixtures (preact/marked/chalk/dayjs) before any fusion work starts.** If SME
-measures under 1 s on realistic maps, the "fusion is fast" premise is dead and
-ADR-0003's stop-the-line condition applies.
+1. **For small real projects there is no pain.** 0.22-0.25 s, ~50 MB, and almost
+   all of that is Node start-up plus module loading. The first run of the day
+   (1,645 ms) was Defender scanning a cold module cache — the same artefact we
+   keep seeing on Windows, and the reason `bench-spec.md` §2 requires saying so
+   rather than quietly discarding outliers.
+2. **For large maps the pain is real, reproducible and superlinear.** Going from
+   10k to 50k sources (5x the data) costs **30.6x the time** (18.4 s → 9.4 min)
+   and 2.3x the memory (277 → 642 MB). That matches the upstream report that
+   `getWebTreeMapData` dominates at 10k files (#186), and it is consistent with
+   the root cause named there: a file-length string is built on every mapping
+   iteration.
+
+**Consequences for the project, stated plainly:**
+
+- Stop-the-line condition R1 is **not** triggered for small projects and **is**
+  triggered for large ones. So the product case is the large-project segment,
+  and the README/roadmap must not imply that small projects are slow today.
+- The win mechanism is still a *hypothesis*: SME does not report per-phase
+  timings, so we know the total is superlinear but not which of its stages is
+  responsible. B5 (our ingest) plus a stage-level profile is the next
+  measurement; until then, "faster attribution" is a target, not a claim.
+- A 9.4-minute run cost 9.4 minutes; the 3-run median protocol was affordable at
+  10k sources and not at 50k. That deviation is recorded in the results file
+  rather than glossed over.
+
+Fixtures are built by `bench/fixtures/build/build-fixtures.mjs` with our own
+esbuild config (readable and minified variants), pinned by commit in
+`bench/fixtures/manifest.json`.
 
 ## 4. What we deliberately did not build, and why
 
