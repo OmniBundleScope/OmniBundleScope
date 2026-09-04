@@ -80,8 +80,11 @@ while (written < target) {
     (first ? '' : ',') +
       JSON.stringify({
         id,
-        identifier: `/repo/node_modules/pkg${id % 400}/dist/index.js`,
-        name: `./node_modules/pkg${id % 400}/dist/index.js`,
+        // Identifiers must be unique: they are the join key (unified-graph.md
+        // §2), so a generator that repeats them would silently dedupe the graph
+        // and make every module count a lie.
+        identifier: `/repo/node_modules/pkg${id % 400}/dist/index-${id}.js`,
+        name: `./node_modules/pkg${id % 400}/dist/index-${id}.js`,
         index: id,
         size: 1700 + (id % 900),
         cacheable: true,
