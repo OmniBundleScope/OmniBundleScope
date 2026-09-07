@@ -8,6 +8,7 @@
   "use strict";
 
   var DATA = readPayload();
+  var DETAIL = readDetail();
   var state = {
     dim: "package", // grouping dimension
     measure: "parsed", // size dimension
@@ -41,11 +42,27 @@
 
   function readPayload() {
     var raw = document.getElementById("payload").textContent.trim();
-    if (!raw) return { nodes: [], modules: {}, assets: [], totals: {}, diagnostics: [] };
+    if (!raw) return { trees: [], totals: {}, diagnostics: [] };
     try {
       return JSON.parse(raw);
     } catch (e) {
-      return { nodes: [], modules: {}, assets: [], totals: {}, diagnostics: [], parseError: String(e) };
+      return { trees: [], totals: {}, diagnostics: [], parseError: String(e) };
+    }
+  }
+
+  // Per-module detail. For small graphs it is an inline JSON island; for large
+  // ones it arrives as `window.__OB_DETAIL__` from a companion `<script>`
+  // (a `<script src>` works from `file://`, `fetch` does not).
+  function readDetail() {
+    if (window.__OB_DETAIL__) return window.__OB_DETAIL__;
+    var island = document.getElementById("detail");
+    if (!island) return null;
+    var text = island.textContent.trim();
+    if (!text) return null;
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      return null;
     }
   }
 
@@ -61,14 +78,6 @@
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
-  }
-
-  function measureOf(item) {
-    var s = item.sizes || {};
-    var v = state.measure === "stat" ? s.stat : state.measure === "gzip" ? s.gzip : s.parsed;
-    if (v == null || v === 0) v = s.stat || 0;
-    if (state.measure === "attributed" && s.attributed != null) v = s.attributed;
-    return v || 0;
   }
 
   // Deterministic hue per group: a curated, desaturated set so a treemap reads
@@ -94,10 +103,16 @@
 
   /* ------------------------------------------------------------ tree build */
 
-  function keyOfModule(m) {
-    if (state.dim === "package") return (m.package && m.package.name) || "<app>";
-    if (state.dim === "source") return m.sources && m.sources.length ? m.sources[0].file : m.name;
-    return m.chunks && m.chunks.length ? "chunk " + m.chunks.join("+") : "no chunk";
+  // The treemap itself is built server-side (see treeFor). What is left here is
+  // the flat index the filter, the sidebar and the inspector walk.
+  var indexCache = { dim: null, rows: [] };
+
+  function indexFor(dim) {
+    if (indexCache.dim === dim) return indexCache.rows;
+    var rows = flatten(treeFor(dim), [], []);
+    rows.sort(function (a, b) { return b.node.size - a.node.size; });
+    indexCache = { dim: dim, rows: rows };
+    return rows;
   }
 
   function matchesFilter(text) {
@@ -106,47 +121,13 @@
   }
 
   // Subsequence match, cheap and good enough for a filter box: every query
-  // character must appear in order. Returns false on a miss, true on a hit.
+  // character must appear in order.
   function fuzzy(needle, hay) {
     var i = 0;
     for (var j = 0; j < hay.length && i < needle.length; j++) {
       if (hay.charAt(j) === needle.charAt(i)) i++;
     }
     return i === needle.length;
-  }
-
-  function buildTree() {
-    var root = { name: DATA.target || "bundle", size: 0, children: [] };
-    var byGroup = Object.create(null);
-
-    var modules = DATA.modules || {};
-    Object.keys(modules).forEach(function (id) {
-      var m = modules[id];
-      var g = keyOfModule(m);
-      var size = measureOf(m);
-      if (!matchesFilter(g) && !matchesFilter(m.name.toLowerCase())) return;
-      if (!byGroup[g]) byGroup[g] = { name: g, size: 0, children: [], kind: state.dim };
-      byGroup[g].size += size;
-      byGroup[g].children.push({ name: m.name, size: size, id: id, kind: "module" });
-    });
-
-    root.children = Object.keys(byGroup)
-      .map(function (k) { return byGroup[k]; })
-      .sort(function (a, b) { return b.size - a.size; });
-
-    // assets form the outer level: a module's bytes live inside an asset, and
-    // showing the asset structure is what makes chunk boundaries visible.
-    var assets = (DATA.assets || []).slice();
-    var assetTotal = assets.reduce(function (a, b) { return a + (b.size || 0); }, 0);
-    root.size = assetTotal || root.children.reduce(function (a, c) { return a + c.size; }, 0);
-    root.children = assets.map(function (a) {
-      var copy = JSON.parse(JSON.stringify(a));
-      copy.kind = "asset";
-      copy.sizes = a.sizes || { stat: a.size };
-      copy.children = root.children;
-      return copy;
-    });
-    return root;
   }
 
   /* --------------------------------------------------------------- squarify */
@@ -207,6 +188,34 @@
     return out;
   }
 
+  /* ------------------------------------------------------------ tree input */
+
+  // The payload carries one treemap tree per dimension: asset → group, sizes
+  // only. The full module list arrives separately (inlined for small graphs, or
+  // in a companion script for large ones) and is used for filtering, the
+  // inspector, and drill-down.
+  function treeFor(dim) {
+    var trees = DATA.trees || [];
+    for (var i = 0; i < trees.length; i++) {
+      if (trees[i].dimension === dim) return trees[i].tree;
+    }
+    return { name: "bundle", size: 0, children: [] };
+  }
+
+  function detailModules() {
+    if (DETAIL && DETAIL.modules) return DETAIL.modules;
+    return DATA.modules || {};
+  }
+
+  function flatten(node, out, path) {
+    out = out || [];
+    path = path || [];
+    var here = path.concat([node.name]);
+    out.push({ node: node, path: here, depth: path.length });
+    (node.children || []).forEach(function (c) { flatten(c, out, here); });
+    return out;
+  }
+
   /* ---------------------------------------------------------------- render */
 
   function resize() {
@@ -218,16 +227,19 @@
     draw();
   }
 
+  function currentLevel() {
+    return state.focus ? state.focus.node : treeFor(state.dim);
+  }
+
   function draw() {
     var r = el.canvas.getBoundingClientRect();
-    var tree = buildTree();
     var w = r.width;
     var h = r.height;
 
     ctx.clearRect(0, 0, w, h);
     hitboxes = [];
 
-    var level = state.focus ? state.focus.node : tree;
+    var level = currentLevel();
     var items = (level.children || []).filter(function (c) { return c.size > 0; });
     el.empty.hidden = items.length > 0;
 
@@ -343,18 +355,22 @@
   }
 
   function renderList() {
-    var tree = buildTree();
-    var level = state.focus ? state.focus.node : tree;
-    var items = (level.children || []).slice().sort(function (a, b) { return b.size - a.size; });
-    var max = items.length ? items[0].size : 1;
+    var rows = indexFor(state.dim).filter(function (r) {
+      if (r.depth === 0) return false; // the synthetic root
+      return matchesFilter(r.node.name);
+    });
+    var max = rows.length ? rows[0].node.size : 1;
+    var shown = rows.slice(0, 400);
 
-    el.results.innerHTML = items
-      .map(function (it) {
+    el.results.innerHTML = shown
+      .map(function (r) {
+        var it = r.node;
         var active = state.selected && sameNode(state.selected, it);
         var pct = max ? Math.round((it.size / max) * 100) : 0;
+        var indent = Math.min(3, r.depth - 1) * 10;
         return (
           '<button type="button" class="row' + (active ? " is-active" : "") + '" role="option" aria-selected="' +
-          (active ? "true" : "false") + '" data-name="' + esc(it.name) + '" data-kind="' + esc(it.kind) + '">' +
+          (active ? "true" : "false") + '" data-name="' + esc(it.name) + '" style="padding-left:' + (10 + indent) + 'px">' +
           '<span class="row__name">' + esc(it.name) + "</span>" +
           '<span class="row__bar"><i style="width:' + pct + '%"></i></span>' +
           '<span class="row__size">' + esc(bytes(it.size)) + "</span></button>"
@@ -362,9 +378,16 @@
       })
       .join("");
 
-    Array.prototype.forEach.call(el.results.children, function (row) {
+    if (rows.length > shown.length) {
+      el.results.innerHTML +=
+        '<div class="side__more">+' + (rows.length - shown.length) + ' more — refine the filter</div>';
+    }
+
+    Array.prototype.forEach.call(el.results.querySelectorAll(".row"), function (row) {
       row.addEventListener("click", function () {
-        select({ name: row.dataset.name, kind: row.dataset.kind });
+        var r = indexFor(state.dim).filter(function (x) { return x.node.name === row.dataset.name; })[0];
+        if (r && r.node.children && r.node.children.length) zoomTo(r);
+        else if (r) select(r.node);
       });
     });
   }
@@ -373,11 +396,12 @@
     var path = [];
     var f = state.focus;
     while (f) {
-      path.unshift(f.node);
+      path.unshift(f);
       f = f.parent;
     }
     var html = path
-      .map(function (n, i) {
+      .map(function (f, i) {
+        var n = f.node;
         return i === path.length - 1
           ? "<b>" + esc(n.name) + "</b>"
           : '<button type="button" data-i="' + i + '">' + esc(n.name) + "</button>";
@@ -407,69 +431,46 @@
     el.inspectEmpty.hidden = true;
     el.inspect.hidden = false;
 
-    var s = node.sizes || {};
-    var m = node.id ? (DATA.modules || {})[node.id] : null;
-    var rows = [
-      ["stat", bytes(s.stat)],
-      ["parsed", bytes(s.parsed)],
-      ["gzip", bytes(s.gzip)],
-    ];
-    if (s.attributed != null) rows.push(["attributed", bytes(s.attributed)]);
-
-    var share = (DATA.totals || {}).total_size
-      ? ((node.size / DATA.totals.total_size) * 100).toFixed(1) + "%"
-      : "—";
+    var modules = detailModules();
+    var total = (DATA.totals || {}).total_size;
+    var share = total ? ((node.size / total) * 100).toFixed(1) + "%" : "—";
 
     var html = "";
     html += '<div><div class="ins__name">' + esc(node.name) + "</div>";
-    html += '<div class="ins__kind">' + esc(node.kind || "group") + "</div></div>";
+    html += '<div class="ins__kind">' + esc((DATA.sizeDimension || "parsed") + " bytes") + "</div></div>";
 
     html += '<dl class="kv">';
     html += "<dt>size</dt><dd>" + esc(bytes(node.size)) + "</dd>";
     html += "<dt>share</dt><dd>" + esc(share) + "</dd>";
-    rows.forEach(function (r) {
-      html += "<dt>" + r[0] + "</dt><dd>" + esc(r[1]) + "</dd>";
-    });
+    html += "<dt>modules</dt><dd>" + esc(String(node.module_count || 0)) + "</dd>";
+    if (node.dropped) html += "<dt>capped</dt><dd>" + esc(String(node.dropped)) + "</dd>";
     html += "</dl>";
 
-    if (m) {
-      if (m.package) {
-        html +=
-          '<div class="ins__section"><div class="ins__title">package</div><ul class="ins__list"><li>' +
-          esc(m.package.name) +
-          (m.package.version ? " " + esc(m.package.version) : "") +
-          "</li></ul></div>";
-      }
-      if (m.reasons && m.reasons.length) {
-        html +=
-          '<div class="ins__section"><div class="ins__title">pulled in by</div><ul class="ins__list">' +
-          m.reasons
-            .slice(0, 8)
-            .map(function (r) { return "<li>" + esc(r) + "</li>"; })
-            .join("") +
-          "</ul></div>";
-      }
-      if (m.sources && m.sources.length) {
-        html +=
-          '<div class="ins__section"><div class="ins__title">mapped sources</div><ul class="ins__list">' +
-          m.sources
-            .slice(0, 8)
-            .map(function (s2) { return "<li>" + esc(s2.file) + "</li>"; })
-            .join("") +
-          "</ul></div>";
-      }
-      if (m.attribution_delta) {
-        var d = m.attribution_delta;
-        html +=
-          '<div><span class="badge' + (d > 0 ? " badge--warn" : "") + '">attribution ' +
-          (d > 0 ? "+" : "") + bytes(Math.abs(d)) + "</span></div>";
-      }
-    } else if (node.children && node.children.length) {
+    // Module facts: the largest children we know the names of, and their
+    // reasons/sources when the detail payload is available.
+    var kids = (node.children || []).slice(0, 12);
+    if (kids.length) {
       html +=
-        '<div class="ins__section"><div class="ins__title">contains</div><ul class="ins__list">' +
-        node.children
-          .slice(0, 10)
-          .map(function (c) { return "<li>" + esc(c.name) + " · " + esc(bytes(c.size)) + "</li>"; })
+        '<div class="ins__section"><div class="ins__title">largest inside</div><ul class="ins__list">' +
+        kids
+          .map(function (c) {
+            return "<li>" + esc(c.name) + " · " + esc(bytes(c.size)) + "</li>";
+          })
+          .join("") +
+        "</ul></div>";
+    }
+
+    var detailIds = [];
+    for (var id in modules) {
+      var m = modules[id];
+      if (m && m.name === node.name) detailIds.push(m);
+    }
+    if (detailIds.length && detailIds[0].reasons && detailIds[0].reasons.length) {
+      html +=
+        '<div class="ins__section"><div class="ins__title">pulled in by</div><ul class="ins__list">' +
+        detailIds[0].reasons
+          .slice(0, 8)
+          .map(function (r) { return "<li>" + esc(r) + "</li>"; })
           .join("") +
         "</ul></div>";
     }
@@ -481,6 +482,36 @@
 
   function select(node) {
     state.selected = node;
+    draw();
+    renderList();
+    renderInspector();
+  }
+
+  // Zoom to a node found in the flat index, rebuilding the focus chain from
+  // the tree so the breadcrumb stays truthful.
+  function zoomTo(row) {
+    var chain = [];
+    var want = row.node;
+    function find(node, path) {
+      if (node === want) {
+        chain = path.concat([node]);
+        return true;
+      }
+      var kids = node.children || [];
+      for (var i = 0; i < kids.length; i++) {
+        if (find(kids[i], path.concat([node]))) return true;
+      }
+      return false;
+    }
+    find(treeFor(state.dim), []);
+    if (!chain.length) return;
+
+    var focus = null;
+    for (var i = chain.length - 1; i >= 0; i--) {
+      focus = { node: chain[i], parent: focus, depth: i - 1 };
+    }
+    state.focus = focus;
+    state.selected = null;
     draw();
     renderList();
     renderInspector();

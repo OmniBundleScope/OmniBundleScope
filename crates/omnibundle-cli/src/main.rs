@@ -23,6 +23,7 @@ use clap::{Parser, ValueEnum};
 use omnibundle_core::model::UnifiedBundleGraph;
 use omnibundle_core::report::Dimension;
 use omnibundle_core::stats;
+use omnibundle_core::sizes;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -142,7 +143,7 @@ fn run(cli: &Cli) -> Result<ExitCode> {
                     )
                 })?;
             let mut graph = stats::ingest_file(&picked, sniff_tool(&read_head(&picked, 512 * 1024)?))?;
-            measure_assets_from_disk(&mut graph, dir);
+            sizes::attribute_from_disk(&mut graph, dir)?;
             graph
         }
     };
@@ -196,9 +197,14 @@ fn run(cli: &Cli) -> Result<ExitCode> {
                 .and_then(|v| v.as_str())
                 .unwrap_or("bundle")
                 .to_string();
-            report::write(&payload, &label, &cli.report)?;
+            let detail = omnibundle_core::report::detail_payload(&graph);
+            let detail_json = serde_json::to_string(&detail)?;
+            let inline_detail = detail_json.len() <= report::INLINE_LIMIT;
+
+            report::write(&payload, &label, &cli.report, detail_json.as_bytes(), inline_detail)?;
+            let report_bytes = std::fs::metadata(&cli.report).map(|m| m.len()).unwrap_or(0);
             println!(
-                "{}  ·  {} modules  ·  {} assets  ·  {} packages  ·  parse {} ms  ·  total {} ms  ·  dimension {}",
+                "{}  ·  {} modules  ·  {} assets  ·  {} packages  ·  ingest {} ms  ·  total {} ms  ·  dimension {}",
                 label,
                 graph.totals.module_count,
                 graph.totals.asset_count,
@@ -207,15 +213,35 @@ fn run(cli: &Cli) -> Result<ExitCode> {
                 started.elapsed().as_millis(),
                 dimension_label(cli.default_sizes),
             );
-            println!("wrote {}", cli.report.display());
+            println!(
+                "wrote {} ({:.1} MB){}",
+                cli.report.display(),
+                report_bytes as f64 / 1_048_576.0,
+                if inline_detail {
+                    ", detail inlined"
+                } else {
+                    ", detail in a companion script (loaded on demand)"
+                }
+            );
         }
     }
 
     Ok(ExitCode::SUCCESS)
 }
 
-/// The payload the shell consumes: one JSON document, no timestamps, sorted
-/// keys (unified-graph.md §6) so parity tests can diff it.
+/// The payload the shell consumes.
+///
+/// Two pieces on purpose (`docs/en/04-benchmark-plan.md` §6):
+/// - `trees`: one two-level treemap per dimension, sizes only. This is what
+///   makes the HTML small enough to open; the previous "dump every module"
+///   shape produced a 125.6 MB file and ~24 s of generation for 154k modules.
+/// - `detail`: per-module facts (reasons, sources, per-dimension sizes), emitted
+///   as a **companion script**, because a 125 MB inline island is what we are
+///   avoiding and because `fetch()` cannot load a sibling file from `file://`
+///   in a browser. A `<script src>` can, so the detail data is a JS assignment.
+///
+/// Both are deterministic (sorted keys, no timestamps) so parity tests can diff
+/// them.
 fn build_payload(
     graph: &UnifiedBundleGraph,
     input: &Input,
@@ -225,10 +251,7 @@ fn build_payload(
     let mut tree = serde_json::Map::new();
     tree.insert("schema_version".into(), graph.schema_version.into());
     tree.insert("target".into(), input.label().into());
-    tree.insert(
-        "sizeDimensionNote".into(),
-        dimension_label(sizes).into(),
-    );
+    tree.insert("sizeDimension".into(), dimension_label(sizes).into());
     tree.insert("totals".into(), serde_json::to_value(&graph.totals).unwrap_or_default());
     tree.insert(
         "inputs".into(),
@@ -237,21 +260,22 @@ fn build_payload(
     tree.insert("diagnostics".into(), serde_json::to_value(&graph.diagnostics).unwrap_or_default());
     tree.insert("assets".into(), serde_json::to_value(&graph.assets).unwrap_or_default());
     tree.insert("chunks".into(), serde_json::to_value(&graph.chunks).unwrap_or_default());
-    tree.insert("modules".into(), serde_json::to_value(&graph.modules).unwrap_or_default());
     tree.insert(
-        "dimensions".into(),
+        "trees".into(),
         serde_json::to_value(
             &dims
                 .iter()
-                .map(|d| serde_json::json!({ "dimension": d, "payload": omnibundle_core::report::treemap_payload(graph, *d) }))
+                .map(|d| {
+                    serde_json::json!({
+                        "dimension": d.as_str(),
+                        "tree": omnibundle_core::report::treemap_tree(graph, *d),
+                    })
+                })
                 .collect::<Vec<_>>(),
         )
         .unwrap_or_default(),
     );
-    tree.insert(
-        "fusion".into(),
-        serde_json::to_value(&graph.fusion).unwrap_or_default(),
-    );
+    tree.insert("fusion".into(), serde_json::to_value(&graph.fusion).unwrap_or_default());
     serde_json::Value::Object(tree)
 }
 
@@ -261,23 +285,6 @@ fn dimension_label(s: Sizes) -> &'static str {
         Sizes::Parsed => "parsed",
         Sizes::Gzip => "gzip",
         Sizes::Attributed => "attributed",
-    }
-}
-
-/// Measure the emitted assets that sit next to the stats file. Without this the
-/// report would show the bundler's estimates only, which is the number users
-/// already distrust.
-fn measure_assets_from_disk(graph: &mut UnifiedBundleGraph, dir: &Path) {
-    for asset in &mut graph.assets {
-        let candidate = dir.join(&asset.name);
-        if let Ok(meta) = std::fs::metadata(&candidate) {
-            asset.sizes.parsed = meta.len();
-        }
-    }
-    for module in graph.modules.values_mut() {
-        if module.sizes.parsed == 0 {
-            module.sizes.parsed = module.sizes.stat;
-        }
     }
 }
 
@@ -464,22 +471,68 @@ mod report {
     const CSS: &str = include_str!("../../../assets/report/shell.css");
     const JS: &str = include_str!("../../../assets/report/shell.js");
 
-    pub fn render(payload: &serde_json::Value, target: &str) -> Result<String> {
-        let json = serde_json::to_string(payload)?;
-        // `</script>` inside an inlined JSON island would end the tag early;
-        // escaping the slash is the standard fix and costs nothing.
-        let json = json.replace("</", "<\\/");
+    /// Below this size the per-module detail is inlined and the report stays a
+    /// single file. Above it, the detail moves to `<report>.data.js` and the
+    /// HTML loads it with a `<script>` tag — which works from `file://`, unlike
+    /// `fetch`. Measured: 154,379 modules is ~121 MB of detail, which is a file
+    /// nobody opens.
+    pub const INLINE_LIMIT: usize = 2 * 1024 * 1024;
+
+    pub fn render(
+        payload: &serde_json::Value,
+        target: &str,
+        detail: &[u8],
+        inline_detail: bool,
+    ) -> Result<String> {
+        let json = escape_for_script_tag(&serde_json::to_string(payload)?);
+
+        let detail_block = if inline_detail {
+            format!(
+                "<script id=\"detail\" type=\"application/json\">{}</script>",
+                escape_for_script_tag(std::str::from_utf8(detail).unwrap_or("{}"))
+            )
+        } else {
+            "<script src=\"REPLACED_BY_DATA_SCRIPT\"></script>".to_string()
+        };
 
         Ok(HTML
             .replace("/*TITLE*/", target)
             .replace("/*CSS*/", CSS)
             .replace("/*PAYLOAD*/", &json)
+            .replace("<!--DETAIL-->", &detail_block)
             .replace("/*JS*/", JS))
     }
 
-    pub fn write(payload: &serde_json::Value, target: &str, out: &std::path::Path) -> Result<()> {
-        let html = render(payload, target)?;
+    pub fn write(
+        payload: &serde_json::Value,
+        target: &str,
+        out: &std::path::Path,
+        detail: &[u8],
+        inline_detail: bool,
+    ) -> Result<()> {
+        let html = render(payload, target, detail, inline_detail)?;
         std::fs::write(out, html).with_context(|| format!("writing {}", out.display()))?;
+        if !inline_detail {
+            let data_path = data_path(out);
+            let js = format!(
+                "window.__OB_DETAIL__ = {};\n",
+                escape_for_script_tag(std::str::from_utf8(detail).unwrap_or("{}"))
+            );
+            std::fs::write(&data_path, js)
+                .with_context(|| format!("writing {}", data_path.display()))?;
+        }
         Ok(())
+    }
+
+    pub fn data_path(report: &std::path::Path) -> std::path::PathBuf {
+        let mut name = report.file_name().unwrap_or_default().to_os_string();
+        name.push(".data.js");
+        report.with_file_name(name)
+    }
+
+    /// `</script>` inside an inlined JSON island would end the tag early;
+    /// escaping the slash is the standard fix and costs nothing.
+    fn escape_for_script_tag(s: &str) -> String {
+        s.replace("</", "<\\/")
     }
 }
