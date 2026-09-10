@@ -25,7 +25,7 @@ Rules that are not negotiable:
 | B5 | `.map` 50 MB / 10k sources, parse + attribute | real + synthetic | ≤ 1 s | unverified | WS-3 |
 | B6 | `source-map-explorer` baseline on the same `.map` | real + synthetic | any number, must exist | **0.22-0.25 s (small real), 18.4 s median (10k sources), 562 s (50k sources); 31-642 MB** | **WS-S ✅** |
 | B7 | gzip 25,600 assets | synthetic | — | **2,177 ms → 342 ms (6.4x)** | WS-2 |
-| B8 | fusion memory, 1 GB stats + 50 MB map | synthetic | < 500 MB peak | unverified | WS-4 |
+| B8 | fusion memory, 1 GB stats + 50 MB map | synthetic | < 500 MB peak | **partially met**: 67 MB on a 36.5 MB map + fusion; the 1 GB stats + map combination still unmeasured | WS-4 ⚠️ |
 | B9 | parity diff vs WBA / SME | real | ≤ 0.1 %, ordering only | unverified | WS-7 |
 | B10 | report: 10k modules, first paint / interaction | real | < 2 s / > 30 fps | unverified | WS-5 |
 

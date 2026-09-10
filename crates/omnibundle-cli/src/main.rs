@@ -72,6 +72,12 @@ struct Cli {
     /// numbers a release claims can be produced by the shipped binary.
     #[arg(long)]
     bench: bool,
+
+    /// Ingest a source map, attribute its bytes, print the totals, stop.
+    /// Measured by the harness for B5, against the same fixtures as the
+    /// `source-map-explorer` baseline.
+    #[arg(long)]
+    bench_map: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -113,9 +119,14 @@ fn main() -> ExitCode {
 }
 
 fn run(cli: &Cli) -> Result<ExitCode> {
+    if cli.bench_map {
+        return bench_source_map(&cli.path);
+    }
+
     let started = std::time::Instant::now();
     let found = discover(&cli.path)?;
     let phase = std::time::Instant::now();
+    let mut fusion: Option<(omnibundle_core::fusion::FusionOutcome, usize)> = None;
 
     let graph = match &found {
         Input::File(path) => {
@@ -144,6 +155,13 @@ fn run(cli: &Cli) -> Result<ExitCode> {
                 })?;
             let mut graph = stats::ingest_file(&picked, sniff_tool(&read_head(&picked, 512 * 1024)?))?;
             sizes::attribute_from_disk(&mut graph, dir)?;
+
+            // Fusion: any *.map next to the assets joins the graph (PRD 3.2).
+            let maps = omnibundle_core::fusion::maps_in_dir(dir);
+            if !maps.is_empty() {
+                let outcome = omnibundle_core::fusion::analyse(&mut graph, &maps);
+                fusion = Some((outcome, maps.len()));
+            }
             graph
         }
     };
@@ -202,6 +220,36 @@ fn run(cli: &Cli) -> Result<ExitCode> {
             let inline_detail = detail_json.len() <= report::INLINE_LIMIT;
 
             report::write(&payload, &label, &cli.report, detail_json.as_bytes(), inline_detail)?;
+            // The contract says a report must state the dimension it *used*,
+            // not the one that was requested: a partial source map downgrades
+            // `attributed` to `parsed`, and claiming otherwise is exactly the
+            // kind of lie this tool exists to remove.
+            let used = match graph.totals.size_dimension {
+                omnibundle_core::model::SizeDimension::Stat => "stat",
+                omnibundle_core::model::SizeDimension::Parsed => "parsed",
+                omnibundle_core::model::SizeDimension::Gzip => "gzip",
+                omnibundle_core::model::SizeDimension::Attributed => "attributed",
+            };
+            let requested = dimension_label(cli.default_sizes);
+            if used != requested {
+                // Say *why*, and say it in the right direction: `attributed` is
+                // an upgrade when the maps cover the build, and a downgrade when
+                // they do not. "Not available" is neither.
+                let reason = if used == "attributed" {
+                    "source maps cover the build, so this is ground truth"
+                } else {
+                    "that dimension is not measurable for this input"
+                };
+                let mut payload = payload.clone();
+                if let Some(obj) = payload.as_object_mut() {
+                    obj.insert("sizeDimension".into(), used.into());
+                }
+                let detail = omnibundle_core::report::detail_payload(&graph);
+                let detail_json = serde_json::to_string(&detail)?;
+                let inline = detail_json.len() <= report::INLINE_LIMIT;
+                report::write(&payload, &label, &cli.report, detail_json.as_bytes(), inline)?;
+                println!("showing `{used}` instead of `{requested}`: {reason} (OB0050)");
+            }
             let report_bytes = std::fs::metadata(&cli.report).map(|m| m.len()).unwrap_or(0);
             println!(
                 "{}  ·  {} modules  ·  {} assets  ·  {} packages  ·  ingest {} ms  ·  total {} ms  ·  dimension {}",
@@ -211,8 +259,20 @@ fn run(cli: &Cli) -> Result<ExitCode> {
                 graph.totals.package_count,
                 ingest_ms,
                 started.elapsed().as_millis(),
-                dimension_label(cli.default_sizes),
+                used,
             );
+            if let Some((outcome, maps)) = fusion {
+                println!(
+                    "fusion: {maps} map(s) · coverage {:.0}% · {}/{} modules attributed · {} ghost ({} of declared) · {} hidden source(s) ({})",
+                    outcome.coverage * 100.0,
+                    outcome.attributed_modules,
+                    graph.totals.module_count,
+                    outcome.ghost_count,
+                    human_bytes(outcome.ghost_bytes),
+                    outcome.hidden_count,
+                    human_bytes(outcome.hidden_bytes),
+                );
+            }
             println!(
                 "wrote {} ({:.1} MB){}",
                 cli.report.display(),
@@ -277,6 +337,16 @@ fn build_payload(
     );
     tree.insert("fusion".into(), serde_json::to_value(&graph.fusion).unwrap_or_default());
     serde_json::Value::Object(tree)
+}
+
+fn human_bytes(n: u64) -> String {
+    const KB: f64 = 1024.0;
+    let mb = n as f64 / (1024.0 * 1024.0);
+    if mb >= 1.0 {
+        format!("{mb:.1} MB")
+    } else {
+        format!("{:.0} KB", n as f64 / KB)
+    }
 }
 
 fn dimension_label(s: Sizes) -> &'static str {
@@ -397,6 +467,41 @@ mod regex_lite {
             assert!(!glob("*.min.js", "a/b/x.min.js.map"));
         }
     }
+}
+
+/// B5: parse a source map, attribute its bytes, print the numbers.
+///
+/// The map is streamed from disk, exactly like the stats path, because the
+/// WS-S baseline showed this workload reaching 642 MB — a `fs::read` here would
+/// put the file size straight back on the floor.
+fn bench_source_map(path: &Path) -> Result<ExitCode> {
+    let started = std::time::Instant::now();
+    let dir = path.parent();
+    let file = std::fs::File::open(path).with_context(|| format!("opening {}", path.display()))?;
+
+    let parse_started = std::time::Instant::now();
+    let map = omnibundle_core::sourcemap::parse_reader(file)
+        .with_context(|| format!("parsing {}", path.display()))?;
+    let parse_ms = parse_started.elapsed().as_millis();
+
+    let attr_started = std::time::Instant::now();
+    let by_path = map.attribution_by_path(dir);
+    let attributed_total: u64 = by_path.values().sum();
+    let attribute_ms = attr_started.elapsed().as_millis();
+
+    println!(
+        "{{\"tool\":\"omnibundle@{}\",\"input\":\"{}\",\"parse_ms\":{},\"attribute_ms\":{},\"total_ms\":{},\"sources\":{},\"mappings\":{},\"attributed_files\":{},\"attributed_total\":{}}}",
+        env!("CARGO_PKG_VERSION"),
+        file_name(path),
+        parse_ms,
+        attribute_ms,
+        started.elapsed().as_millis(),
+        map.sources.len(),
+        map.mappings.len(),
+        by_path.len(),
+        attributed_total,
+    );
+    Ok(ExitCode::SUCCESS)
 }
 
 enum Input {
