@@ -19,7 +19,7 @@ use crate::{Error, Result};
 ///
 /// Measured on the corrected 1 GB fixture, a 445,602-module stats file.
 pub fn ingest_reader<R: std::io::Read>(reader: R, tool: &str) -> Result<UnifiedBundleGraph> {
-    let buffered = std::io::BufReader::with_capacity(1 << 20, reader);
+    let buffered = std::io::BufReader::with_capacity(1 << 20, crate::bom::BomSkip::new(reader));
     let mut de = serde_json::Deserializer::from_reader(buffered);
     use serde::de::Deserializer as _;
     let graph = de.deserialize_map(StatsVisitor { tool: tool.to_string() })?;

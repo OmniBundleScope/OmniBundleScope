@@ -16,6 +16,8 @@
     "webpack-bundle-analyzer": "^4.10.2"
   },
   "devDependencies": {
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "webpack": "^5.111.1",
+    "webpack-cli": "^7.2.3"
   }
 }

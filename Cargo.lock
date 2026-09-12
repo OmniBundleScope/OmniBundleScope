@@ -265,6 +265,7 @@ dependencies = [
  "clap",
  "omnibundle-core",
  "rayon",
+ "serde",
  "serde_json",
 ]
 

@@ -81,7 +81,7 @@ struct RawOffset {
 pub fn parse_reader<R: Read>(reader: R) -> Result<ParsedSourceMap> {
     let raw: RawMap = serde_json::from_reader(std::io::BufReader::with_capacity(
         1 << 20,
-        reader,
+        crate::bom::BomSkip::new(reader),
     ))
     .map_err(Error::Json)?;
 

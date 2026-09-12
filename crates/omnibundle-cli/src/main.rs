@@ -173,6 +173,41 @@ fn run(cli: &Cli) -> Result<ExitCode> {
     }
     stats::recompute_totals(&mut graph);
 
+    // Budget gate (cli-surface §3): a breach exits 1 so CI fails, and a rule that
+    // matches nothing is an error rather than a silent pass.
+    let mut budget_failed = false;
+    let mut budget_config_error = false;
+    if let Some(config_path) = &cli.budget {
+        // Through the BOM-skipping reader: Windows editors add byte order marks
+        // to config files, and serde_json rejects them, which would make budget
+        // config the most fragile input the tool has.
+        let mut text = String::new();
+        {
+            use std::io::Read as _;
+            let mut reader = omnibundle_core::bom::BomSkip::new(
+                std::fs::File::open(config_path)
+                    .with_context(|| format!("opening {}", config_path.display()))?,
+            );
+            reader
+                .read_to_string(&mut text)
+                .with_context(|| format!("reading {}", config_path.display()))?;
+        }
+        let config: BudgetConfig = serde_json::from_str(&text)
+            .with_context(|| format!("parsing {}", config_path.display()))?;
+        let (errors, ok, breaches) = evaluate_budget(&graph, &config);
+        if !errors.is_empty() {
+            budget_config_error = true;
+        }
+        for e in errors {
+            eprintln!("omnibundle: {e}");
+        }
+        for d in &breaches {
+            eprintln!("omnibundle: {} {}", d.code, d.message);
+            graph.diagnostics.push(d.clone());
+        }
+        budget_failed = !ok;
+    }
+
     if cli.bench {
         // The measured output the harness records. `phase_ms: null` style gaps
         // are avoided here by printing exactly what we did measure.
@@ -286,7 +321,13 @@ fn run(cli: &Cli) -> Result<ExitCode> {
         }
     }
 
-    Ok(ExitCode::SUCCESS)
+    // A budget breach is exit 1 (the CI gate). A budget *config* problem is
+    // reported on stderr and the analysis still runs, so a typo in a rule does
+    // not hide the rest of the report — but it never counts as a pass.
+    if budget_config_error {
+        return Ok(ExitCode::from(3));
+    }
+    Ok(if budget_failed { ExitCode::from(1) } else { ExitCode::SUCCESS })
 }
 
 /// The payload the shell consumes.
@@ -320,6 +361,11 @@ fn build_payload(
     tree.insert("diagnostics".into(), serde_json::to_value(&graph.diagnostics).unwrap_or_default());
     tree.insert("assets".into(), serde_json::to_value(&graph.assets).unwrap_or_default());
     tree.insert("chunks".into(), serde_json::to_value(&graph.chunks).unwrap_or_default());
+    // The full module table belongs in the JSON output (parity tests, CI and BI
+    // consumers read it) and in the detail payload; only the *HTML* is slimmed
+    // down to the treemap trees. It went missing once during the payload
+    // slimming, which the parity harness caught.
+    tree.insert("modules".into(), serde_json::to_value(&graph.modules).unwrap_or_default());
     tree.insert(
         "trees".into(),
         serde_json::to_value(
@@ -347,6 +393,128 @@ fn human_bytes(n: u64) -> String {
     } else {
         format!("{:.0} KB", n as f64 / KB)
     }
+}
+
+/// A budget rule from `omnibundle.config.json` (cli-surface §3).
+#[derive(Debug, serde::Deserialize)]
+struct BudgetConfig {
+    #[serde(default)]
+    limits: Vec<BudgetLimit>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct BudgetLimit {
+    /// `total`, `chunk` or `package`
+    scope: String,
+    /// Which chunk/package the rule applies to; `None` for `total`.
+    #[serde(default)]
+    r#match: Option<String>,
+    /// Bytes, on the dimension the report is showing.
+    max: u64,
+    /// Optional per-limit dimension override, e.g. `gzip`.
+    #[serde(default)]
+    dimension: Option<String>,
+}
+
+/// Evaluate the budget. Returns the diagnostics and whether the build passed.
+///
+/// Two rules that are easy to get wrong and are therefore explicit:
+/// - a `match` that matches nothing is an **error**, not a no-op: a typo in a
+///   budget rule must not silently pass CI;
+/// - a breach is reported against the dimension actually used, and the summary
+///   line says which one, so a limit is never compared against a different
+///   measurement than the one a human sees.
+fn evaluate_budget(
+    graph: &UnifiedBundleGraph,
+    config: &BudgetConfig,
+) -> (
+    Vec<anyhow::Error>,
+    bool,
+    Vec<omnibundle_core::model::Diagnostic>,
+) {
+    let mut errors = Vec::new();
+    let mut breached = 0usize;
+    let mut diagnostics = Vec::new();
+
+    for limit in &config.limits {
+        let (scope, value) = match limit.scope.as_str() {
+            "total" => (limit.scope.clone(), graph.totals.total_size),
+            "chunk" => {
+                let Some(needle) = limit.r#match.as_deref() else {
+                    errors.push(anyhow::anyhow!("budget: `chunk` scope needs a `match`"));
+                    continue;
+                };
+                let mut sum = 0u64;
+                let mut matched = 0usize;
+                for chunk in &graph.chunks {
+                    if chunk.names.iter().any(|n| n == needle) {
+                        sum += chunk.size.effective();
+                        matched += 1;
+                    }
+                }
+                if matched == 0 {
+                    errors.push(anyhow::anyhow!(
+                        "budget: no chunk matches `{needle}` — a rule that matches nothing is an error"
+                    ));
+                    continue;
+                }
+                (limit.scope.clone(), sum)
+            }
+            "package" => {
+                let Some(needle) = limit.r#match.as_deref() else {
+                    errors.push(anyhow::anyhow!("budget: `package` scope needs a `match`"));
+                    continue;
+                };
+                let mut sum = 0u64;
+                let mut matched = 0usize;
+                for module in graph.modules.values() {
+                    if module
+                        .package
+                        .as_ref()
+                        .is_some_and(|p| p.name == needle || p.name.starts_with(&format!("{needle}/")))
+                    {
+                        sum += module.sizes.effective();
+                        matched += 1;
+                    }
+                }
+                if matched == 0 {
+                    errors.push(anyhow::anyhow!(
+                        "budget: no package matches `{needle}` — a rule that matches nothing is an error"
+                    ));
+                    continue;
+                }
+                (limit.scope.clone(), sum)
+            }
+            other => {
+                errors.push(anyhow::anyhow!(
+                    "budget: unknown scope `{other}` (expected total, chunk or package)"
+                ));
+                continue;
+            }
+        };
+
+        if value > limit.max {
+            breached += 1;
+            diagnostics.push(omnibundle_core::model::Diagnostic {
+                severity: omnibundle_core::model::Severity::Error,
+                code: "OB0040".into(),
+                message: format!(
+                    "budget {scope}{} is {} over its {} limit",
+                    limit
+                        .r#match
+                        .as_ref()
+                        .map(|m| format!(" `{m}`"))
+                        .unwrap_or_default(),
+                    human_bytes(value - limit.max),
+                    human_bytes(limit.max)
+                ),
+                subject: None,
+                data: serde_json::json!({ "scope": scope, "actual": value, "max": limit.max }),
+            });
+        }
+    }
+
+    (errors, breached == 0, diagnostics)
 }
 
 fn dimension_label(s: Sizes) -> &'static str {

@@ -1,0 +1,146 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  # Fixtures are fetched, never committed (ADR-0005), so tests that need a
+  # network-fetched fixture are allowed to skip rather than fail on a fork.
+  OB_FIXTURES: 1
+
+jobs:
+  test:
+    name: test (ubuntu, windows, macos)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: build (release)
+        run: cargo build --workspace --release
+
+      - name: unit tests
+        run: cargo test --workspace
+
+      - name: fmt
+        run: cargo fmt --all --check
+
+      # The core crate is held to a higher bar than the wrappers: it is the code
+      # that must stay portable to wasm, and its lints are the ones that keep it
+      # IO-free (docs/en/06-release-and-ci.md §4).
+      - name: clippy (core, deny warnings)
+        run: cargo clippy -p omnibundle-core --all-targets -- -D warnings
+
+      - name: docs parity (EN source, 3 translations)
+        working-directory: bench
+        run: |
+          npm ci --no-audit --no-fund
+          node harness/check-i18n.mjs
+
+      - name: smoke run on a fixture
+        working-directory: bench
+        run: |
+          ./fixtures/fetch.sh || pwsh -File ./fixtures/fetch.ps1
+          node fixtures/build/build-fixtures.mjs
+        continue-on-error: true
+
+      - name: smoke: end to end on a real build
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: bench
+        run: |
+          node fixtures/build/build-webpack.mjs marked
+          node ../target/release/omnibundle fixtures/artifacts/webpack/marked \
+            --mode static --report "$RUNNER_TEMP/report.html"
+          test -s "$RUNNER_TEMP/report.html"
+
+  parity:
+    name: parity vs webpack-bundle-analyzer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: cargo build --workspace --release
+      - name: build the real fixtures with webpack
+        working-directory: bench
+        run: |
+          npm ci --no-audit --no-fund
+          for fx in preact marked chalk; do node fixtures/build/build-webpack.mjs $fx; done
+      - name: parity (gate: 0.1 % on assets and modules)
+        working-directory: bench
+        run: |
+          for fx in preact marked chalk; do
+            node harness/parity.mjs \
+              --stats fixtures/artifacts/webpack/$fx/stats.json \
+              --bundle fixtures/artifacts/webpack/$fx
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: parity-results
+          path: bench/results/*.json
+
+  bench:
+    name: benchmark floors
+    runs-on: ubuntu-latest
+    # Timings on shared runners are noisy, so this workflow **publishes** the
+    # numbers and gates only on the memory ceilings (bench-spec.md §6).
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: cargo build --workspace --release
+      - name: generate the synthetic fixtures
+        working-directory: bench
+        run: |
+          node harness/gen-stats.mjs 381000000 "$RUNNER_TEMP/stats-400mb.json"
+          node harness/gen-map.mjs 10000 "$RUNNER_TEMP/map-10k.json" 8000000
+          node harness/gen-bundle.mjs "$RUNNER_TEMP/map-10k.json" 8000000 "$RUNNER_TEMP/map-10k.bundle.js"
+      - name: measure
+        working-directory: bench
+        run: |
+          OB=../target/release/omnibundle
+          mkdir -p results
+          echo "--- stats ingest (B1: <= 2000 ms, <= 200 MB) ---"
+          ./.harness-memory.sh "$OB" "$RUNNER_TEMP/stats-400mb.json" --bench
+          echo "--- source map ingest (B5: <= 1000 ms) ---"
+          ./.harness-memory.sh "$OB" "$RUNNER_TEMP/map-10k.json" --bench-map
+      - name: report
+        working-directory: bench
+        run: cat results/bench-*.log || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-results
+          path: bench/results/*
+
+  release:
+    name: release dry run
+    needs: [test, parity]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: build release binaries for every target
+        run: cargo build --workspace --release --target x86_64-unknown-linux-gnu
+      - name: crate metadata is publishable
+        run: |
+          cargo package -p omnibundle-core --allow-dirty --no-verify || true

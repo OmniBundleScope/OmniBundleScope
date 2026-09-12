@@ -15,6 +15,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod bom;
 pub mod error;
 pub mod fusion;
 pub mod model;
