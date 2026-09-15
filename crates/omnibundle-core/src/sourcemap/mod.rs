@@ -17,7 +17,6 @@ use crate::{Error, Result};
 /// `Vec<Mapping>`** with no per-mapping `String` and no per-file length string —
 /// the exact allocation pattern the upstream issue blames. Per-file attribution
 /// is then a single pass over sorted mappings (`O(n)`), not a nested walk.
-
 /// One decoded mapping entry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Mapping {
@@ -70,6 +69,8 @@ struct RawOffset {
     #[serde(default)]
     line: u32,
     #[serde(default)]
+    /// Kept for the report's drill-down; the attribution itself is offset-based.
+    #[allow(dead_code)]
     column: u32,
 }
 
@@ -94,26 +95,21 @@ pub fn parse_reader<R: Read>(reader: R) -> Result<ParsedSourceMap> {
 
     // indexed maps: concatenate the sections with their line/column offsets
     if !raw.sections.is_empty() {
-        let mut merged = ParsedSourceMap {
-            file: raw.file,
-            ..ParsedSourceMap::default()
-        };
+        let mut merged = ParsedSourceMap { file: raw.file, ..ParsedSourceMap::default() };
         for section in raw.sections {
             let base = base_offset(&section.map.mappings, section.offset.line);
             let sub = decode(&section.map.mappings)?;
-            let mut sub = remap_indices(
-                sub,
-                section.map.names.len(),
-                merged.sources.len() as u32,
-            );
+            // A source-map v3 `sources` index is a u32 on the wire; a section
+            // list that would need more than 2^32 sources is not a map, and
+            // saturating keeps the index inside the field rather than wrapping.
+            let source_base = u32::try_from(merged.sources.len()).unwrap_or(u32::MAX);
+            let mut sub = remap_indices(sub, section.map.names.len(), source_base);
             for m in &mut sub {
                 m.generated_offset = m.generated_offset.saturating_add(base);
             }
             merged.sources.extend(section.map.sources);
             merged.names.extend(section.map.names);
-            merged
-                .sources_content
-                .extend(section.map.sources_content);
+            merged.sources_content.extend(section.map.sources_content);
             merged.mappings.extend(sub);
         }
         merged.mappings.sort_unstable_by_key(|m| m.generated_offset);
@@ -147,25 +143,33 @@ pub fn parse_bytes(bytes: &[u8]) -> Result<ParsedSourceMap> {
 
 /// The byte offset of the first segment on `line`, in generated coordinates.
 fn base_offset(mappings: &str, line: u32) -> u32 {
-    let mut current_line = 0u32;
     let mut offset = 0u32;
-    for part in mappings.split(';') {
-        if current_line == line {
+    for (current_line, part) in mappings.split(';').enumerate() {
+        if u32::try_from(current_line).is_ok_and(|l| l == line) {
             return offset;
         }
         for seg in part.split(',') {
             if let Some((first, _)) = seg.split_once(':') {
                 let v = decode_vlq(first);
-                offset = offset.saturating_add(v.unsigned_abs() as u32);
+                offset = offset.saturating_add(narrow(v));
             } else {
                 // 1-field segment: a generated column advance with no source
-                offset = offset.saturating_add(decode_vlq(seg).unsigned_abs() as u32);
+                offset = offset.saturating_add(narrow(decode_vlq(seg)));
             }
         }
         offset = offset.saturating_add(1); // the newline itself
-        current_line += 1;
     }
     offset
+}
+
+/// Narrow a decoded VLQ delta to the `u32` a v3 map addresses with.
+///
+/// The format's generated position is a (line, column) pair, so one segment
+/// cannot describe more than 2^32 bytes; a delta that does comes from a corrupt
+/// map. Clamping keeps the parse going with a stated number, where a wrapping
+/// cast would jump backwards and mis-attribute every byte after it.
+fn narrow(v: i64) -> u32 {
+    u32::try_from(v.max(0)).unwrap_or(u32::MAX)
 }
 
 /// Shift source indices so sections can be concatenated.
@@ -210,7 +214,7 @@ pub fn decode(mappings: &str) -> Result<Vec<Mapping>> {
                 continue;
             }
 
-            generated_offset = generated_offset.saturating_add(values[0].max(0) as u32);
+            generated_offset = generated_offset.saturating_add(narrow(values[0]));
             if count < 4 {
                 // A one-field segment only advances the generated column.
                 continue;
@@ -234,10 +238,11 @@ pub fn decode(mappings: &str) -> Result<Vec<Mapping>> {
 
             out.push(Mapping {
                 generated_offset,
-                source_index: source_index as u32,
-                original_line: original_line as u32,
-                original_column: original_column as u32,
-                name_index: name.map(|n| n as u32),
+                // The negative cases returned above; `narrow` clamps the rest.
+                source_index: narrow(source_index),
+                original_line: narrow(original_line),
+                original_column: narrow(original_column),
+                name_index: name.map(narrow),
             });
         }
         generated_offset = generated_offset.saturating_add(1); // the newline
@@ -279,9 +284,9 @@ fn base64_digit(byte: u8) -> Option<u8> {
     const TABLE: [u8; 128] = {
         let mut t = [255u8; 128];
         let alphabet = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-        let mut i = 0;
-        while i < alphabet.len() {
-            t[alphabet[i] as usize] = i as u8;
+        let mut i = 0u8;
+        while (i as usize) < alphabet.len() {
+            t[alphabet[i as usize] as usize] = i;
             i += 1;
         }
         t
@@ -317,18 +322,18 @@ impl ParsedSourceMap {
         for pair in self.mappings.windows(2) {
             let (a, b) = (pair[0], pair[1]);
             let len = u64::from(b.generated_offset.saturating_sub(a.generated_offset));
-            if len > 0 {
-                if let Some(slot) = out.get_mut(a.source_index as usize) {
-                    *slot += len;
-                }
+            if len > 0
+                && let Some(slot) = out.get_mut(a.source_index as usize)
+            {
+                *slot += len;
             }
         }
         if let Some(last) = self.mappings.last() {
             let tail = generated_len.saturating_sub(u64::from(last.generated_offset));
-            if tail > 0 {
-                if let Some(slot) = out.get_mut(last.source_index as usize) {
-                    *slot += tail;
-                }
+            if tail > 0
+                && let Some(slot) = out.get_mut(last.source_index as usize)
+            {
+                *slot += tail;
             }
         }
         out.into_iter().enumerate().filter(|(_, b)| *b > 0).collect()
@@ -357,9 +362,7 @@ impl ParsedSourceMap {
     }
 
     pub fn total_generated_bytes(&self) -> u64 {
-        self.mappings
-            .last()
-            .map_or(0, |m| u64::from(m.generated_offset))
+        self.mappings.last().map_or(0, |m| u64::from(m.generated_offset))
     }
 
     /// `sourcesContent` index for a source, if the map embedded it.
@@ -530,8 +533,20 @@ mod tests {
             names: vec![],
             sources_content: vec![Some("x".into())],
             mappings: vec![
-                super::Mapping { generated_offset: 0, source_index: 0, original_line: 0, original_column: 0, name_index: None },
-                super::Mapping { generated_offset: 500, source_index: 0, original_line: 1, original_column: 0, name_index: None },
+                super::Mapping {
+                    generated_offset: 0,
+                    source_index: 0,
+                    original_line: 0,
+                    original_column: 0,
+                    name_index: None,
+                },
+                super::Mapping {
+                    generated_offset: 500,
+                    source_index: 0,
+                    original_line: 1,
+                    original_column: 0,
+                    name_index: None,
+                },
             ],
             file: None,
         };

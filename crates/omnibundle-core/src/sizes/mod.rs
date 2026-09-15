@@ -4,8 +4,8 @@ use std::path::Path;
 
 use rayon::prelude::*;
 
-use crate::model::{SizeSet, UnifiedBundleGraph};
 use crate::Result;
+use crate::model::{SizeSet, UnifiedBundleGraph};
 
 /// Measure every asset on disk and fill `parsed` and `gzip`.
 ///
@@ -13,6 +13,12 @@ use crate::Result;
 /// gzipped serially took 2,177 ms, rayon takes 342 ms (6.4x, measured). Parallel
 /// gzip plus reading the file only once is the whole win — there is no
 /// cleverer trick available, and pretending otherwise would be dishonest.
+///
+/// # Errors
+/// Returns an error when an asset named in the stats file is missing from `dir`
+/// (`OB0002`) or cannot be read. A missing asset is an error rather than a
+/// zero: a silently zero-sized asset makes the treemap lie about where the
+/// bytes went.
 pub fn attribute_from_disk(graph: &mut UnifiedBundleGraph, dir: &Path) -> Result<()> {
     // (asset index, name, bytes) — collect the paths first so the parallel pass
     // does no IO on the critical path of the iterator.
@@ -88,21 +94,47 @@ fn propagate_asset_sizes_to_modules(graph: &mut UnifiedBundleGraph) {
         .chunks
         .iter()
         .map(|chunk| {
-            let stat: u64 = chunk.assets.iter().filter_map(|n| graph.assets.iter().find(|a| &a.name == n)).map(|a| a.sizes.stat).sum();
-            let parsed: u64 = chunk.assets.iter().filter_map(|n| graph.assets.iter().find(|a| &a.name == n)).map(|a| a.sizes.parsed).sum();
+            let stat: u64 = chunk
+                .assets
+                .iter()
+                .filter_map(|n| graph.assets.iter().find(|a| &a.name == n))
+                .map(|a| a.sizes.stat)
+                .sum();
+            let parsed: u64 = chunk
+                .assets
+                .iter()
+                .filter_map(|n| graph.assets.iter().find(|a| &a.name == n))
+                .map(|a| a.sizes.parsed)
+                .sum();
             let factor = if stat > 0 && parsed > 0 { parsed as f64 / stat as f64 } else { 1.0 };
             (chunk.id, factor)
         })
         .collect();
 
     for module in graph.modules.values_mut() {
-        let factor = module
-            .chunks
-            .iter()
-            .filter_map(|c| scale.get(c))
-            .fold(1.0_f64, |acc, f| acc.max(*f));
-        if factor != 1.0 {
-            module.sizes.parsed = (module.sizes.stat as f64 * factor).round() as u64;
+        let factor =
+            module.chunks.iter().filter_map(|c| scale.get(c)).fold(1.0_f64, |acc, f| acc.max(*f));
+        // A factor of exactly 1.0 means the module's chunk had no measured
+        // size, so the declared size stands unchanged — no rescaling, and no
+        // float comparison deciding it either way.
+        if factor > 1.0 {
+            // `as u64` on a float is UB-adjacent for a negative or NaN input and
+            // saturating above 2^64, and a wrapped value here would be a module
+            // claiming to be 18 exabytes. The scale factor is a measured ratio,
+            // so it is finite and positive; the checked conversion says so out
+            // loud rather than trusting it.
+            let scaled = (module.sizes.stat as f64 * factor).round();
+            module.sizes.parsed = if scaled.is_finite() && scaled > 0.0 {
+                // Clamped, so the cast below cannot truncate or go negative.
+                #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                {
+                    scaled.min(u64::MAX as f64) as u64
+                }
+            } else {
+                // A non-finite scale means the asset size was unusable; the
+                // declared size is the only number we can still stand behind.
+                module.sizes.stat
+            };
         } else {
             module.sizes.parsed = module.sizes.stat;
         }

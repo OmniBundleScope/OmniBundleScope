@@ -19,9 +19,10 @@ use crate::{Error, Result};
 ///
 /// Measured on the corrected 1 GB fixture, a 445,602-module stats file.
 pub fn ingest_reader<R: std::io::Read>(reader: R, tool: &str) -> Result<UnifiedBundleGraph> {
+    use serde::de::Deserializer as _;
+
     let buffered = std::io::BufReader::with_capacity(1 << 20, crate::bom::BomSkip::new(reader));
     let mut de = serde_json::Deserializer::from_reader(buffered);
-    use serde::de::Deserializer as _;
     let graph = de.deserialize_map(StatsVisitor { tool: tool.to_string() })?;
     de.end()?;
     Ok(graph)
@@ -57,7 +58,10 @@ impl<'de> Visitor<'de> for StatsVisitor {
         f.write_str("a webpack/rspack stats object")
     }
 
-    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> std::result::Result<Self::Value, A::Error> {
+    fn visit_map<A: MapAccess<'de>>(
+        self,
+        mut map: A,
+    ) -> std::result::Result<Self::Value, A::Error> {
         let mut graph = UnifiedBundleGraph::new();
         let mut saw_modules = false;
 
@@ -143,10 +147,7 @@ impl<'de, T: serde::Deserialize<'de>> DeserializeSeed<'de> for SeqCollector<'_, 
             fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 f.write_str("an array")
             }
-            fn visit_seq<A: SeqAccess<'de>>(
-                self,
-                mut seq: A,
-            ) -> std::result::Result<(), A::Error> {
+            fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> std::result::Result<(), A::Error> {
                 while let Some(item) = seq.next_element::<T>()? {
                     self.out.push(item);
                 }
@@ -169,6 +170,7 @@ impl<'de> DeserializeSeed<'de> for ModulesInto<'_> {
     fn deserialize<D: serde::Deserializer<'de>>(self, d: D) -> std::result::Result<(), D::Error> {
         struct V<'a> {
             modules: &'a mut BTreeMap<String, Module>,
+            interned: &'a mut std::collections::HashMap<String, std::sync::Arc<PackageRef>>,
         }
         impl<'de> Visitor<'de> for V<'_> {
             type Value = ();
@@ -177,27 +179,27 @@ impl<'de> DeserializeSeed<'de> for ModulesInto<'_> {
                 f.write_str("a modules array")
             }
 
-            fn visit_seq<A: SeqAccess<'de>>(
-                self,
-                mut seq: A,
-            ) -> std::result::Result<(), A::Error> {
+            fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> std::result::Result<(), A::Error> {
                 while let Some(raw) = seq.next_element::<RawModule>()? {
                     let chunk = raw.chunks.first().copied();
                     let id = join_key(raw.identifier.as_deref(), &raw.name, chunk);
-                    let package = package_of(&raw.name).map(|(name, path)| PackageRef {
-                        name,
-                        version: None,
-                        path,
+                    let package = package_of(&raw.name).map(|(name, path)| {
+                        let cache_key = format!("{name}\u{1}{path}");
+                        match self.interned.entry(cache_key) {
+                            std::collections::hash_map::Entry::Occupied(e) => e.get().clone(),
+                            std::collections::hash_map::Entry::Vacant(e) => {
+                                let shared =
+                                    std::sync::Arc::new(PackageRef { name, version: None, path });
+                                e.insert(shared.clone());
+                                shared
+                            }
+                        }
                     });
                     let module = Module {
                         id: id.clone(),
                         name: raw.name,
                         issuer: raw.issuer_name,
-                        reasons: raw
-                            .reasons
-                            .into_iter()
-                            .filter_map(|r| r.module_name)
-                            .collect(),
+                        reasons: raw.reasons.into_iter().filter_map(|r| r.module_name).collect(),
                         package,
                         chunks: raw.chunks,
                         sizes: SizeSet { stat: raw.size, ..SizeSet::default() },
@@ -209,7 +211,13 @@ impl<'de> DeserializeSeed<'de> for ModulesInto<'_> {
                 Ok(())
             }
         }
-        d.deserialize_seq(V { modules: self.modules })
+        // One `PackageRef` per distinct package, shared by every module in it.
+        // A stats file has hundreds of thousands of modules and a few hundred
+        // packages; allocating the strings per module cost ~55 MB of the 400 MB
+        // budget on the 1 GB fixture.
+        let mut interned: std::collections::HashMap<String, std::sync::Arc<PackageRef>> =
+            std::collections::HashMap::new();
+        d.deserialize_seq(V { modules: self.modules, interned: &mut interned })
     }
 }
 
@@ -308,7 +316,8 @@ pub fn ingest_metafile(bytes: &[u8]) -> Result<UnifiedBundleGraph> {
             name: name.clone(),
             issuer: None,
             reasons: Vec::new(),
-            package: package.map(|(name, path)| PackageRef { name, version: None, path }),
+            package: package
+                .map(|(name, path)| std::sync::Arc::new(PackageRef { name, version: None, path })),
             chunks: Vec::new(),
             sizes: SizeSet { stat: input.bytes, ..SizeSet::default() },
             attribution_delta: 0,
@@ -344,7 +353,7 @@ pub fn ingest_metafile(bytes: &[u8]) -> Result<UnifiedBundleGraph> {
 /// slice, so the caller has already paid the file size in memory. (Both are
 /// correct; only one of them is the product.)
 pub fn ingest_file(path: &std::path::Path, tool: &str) -> Result<UnifiedBundleGraph> {
-    let file = std::fs::File::open(path).map_err(|e| Error::Io(e))?;
+    let file = std::fs::File::open(path).map_err(Error::Io)?;
     ingest_reader(file, tool)
 }
 

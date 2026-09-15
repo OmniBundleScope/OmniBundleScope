@@ -1,6 +1,6 @@
 //! `omnibundle` CLI.
 //!
-//! The surface is aligned with the two tools OmniBundle replaces so users can
+//! The surface is aligned with the two tools `OmniBundle` replaces so users can
 //! swap the command and keep the flags they know. Normative spec:
 //! `docs/contracts/cli-surface.md`.
 //!
@@ -22,8 +22,8 @@ use clap::{Parser, ValueEnum};
 
 use omnibundle_core::model::UnifiedBundleGraph;
 use omnibundle_core::report::Dimension;
-use omnibundle_core::stats;
 use omnibundle_core::sizes;
+use omnibundle_core::stats;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -31,6 +31,9 @@ use omnibundle_core::sizes;
     version,
     about = "Analyse bundler output (stats.json, *.map, dist folders) in one pass"
 )]
+/// Clap flags are booleans by nature. The lint is about readability at a call
+/// site, and every one of these is a named `--flag` in `cli-surface.md`.
+#[allow(clippy::struct_excessive_bools)]
 struct Cli {
     /// Path to analyse: a dist folder, a stats.json, or a metafile.json.
     path: PathBuf,
@@ -107,6 +110,9 @@ enum Dims {
     Chunk,
 }
 
+// Display arithmetic (ytes as f64 / 1_048_576.0) is the only precision loss
+// allowed here, and it is allowed for the reason given in omnibundle-core.
+#[allow(clippy::cast_precision_loss)]
 fn main() -> ExitCode {
     let cli = Cli::parse();
     match run(&cli) {
@@ -118,6 +124,13 @@ fn main() -> ExitCode {
     }
 }
 
+/// The one pipeline, in the order the phases depend on: discover, ingest,
+/// measure, fuse, gate, report.
+///
+/// It is long because splitting it would hide the ordering that makes the
+/// numbers correct (measure before fuse, fuse before the budget, budget before
+/// the report so a breach is in the report too).
+#[allow(clippy::too_many_lines, clippy::cast_precision_loss)]
 fn run(cli: &Cli) -> Result<ExitCode> {
     if cli.bench_map {
         return bench_source_map(&cli.path);
@@ -142,18 +155,16 @@ fn run(cli: &Cli) -> Result<ExitCode> {
         Input::Folder(dir) => {
             // Prefer the richest artifact in the folder, per cli-surface §4.
             let candidates = ["stats.json", "stats.stats.json", "metafile.json"];
-            let picked = candidates
-                .iter()
-                .map(|n| dir.join(n))
-                .find(|p| p.is_file())
-                .ok_or_else(|| {
+            let picked =
+                candidates.iter().map(|n| dir.join(n)).find(|p| p.is_file()).ok_or_else(|| {
                     anyhow::anyhow!(
                         "no recognised artifact in {}. Looked for {}",
                         dir.display(),
                         candidates.join(", ")
                     )
                 })?;
-            let mut graph = stats::ingest_file(&picked, sniff_tool(&read_head(&picked, 512 * 1024)?))?;
+            let mut graph =
+                stats::ingest_file(&picked, sniff_tool(&read_head(&picked, 512 * 1024)?))?;
             sizes::attribute_from_disk(&mut graph, dir)?;
 
             // Fusion: any *.map next to the assets joins the graph (PRD 3.2).
@@ -240,25 +251,21 @@ fn run(cli: &Cli) -> Result<ExitCode> {
             .collect()
     };
 
-    let payload = build_payload(&graph, &found, dims, cli.default_sizes);
+    // `--mode json` is a machine contract and carries every module; the HTML
+    // report is a picture and does not.
+    let payload = build_payload(&graph, &found, &dims, cli.default_sizes, cli.mode == Mode::Json);
 
     match cli.mode {
         Mode::Json => println!("{}", serde_json::to_string_pretty(&payload)?),
         Mode::Static => {
-            let label = payload
-                .get("target")
-                .and_then(|v| v.as_str())
-                .unwrap_or("bundle")
-                .to_string();
-            let detail = omnibundle_core::report::detail_payload(&graph);
-            let detail_json = serde_json::to_string(&detail)?;
-            let inline_detail = detail_json.len() <= report::INLINE_LIMIT;
+            let label =
+                payload.get("target").and_then(|v| v.as_str()).unwrap_or("bundle").to_string();
 
-            report::write(&payload, &label, &cli.report, detail_json.as_bytes(), inline_detail)?;
-            // The contract says a report must state the dimension it *used*,
-            // not the one that was requested: a partial source map downgrades
+            // The contract says a report must state the dimension it *used*, not
+            // the one that was requested: a partial source map downgrades
             // `attributed` to `parsed`, and claiming otherwise is exactly the
-            // kind of lie this tool exists to remove.
+            // kind of lie this tool exists to remove. Decided *before* writing,
+            // because the old code wrote the report and then rewrote it.
             let used = match graph.totals.size_dimension {
                 omnibundle_core::model::SizeDimension::Stat => "stat",
                 omnibundle_core::model::SizeDimension::Parsed => "parsed",
@@ -266,26 +273,25 @@ fn run(cli: &Cli) -> Result<ExitCode> {
                 omnibundle_core::model::SizeDimension::Attributed => "attributed",
             };
             let requested = dimension_label(cli.default_sizes);
+            let mut payload = payload;
+            if let Some(obj) = payload.as_object_mut() {
+                obj.insert("sizeDimension".into(), used.into());
+            }
+
+            let detail_bytes = report::write_detail_file(&graph, &cli.report)?;
+            report::write(&payload, &label, &cli.report, detail_bytes)?;
             if used != requested {
-                // Say *why*, and say it in the right direction: `attributed` is
-                // an upgrade when the maps cover the build, and a downgrade when
-                // they do not. "Not available" is neither.
+                // Say *why*, and say it in the right direction: `attributed` is an
+                // upgrade when the maps cover the build, and a downgrade when they
+                // do not. "Not available" is neither.
                 let reason = if used == "attributed" {
                     "source maps cover the build, so this is ground truth"
                 } else {
                     "that dimension is not measurable for this input"
                 };
-                let mut payload = payload.clone();
-                if let Some(obj) = payload.as_object_mut() {
-                    obj.insert("sizeDimension".into(), used.into());
-                }
-                let detail = omnibundle_core::report::detail_payload(&graph);
-                let detail_json = serde_json::to_string(&detail)?;
-                let inline = detail_json.len() <= report::INLINE_LIMIT;
-                report::write(&payload, &label, &cli.report, detail_json.as_bytes(), inline)?;
                 println!("showing `{used}` instead of `{requested}`: {reason} (OB0050)");
             }
-            let report_bytes = std::fs::metadata(&cli.report).map(|m| m.len()).unwrap_or(0);
+            let report_bytes = std::fs::metadata(&cli.report).map_or(0, |m| m.len());
             println!(
                 "{}  ·  {} modules  ·  {} assets  ·  {} packages  ·  ingest {} ms  ·  total {} ms  ·  dimension {}",
                 label,
@@ -308,11 +314,12 @@ fn run(cli: &Cli) -> Result<ExitCode> {
                     human_bytes(outcome.hidden_bytes),
                 );
             }
+            // Display math on a file size; the byte count itself is exact.
+            let report_mb = report_bytes as f64 / 1_048_576.0;
             println!(
-                "wrote {} ({:.1} MB){}",
+                "wrote {} ({report_mb:.1} MB){}",
                 cli.report.display(),
-                report_bytes as f64 / 1_048_576.0,
-                if inline_detail {
+                if detail_bytes <= report::INLINE_LIMIT as u64 {
                     ", detail inlined"
                 } else {
                     ", detail in a companion script (loaded on demand)"
@@ -346,31 +353,31 @@ fn run(cli: &Cli) -> Result<ExitCode> {
 fn build_payload(
     graph: &UnifiedBundleGraph,
     input: &Input,
-    dims: Vec<Dimension>,
+    dims: &[Dimension],
     sizes: Sizes,
+    include_modules: bool,
 ) -> serde_json::Value {
     let mut tree = serde_json::Map::new();
     tree.insert("schema_version".into(), graph.schema_version.into());
     tree.insert("target".into(), input.label().into());
     tree.insert("sizeDimension".into(), dimension_label(sizes).into());
     tree.insert("totals".into(), serde_json::to_value(&graph.totals).unwrap_or_default());
-    tree.insert(
-        "inputs".into(),
-        serde_json::to_value(&graph.inputs).unwrap_or_default(),
-    );
+    tree.insert("inputs".into(), serde_json::to_value(&graph.inputs).unwrap_or_default());
     tree.insert("diagnostics".into(), serde_json::to_value(&graph.diagnostics).unwrap_or_default());
     tree.insert("assets".into(), serde_json::to_value(&graph.assets).unwrap_or_default());
     tree.insert("chunks".into(), serde_json::to_value(&graph.chunks).unwrap_or_default());
-    // The full module table belongs in the JSON output (parity tests, CI and BI
-    // consumers read it) and in the detail payload; only the *HTML* is slimmed
-    // down to the treemap trees. It went missing once during the payload
-    // slimming, which the parity harness caught.
-    tree.insert("modules".into(), serde_json::to_value(&graph.modules).unwrap_or_default());
+    // The full module table is what `--mode json` consumers (parity tests, CI,
+    // BI) need, and the detail payload carries it for the report's drill-down.
+    // The HTML does *not* get it: including it here put 154,379 modules into
+    // every report and took it from 1.6 MB to 55.3 MB, for data the shell loads
+    // from the companion script on demand anyway.
+    if include_modules {
+        tree.insert("modules".into(), serde_json::to_value(&graph.modules).unwrap_or_default());
+    }
     tree.insert(
         "trees".into(),
         serde_json::to_value(
-            &dims
-                .iter()
+            dims.iter()
                 .map(|d| {
                     serde_json::json!({
                         "dimension": d.as_str(),
@@ -385,14 +392,11 @@ fn build_payload(
     serde_json::Value::Object(tree)
 }
 
+#[allow(clippy::cast_precision_loss)]
 fn human_bytes(n: u64) -> String {
     const KB: f64 = 1024.0;
     let mb = n as f64 / (1024.0 * 1024.0);
-    if mb >= 1.0 {
-        format!("{mb:.1} MB")
-    } else {
-        format!("{:.0} KB", n as f64 / KB)
-    }
+    if mb >= 1.0 { format!("{mb:.1} MB") } else { format!("{:.0} KB", n as f64 / KB) }
 }
 
 /// A budget rule from `omnibundle.config.json` (cli-surface §3).
@@ -411,9 +415,37 @@ struct BudgetLimit {
     r#match: Option<String>,
     /// Bytes, on the dimension the report is showing.
     max: u64,
-    /// Optional per-limit dimension override, e.g. `gzip`.
+    /// Optional per-limit dimension: `stat`, `parsed`, `gzip` or `attributed`.
     #[serde(default)]
     dimension: Option<String>,
+}
+
+/// Read one dimension off a `SizeSet` by name.
+///
+/// A budget that silently ignored its `dimension` field would compare a `gzip`
+/// limit against parsed bytes, which passes or fails for reasons that have
+/// nothing to do with the rule the author wrote. An unknown name is an error,
+/// not a fallback.
+fn size_for(
+    sizes: &omnibundle_core::model::SizeSet,
+    dimension: Option<&str>,
+) -> Result<u64, String> {
+    match dimension {
+        None => Ok(sizes.effective()),
+        Some("stat") => Ok(sizes.stat),
+        Some("parsed") => Ok(sizes.parsed),
+        Some("gzip") => Ok(sizes.gzip),
+        Some("attributed") => sizes.attributed.ok_or_else(|| {
+            "dimension `attributed` is not available: no source map covered this build".into()
+        }),
+        Some(other) => {
+            Err(format!("unknown dimension `{other}` (expected stat, parsed, gzip or attributed)"))
+        }
+    }
+}
+
+fn dimension_name(dimension: Option<&str>) -> String {
+    dimension.unwrap_or("(report default)").to_string()
 }
 
 /// Evaluate the budget. Returns the diagnostics and whether the build passed.
@@ -424,21 +456,45 @@ struct BudgetLimit {
 /// - a breach is reported against the dimension actually used, and the summary
 ///   line says which one, so a limit is never compared against a different
 ///   measurement than the one a human sees.
+///
+/// The three scopes differ only in what they sum, so they share one pass; the
+/// length comes from that, not from a chain of helpers that would each need the
+/// graph and the config anyway.
+#[allow(clippy::too_many_lines)]
 fn evaluate_budget(
     graph: &UnifiedBundleGraph,
     config: &BudgetConfig,
-) -> (
-    Vec<anyhow::Error>,
-    bool,
-    Vec<omnibundle_core::model::Diagnostic>,
-) {
+) -> (Vec<anyhow::Error>, bool, Vec<omnibundle_core::model::Diagnostic>) {
     let mut errors = Vec::new();
     let mut breached = 0usize;
     let mut diagnostics = Vec::new();
 
     for limit in &config.limits {
+        let dimension = limit.dimension.as_deref();
         let (scope, value) = match limit.scope.as_str() {
-            "total" => (limit.scope.clone(), graph.totals.total_size),
+            "total" => {
+                // The graph total is only meaningful in whatever dimension the
+                // graph settled on, so a limit that names a different dimension
+                // sums the assets itself rather than reusing `totals`.
+                let value = if dimension.is_none() {
+                    graph.totals.total_size
+                } else {
+                    let mut sum = 0u64;
+                    let mut usable = true;
+                    for asset in &graph.assets {
+                        match size_for(&asset.sizes, dimension) {
+                            Ok(v) => sum = sum.saturating_add(v),
+                            Err(e) => {
+                                errors.push(anyhow::anyhow!("budget: {e}"));
+                                usable = false;
+                                break;
+                            }
+                        }
+                    }
+                    if usable { sum } else { continue }
+                };
+                (limit.scope.clone(), value)
+            }
             "chunk" => {
                 let Some(needle) = limit.r#match.as_deref() else {
                     errors.push(anyhow::anyhow!("budget: `chunk` scope needs a `match`"));
@@ -448,13 +504,19 @@ fn evaluate_budget(
                 let mut matched = 0usize;
                 for chunk in &graph.chunks {
                     if chunk.names.iter().any(|n| n == needle) {
-                        sum += chunk.size.effective();
+                        match size_for(&chunk.size, dimension) {
+                            Ok(v) => sum = sum.saturating_add(v),
+                            Err(e) => {
+                                errors.push(anyhow::anyhow!("budget: {e}"));
+                                continue;
+                            }
+                        }
                         matched += 1;
                     }
                 }
                 if matched == 0 {
                     errors.push(anyhow::anyhow!(
-                        "budget: no chunk matches `{needle}` — a rule that matches nothing is an error"
+                        "budget: no chunk matches `{needle}`; a rule that matches nothing is an error"
                     ));
                     continue;
                 }
@@ -468,18 +530,22 @@ fn evaluate_budget(
                 let mut sum = 0u64;
                 let mut matched = 0usize;
                 for module in graph.modules.values() {
-                    if module
-                        .package
-                        .as_ref()
-                        .is_some_and(|p| p.name == needle || p.name.starts_with(&format!("{needle}/")))
-                    {
-                        sum += module.sizes.effective();
+                    if module.package.as_ref().is_some_and(|p| {
+                        p.name == needle || p.name.starts_with(&format!("{needle}/"))
+                    }) {
+                        match size_for(&module.sizes, dimension) {
+                            Ok(v) => sum = sum.saturating_add(v),
+                            Err(e) => {
+                                errors.push(anyhow::anyhow!("budget: {e}"));
+                                continue;
+                            }
+                        }
                         matched += 1;
                     }
                 }
                 if matched == 0 {
                     errors.push(anyhow::anyhow!(
-                        "budget: no package matches `{needle}` — a rule that matches nothing is an error"
+                        "budget: no package matches `{needle}`; a rule that matches nothing is an error"
                     ));
                     continue;
                 }
@@ -499,17 +565,19 @@ fn evaluate_budget(
                 severity: omnibundle_core::model::Severity::Error,
                 code: "OB0040".into(),
                 message: format!(
-                    "budget {scope}{} is {} over its {} limit",
-                    limit
-                        .r#match
-                        .as_ref()
-                        .map(|m| format!(" `{m}`"))
-                        .unwrap_or_default(),
+                    "budget {scope}{} on {} is {} over its {} limit",
+                    limit.r#match.as_ref().map(|m| format!(" `{m}`")).unwrap_or_default(),
+                    dimension_name(dimension),
                     human_bytes(value - limit.max),
                     human_bytes(limit.max)
                 ),
                 subject: None,
-                data: serde_json::json!({ "scope": scope, "actual": value, "max": limit.max }),
+                data: serde_json::json!({
+                    "scope": scope,
+                    "dimension": dimension.unwrap_or("report default"),
+                    "actual": value,
+                    "max": limit.max
+                }),
             });
         }
     }
@@ -527,10 +595,8 @@ fn dimension_label(s: Sizes) -> &'static str {
 }
 
 fn apply_excludes(graph: &mut UnifiedBundleGraph, patterns: &[String]) {
-    let compiled: Vec<regex_lite::Matcher> = patterns
-        .iter()
-        .filter_map(|p| regex_lite::Matcher::new(p))
-        .collect();
+    let compiled: Vec<regex_lite::Matcher> =
+        patterns.iter().filter_map(|p| regex_lite::Matcher::new(p)).collect();
     if compiled.is_empty() {
         return;
     }
@@ -567,13 +633,10 @@ mod regex_lite {
             assets: &[omnibundle_core::model::Asset],
         ) -> bool {
             chunk.names.iter().any(|n| self.matches(n))
-                || chunk.assets.iter().any(|a| {
-                    assets
-                        .iter()
-                        .find(|x| &x.name == a)
-                        .map(|x| self.matches(&x.name))
-                        .unwrap_or(false)
-                })
+                || chunk
+                    .assets
+                    .iter()
+                    .any(|a| assets.iter().any(|x| &x.name == a && self.matches(&x.name)))
         }
     }
 
@@ -683,23 +746,21 @@ impl Input {
             Input::File(p) => file_name(p),
             Input::Folder(p) => p
                 .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| p.display().to_string()),
+                .map_or_else(|| p.display().to_string(), |n| n.to_string_lossy().to_string()),
         }
     }
 }
 
 fn file_name(p: &Path) -> String {
-    p.file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| p.display().to_string())
+    p.file_name().map_or_else(|| p.display().to_string(), |n| n.to_string_lossy().to_string())
 }
 
 /// Read at most `limit` bytes from the head of a file. Used only for artifact
 /// sniffing, so a short read on a small file is not an error.
 fn read_head(path: &Path, limit: usize) -> Result<Vec<u8>> {
     use std::io::Read;
-    let mut file = std::fs::File::open(path).with_context(|| format!("opening {}", path.display()))?;
+    let mut file =
+        std::fs::File::open(path).with_context(|| format!("opening {}", path.display()))?;
     let mut buf = vec![0u8; limit];
     let mut filled = 0;
     while filled < limit {
@@ -765,7 +826,10 @@ mod report {
                 escape_for_script_tag(std::str::from_utf8(detail).unwrap_or("{}"))
             )
         } else {
-            "<script src=\"REPLACED_BY_DATA_SCRIPT\"></script>".to_string()
+            // `write` fills in the real file name. It used to leave the literal
+            // placeholder in the HTML, so every report above the inline limit
+            // shipped a detail file that nothing ever loaded.
+            format!("<script src=\"{DATA_SCRIPT_PLACEHOLDER}\"></script>")
         };
 
         Ok(HTML
@@ -776,23 +840,64 @@ mod report {
             .replace("/*JS*/", JS))
     }
 
+    pub const DATA_SCRIPT_PLACEHOLDER: &str = "REPLACED_BY_DATA_SCRIPT";
+
+    /// Write the detail to `<report>.data.js`, then the HTML that loads it.
+    ///
+    /// The detail is streamed to disk by the caller, so nothing here holds the
+    /// 36 MB payload in memory: only reports small enough to inline (<=2 MB) are
+    /// read back, and then the companion file is removed so a single-file report
+    /// really is a single file.
+    /// Stream `<report>.data.js`: a JS assignment (not raw JSON) because the
+    /// shell reads `window.__OB_DETAIL__`, and because a `<script src>` on
+    /// `file://` is the only way a report can pull in sibling data at all.
+    ///
+    /// Returns the byte size so the caller can decide inline vs companion
+    /// without ever holding the payload in memory.
+    pub fn write_detail_file(
+        graph: &omnibundle_core::model::UnifiedBundleGraph,
+        out: &std::path::Path,
+    ) -> Result<u64> {
+        use std::io::Write;
+        let data_path = data_path(out);
+        let file = std::fs::File::create(&data_path)
+            .with_context(|| format!("creating {}", data_path.display()))?;
+        let mut w = std::io::BufWriter::with_capacity(1 << 20, file);
+        w.write_all(b"window.__OB_DETAIL__=")?;
+        omnibundle_core::report::write_detail(graph, &mut w)
+            .with_context(|| format!("writing {}", data_path.display()))?;
+        w.write_all(b";\n")?;
+        w.flush()?;
+        Ok(std::fs::metadata(&data_path)?.len())
+    }
+
     pub fn write(
         payload: &serde_json::Value,
         target: &str,
         out: &std::path::Path,
-        detail: &[u8],
-        inline_detail: bool,
+        detail_bytes: u64,
     ) -> Result<()> {
-        let html = render(payload, target, detail, inline_detail)?;
+        let data_path = data_path(out);
+        let inline_detail = detail_bytes <= INLINE_LIMIT as u64;
+        let html = if inline_detail {
+            let detail = std::fs::read(&data_path)
+                .with_context(|| format!("reading back {}", data_path.display()))?;
+            render(payload, target, &detail, true)?
+        } else {
+            let file_name = data_path
+                .file_name()
+                .map_or_else(|| "report.data.js".to_string(), |n| n.to_string_lossy().to_string());
+            // Only the file name, never a path: the report and its data live side
+            // by side, and an absolute path here would break the report the moment
+            // the directory is moved or opened from a different root.
+            let mut html = render(payload, target, &[], false)?;
+            html = html.replace(DATA_SCRIPT_PLACEHOLDER, &file_name);
+            html
+        };
+
         std::fs::write(out, html).with_context(|| format!("writing {}", out.display()))?;
-        if !inline_detail {
-            let data_path = data_path(out);
-            let js = format!(
-                "window.__OB_DETAIL__ = {};\n",
-                escape_for_script_tag(std::str::from_utf8(detail).unwrap_or("{}"))
-            );
-            std::fs::write(&data_path, js)
-                .with_context(|| format!("writing {}", data_path.display()))?;
+        if inline_detail {
+            let _ = std::fs::remove_file(&data_path);
         }
         Ok(())
     }

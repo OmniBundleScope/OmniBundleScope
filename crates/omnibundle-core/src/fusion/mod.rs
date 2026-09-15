@@ -26,7 +26,17 @@ use crate::stats::recompute_totals;
 /// - the report only switches to the `attributed` dimension when **every**
 ///   asset is covered, because a partial map must never make a build look
 ///   smaller than it is.
-pub fn analyse(graph: &mut UnifiedBundleGraph, maps: &[(String, ParsedSourceMap)]) -> FusionOutcome {
+///
+/// How many ghost modules the summary lists. The rest are counted, not listed.
+pub const GHOSTS_IN_SUMMARY: usize = 500;
+
+/// How many hidden sources the summary lists; the rest are counted, not listed.
+pub const HIDDEN_SOURCES_IN_SUMMARY: usize = 500;
+
+pub fn analyse(
+    graph: &mut UnifiedBundleGraph,
+    maps: &[(String, ParsedSourceMap)],
+) -> FusionOutcome {
     let mut outcome = FusionOutcome::default();
 
     // 1. attribute each map **into the asset it belongs to**, never into one
@@ -55,8 +65,6 @@ pub fn analyse(graph: &mut UnifiedBundleGraph, maps: &[(String, ParsedSourceMap)
         mapped_bytes_per_asset.push((name.clone(), bytes_for_map));
     }
 
-    let mut claimed: HashMap<String, u64> = HashMap::new();
-
     // 2. attribute sources to modules, within each module's own assets
     let mut claimed: HashMap<String, u64> = HashMap::new();
     for (id, sources, attributed) in attribute_modules(graph, &by_asset) {
@@ -66,36 +74,64 @@ pub fn analyse(graph: &mut UnifiedBundleGraph, maps: &[(String, ParsedSourceMap)
         if let Some(module) = graph.modules.get_mut(&id) {
             module.sources = sources;
             module.sizes.attributed = Some(attributed);
-            module.attribution_delta = attributed as i64 - module.sizes.stat as i64;
+            // Saturating, not wrapping: a negative delta means "the bundler
+            // over-estimated", and a subtraction that wrapped to a positive
+            // number would report the opposite of what happened. (A single
+            // module over 8 EiB is not a real case, but the saturating form
+            // costs nothing and cannot be wrong.)
+            module.attribution_delta =
+                attributed.cast_signed().saturating_sub(module.sizes.stat.cast_signed());
             outcome.attributed_modules += 1;
             outcome.attributed_bytes += attributed;
         }
     }
 
     // 3. ghost modules: declared, mapped by nothing
+    //
+    // Only the largest `GHOSTS_IN_SUMMARY` are kept. A 1 GB stats file can
+    // declare 445,602 unmapped modules, and keeping one entry per module made a
+    // "summary" that was 47 MB of the report payload and 47 MB of the heap —
+    // the exact failure the 400 MB target exists to catch. The count and the byte
+    // total are always exact; the list is a sample, and says how much it dropped.
     let mut ghosts: Vec<GhostModule> = Vec::new();
+    let mut ghost_total = 0usize;
+    let mut ghost_bytes_total = 0u64;
+    // A module is a ghost unless some asset holds one of its chunks. Indexing
+    // chunk ids up front turns this from O(modules x assets) into O(modules).
+    let mut owned_chunks: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
+    for asset in &graph.assets {
+        owned_chunks.extend(asset.chunks.iter().copied());
+    }
     for module in graph.modules.values() {
         if module.sizes.attributed.is_none() && module.sizes.stat > 0 {
-            let reason = classify_ghost(
-                module.sizes.stat,
-                module.sizes.attributed,
-                graph
-                    .assets
-                    .iter()
-                    .any(|a| module.chunks.iter().any(|c| a.chunks.contains(c))),
-            )
-            .unwrap_or(GhostReason::Unmapped);
+            let in_an_asset = module.chunks.iter().any(|c| owned_chunks.contains(c));
+            let reason = classify_ghost(module.sizes.stat, module.sizes.attributed, in_an_asset)
+                .unwrap_or(GhostReason::Unmapped);
+            ghost_total += 1;
+            ghost_bytes_total += module.sizes.stat;
             ghosts.push(GhostModule {
                 module: module.name.clone(),
                 declared_size: module.sizes.stat,
                 chunks: module.chunks.clone(),
                 reason,
             });
+            // Keep the working set bounded without losing the top of the list.
+            if ghosts.len() > GHOSTS_IN_SUMMARY * 2 {
+                ghosts.sort_by(|a, b| {
+                    b.declared_size.cmp(&a.declared_size).then_with(|| a.module.cmp(&b.module))
+                });
+                ghosts.truncate(GHOSTS_IN_SUMMARY);
+            }
         }
     }
-    ghosts.sort_by(|a, b| b.declared_size.cmp(&a.declared_size));
-    outcome.ghost_count = ghosts.len();
-    outcome.ghost_bytes = ghosts.iter().map(|g| g.declared_size).sum();
+    ghosts.sort_by(|a, b| {
+        b.declared_size.cmp(&a.declared_size).then_with(|| a.module.cmp(&b.module))
+    });
+    ghosts.truncate(GHOSTS_IN_SUMMARY);
+    let ghosts_dropped = ghost_total.saturating_sub(ghosts.len()) as u64;
+    // Exact totals come from the full walk above, not from the truncated list.
+    outcome.ghost_count = ghost_total;
+    outcome.ghost_bytes = ghost_bytes_total;
 
     // 4. hidden sources: mapped bytes that no module claimed, per asset
     let mut hidden: Vec<HiddenSource> = Vec::new();
@@ -112,9 +148,15 @@ pub fn analyse(graph: &mut UnifiedBundleGraph, maps: &[(String, ParsedSourceMap)
         }
     }
     hidden.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.file.cmp(&b.file)));
-    hidden.truncate(5_000);
-    outcome.hidden_count = hidden.len();
-    outcome.hidden_bytes = hidden.iter().map(|h| h.bytes).sum();
+    // Exact totals from the full walk, then a bounded list. Reporting the sum of
+    // a truncated list is how "2.9 MB of hidden sources" ends up describing 5,000
+    // of 50,000 entries.
+    let hidden_count_total = hidden.len();
+    let hidden_bytes_total: u64 = hidden.iter().map(|h| h.bytes).sum();
+    hidden.truncate(HIDDEN_SOURCES_IN_SUMMARY);
+    let hidden_dropped = hidden_count_total.saturating_sub(hidden.len()) as u64;
+    outcome.hidden_count = hidden_count_total;
+    outcome.hidden_bytes = hidden_bytes_total;
 
     // 5. only claim ground truth when the maps account for the whole build.
     //
@@ -126,9 +168,8 @@ pub fn analyse(graph: &mut UnifiedBundleGraph, maps: &[(String, ParsedSourceMap)
     let mut covered_assets = 0usize;
     for asset in &graph.assets {
         let stem = format!("{}.map", asset.name);
-        if let Some((_, bytes)) = mapped_bytes_per_asset
-            .iter()
-            .find(|(name, _)| name == &stem || name == &asset.name)
+        if let Some((_, bytes)) =
+            mapped_bytes_per_asset.iter().find(|(name, _)| name == &stem || name == &asset.name)
         {
             covered_bytes += (*bytes).min(asset.sizes.effective());
             covered_assets += 1;
@@ -150,30 +191,33 @@ pub fn analyse(graph: &mut UnifiedBundleGraph, maps: &[(String, ParsedSourceMap)
         .modules
         .values()
         .filter(|m| {
-            m.sizes.stat > 0 && (m.attribution_delta.unsigned_abs() as f64) / m.sizes.stat as f64 > 0.01
+            m.sizes.stat > 0
+                && (m.attribution_delta.unsigned_abs() as f64) / m.sizes.stat as f64 > 0.01
         })
         .count() as u64;
 
     graph.fusion = Some(crate::model::FusionSummary {
         ghost_modules: ghosts,
+        ghost_modules_truncated: ghosts_dropped,
         hidden_sources: hidden,
+        hidden_sources_truncated: hidden_dropped,
         total_attribution_delta: delta,
         significant_corrections: significant,
     });
 
     // keep the invariant honest before anyone reads a number
     recompute_totals(graph);
-    if dimension == SizeDimension::Attributed {
-        if let Err(e) = graph.check_size_invariant(1_000) {
-            // A failed invariant is a bug in the join, not a rounding detail.
-            graph.diagnostics.push(crate::model::Diagnostic {
-                severity: Severity::Error,
-                code: "OB0042".into(),
-                message: e.to_string(),
-                subject: None,
-                data: serde_json::Value::Null,
-            });
-        }
+    if dimension == SizeDimension::Attributed
+        && let Err(e) = graph.check_size_invariant(1_000)
+    {
+        // A failed invariant is a bug in the join, not a rounding detail.
+        graph.diagnostics.push(crate::model::Diagnostic {
+            severity: Severity::Error,
+            code: "OB0042".into(),
+            message: e.to_string(),
+            subject: None,
+            data: serde_json::Value::Null,
+        });
     }
 
     outcome
@@ -195,24 +239,23 @@ pub struct FusionOutcome {
 
 /// Match every module against the map's path table, in parallel.
 ///
-/// The work is pure data comparison over 154k modules x 50k sources; run
-/// sequentially it is visible next to the 1.1 s parse, so rayon earns its place
-/// here even though the algorithm is a suffix match rather than a regex.
+/// The index is built once per asset, outside the parallel loop: building it per
+/// module would be worse than the scan it replaces.
 fn attribute_modules(
     graph: &UnifiedBundleGraph,
     by_asset: &HashMap<String, HashMap<String, u64>>,
 ) -> Vec<(String, Vec<SourceRef>, u64)> {
+    let indexes: HashMap<&String, PathIndex<'_>> =
+        by_asset.iter().map(|(asset, table)| (asset, PathIndex::build(table))).collect();
     let modules: Vec<&Module> = graph.modules.values().collect();
     modules
         .par_iter()
         .filter_map(|module| {
-            let tables: Vec<&HashMap<String, u64>> = module_assets(module, graph)
-                .filter_map(|a| by_asset.get(a))
-                .collect();
+            let tables: Vec<&PathIndex<'_>> =
+                module_assets(module, graph).filter_map(|a| indexes.get(a)).collect();
             let mut sources: Vec<SourceRef> = tables
                 .into_iter()
-                .flat_map(|t| matching_sources(module, t))
-                .map(|(file, bytes)| (file, bytes))
+                .flat_map(|index| matching_sources_indexed(module, index))
                 .map(|(file, bytes)| SourceRef { file, bytes, line: None })
                 .collect();
             if sources.is_empty() {
@@ -244,10 +287,7 @@ pub fn classify_ghost(
 
 /// Sources that plausibly belong to a module, matched on the longest common
 /// path suffix (the join rule in `unified-graph.md` §2).
-///
-/// The match runs once per module against the map's path table, in parallel:
-/// with 154k modules and 50k sources a sequential pass is visible in the
-/// profile, and the work is pure data comparison.
+#[cfg(test)]
 fn matching_sources(module: &Module, by_path: &HashMap<String, u64>) -> Vec<(String, u64)> {
     let mut out: Vec<(String, u64)> = Vec::new();
     let name = normalise(&module.name);
@@ -260,26 +300,75 @@ fn matching_sources(module: &Module, by_path: &HashMap<String, u64>) -> Vec<(Str
     out
 }
 
-/// Parallel variant used by [`analyse`] for large graphs.
-pub fn matching_sources_parallel(modules: Vec<&Module>, by_path: HashMap<String, u64>) -> Vec<(String, Vec<SourceRef>)> {
-    modules
-        .par_iter()
-        .filter_map(|module| {
-            let mut sources: Vec<SourceRef> = matching_sources(module, &by_path)
-                .into_iter()
-                .map(|(file, bytes)| SourceRef { file, bytes, line: None })
-                .collect();
-            if sources.is_empty() {
-                return None;
+/// Longest suffixes of a normalised path, e.g. `a/b/c.ts` -> [`a/b/c.ts`,
+/// `b/c.ts`, `c.ts`].
+///
+/// Capped so a pathological path with hundreds of segments cannot turn index
+/// construction into its own problem; 16 is far beyond any real source path.
+const MAX_SUFFIX_SEGMENTS: usize = 16;
+
+fn suffixes_of(normalised: &str) -> Vec<String> {
+    let segs: Vec<&str> = normalised.split('/').filter(|s| !s.is_empty()).collect();
+    if segs.is_empty() {
+        return vec![normalised.to_string()];
+    }
+    let keep = segs.len().min(MAX_SUFFIX_SEGMENTS);
+    let start = segs.len() - keep;
+    (start..segs.len()).map(|i| segs[i..].join("/")).collect()
+}
+
+/// Path -> bytes, indexed by every path suffix, so the join is a hash lookup per
+/// module instead of a scan of every source.
+///
+/// The linear scan in [`matching_sources`] is O(modules x sources): for the B8
+/// fixture (50,000 modules, 50,000 sources) that is 2.5 billion comparisons and
+/// it turned a 5.2 s run into 73.8 s. This keeps the *same* matching semantics —
+/// every suffix of a module is looked up, so a source sharing any suffix still
+/// matches — but the work per module is at most `MAX_SUFFIX_SEGMENTS` lookups.
+struct PathIndex<'a> {
+    by_key: HashMap<String, Vec<(&'a String, u64)>>,
+}
+
+impl<'a> PathIndex<'a> {
+    fn build(table: &'a HashMap<String, u64>) -> Self {
+        let mut by_key: HashMap<String, Vec<(&'a String, u64)>> = HashMap::new();
+        for (path, bytes) in table {
+            // The key is built from the path's *normalised* suffixes so a lookup
+            // on a normalised module name hits; the raw path is what gets returned.
+            for key in suffixes_of(&normalise(path)) {
+                by_key.entry(key).or_default().push((path, *bytes));
             }
-            let total: u64 = sources.iter().map(|s| s.bytes).sum();
-            sources.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.file.cmp(&b.file)));
-            Some((module.id.clone(), sources, total))
-        })
-        .map(|(id, sources, total)| (id, sources, total))
-        .collect::<Vec<_>>()
+        }
+        // Deterministic order inside each bucket: the caller sorts by bytes
+        // anyway, but ties would otherwise depend on the map's iteration order.
+        for bucket in by_key.values_mut() {
+            bucket.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
+        }
+        Self { by_key }
+    }
+
+    fn get(&self, normalised_name: &str) -> Vec<(&'a String, u64)> {
+        let mut out: Vec<(&'a String, u64)> = Vec::new();
+        for key in suffixes_of(normalised_name) {
+            if let Some(bucket) = self.by_key.get(&key) {
+                for entry in bucket {
+                    if !out.iter().any(|(p, _)| *p == entry.0) {
+                        out.push(*entry);
+                    }
+                }
+            }
+        }
+        out.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(b.0)));
+        out
+    }
+}
+
+/// [`matching_sources`] against a prebuilt index. Same result, O(1) per module.
+fn matching_sources_indexed(module: &Module, index: &PathIndex<'_>) -> Vec<(String, u64)> {
+    index
+        .get(&normalise(&module.name))
         .into_iter()
-        .map(|(id, sources, _)| (id, sources))
+        .map(|(path, bytes)| (path.clone(), bytes))
         .collect()
 }
 
@@ -290,7 +379,7 @@ fn normalise(path: &str) -> String {
 /// Do two normalised paths refer to the same file? Longest common suffix on
 /// path segments, so `src/a.ts` matches `webpack://app/./src/a.ts` and
 /// `/repo/src/a.ts` but not `src/ab.ts`.
-fn suffix_match(a: &str, b: &str) -> bool {
+pub fn suffix_match(a: &str, b: &str) -> bool {
     if a == b {
         return true;
     }
@@ -307,7 +396,10 @@ fn suffix_match(a: &str, b: &str) -> bool {
 }
 
 /// The assets a module belongs to, via the chunk ids they share.
-fn module_assets<'a>(module: &Module, graph: &'a UnifiedBundleGraph) -> impl Iterator<Item = &'a String> {
+fn module_assets<'a>(
+    module: &Module,
+    graph: &'a UnifiedBundleGraph,
+) -> impl Iterator<Item = &'a String> {
     graph
         .assets
         .iter()
@@ -329,11 +421,7 @@ fn asset_for_map(graph: &UnifiedBundleGraph, map_name: &str) -> String {
 ///
 /// Preference order: the map's own ile matched against the asset names we
 /// measured, then the last mapping's offset (better than crediting nothing).
-fn generated_len_for(
-    graph: &UnifiedBundleGraph,
-    map_name: &str,
-    map: &ParsedSourceMap,
-) -> u64 {
+fn generated_len_for(graph: &UnifiedBundleGraph, map_name: &str, map: &ParsedSourceMap) -> u64 {
     let stem = map_name.strip_suffix(".map").unwrap_or(map_name);
     if let Some(asset) = graph.assets.iter().find(|a| a.name == stem || a.name == map_name) {
         let measured = asset.sizes.parsed;
@@ -357,7 +445,7 @@ pub const COVERAGE_THRESHOLD: f64 = 0.99;
 pub fn maps_in_dir(dir: &Path) -> Vec<(String, ParsedSourceMap)> {
     let Ok(entries) = std::fs::read_dir(dir) else { return Vec::new() };
     let mut paths: Vec<std::path::PathBuf> = entries
-        .filter_map(|e| e.ok())
+        .filter_map(std::result::Result::ok)
         .map(|e| e.path())
         .filter(|p| p.extension().is_some_and(|e| e == "map"))
         .collect();
@@ -375,10 +463,12 @@ pub fn maps_in_dir(dir: &Path) -> Vec<(String, ParsedSourceMap)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{analyse, classify_ghost, suffix_match};
-    use crate::model::{Asset, Chunk, Module, PackageRef, SizeSet, SizeDimension, UnifiedBundleGraph};
+    use super::{GHOSTS_IN_SUMMARY, analyse, classify_ghost, suffix_match};
+    use crate::model::{
+        Asset, Chunk, Module, PackageRef, SizeDimension, SizeSet, UnifiedBundleGraph,
+    };
     use crate::sourcemap::parse_bytes;
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, HashMap};
 
     const B64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -389,7 +479,7 @@ mod tests {
         let mut v = if value < 0 { ((-value) << 1) | 1 } else { value << 1 };
         let mut out = String::new();
         loop {
-            let mut digit = (v & 31) as usize;
+            let mut digit = usize::try_from(v & 31).unwrap_or(0);
             v >>= 5;
             if v > 0 {
                 digit |= 32;
@@ -412,7 +502,7 @@ mod tests {
             name: name.to_string(),
             issuer: None,
             reasons: vec![],
-            package: package_of(name),
+            package: package_of(name).map(std::sync::Arc::new),
             chunks: vec![0],
             sizes: SizeSet { stat, ..SizeSet::default() },
             attribution_delta: 0,
@@ -424,7 +514,11 @@ mod tests {
         let idx = name.find("node_modules/")?;
         let rest = &name[idx + "node_modules/".len()..];
         let seg = rest.split('/').next()?;
-        Some(PackageRef { name: seg.to_string(), version: None, path: format!("node_modules/{seg}") })
+        Some(PackageRef {
+            name: seg.to_string(),
+            version: None,
+            path: format!("node_modules/{seg}"),
+        })
     }
 
     /// Three modules, and a map that accounts for only part of the bundle:
@@ -472,11 +566,7 @@ mod tests {
         });
         crate::stats::recompute_totals(&mut g);
 
-        let mappings = format!(
-            "{},{}",
-            segment(0, 0, 0, 0),
-            segment(4_000, 1, 0, 0)
-        );
+        let mappings = format!("{},{}", segment(0, 0, 0, 0), segment(4_000, 1, 0, 0));
         let raw = format!(
             r#"{{"version":3,"file":"main.js",
                "sources":["webpack://app/./src/mapped.ts","webpack://app/./runtime/inject.js"],
@@ -576,7 +666,10 @@ mod tests {
     fn ghost_precedence_is_stable() {
         assert_eq!(classify_ghost(10, None, false), Some(crate::model::GhostReason::MissingAsset));
         assert_eq!(classify_ghost(10, None, true), Some(crate::model::GhostReason::Unmapped));
-        assert_eq!(classify_ghost(10, Some(0), true), Some(crate::model::GhostReason::EmptyAttribution));
+        assert_eq!(
+            classify_ghost(10, Some(0), true),
+            Some(crate::model::GhostReason::EmptyAttribution)
+        );
         assert_eq!(classify_ghost(10, Some(10), true), None);
     }
 
@@ -586,5 +679,90 @@ mod tests {
         let outcome = analyse(&mut g, &[]);
         assert_eq!(outcome.ghost_count, 0);
         assert!(g.fusion.is_some());
+    }
+
+    /// The bug this test exists for: `ghost_modules` used to hold one entry per
+    /// unmapped module, so a 445,602-module stats file produced a 47 MB
+    /// "summary" inside the report payload and on the heap. Counts stay exact;
+    /// the list is a bounded sample that says what it dropped.
+    #[test]
+    fn ghost_list_is_bounded_but_the_counts_are_exact() {
+        let mut g = UnifiedBundleGraph::default();
+        for i in 0..(GHOSTS_IN_SUMMARY * 3 + 17) {
+            let id = format!("./src/m{i}.ts");
+            g.modules.insert(
+                id.clone(),
+                Module {
+                    id,
+                    name: format!("./src/m{i}.ts"),
+                    issuer: None,
+                    package: None,
+                    chunks: vec![0],
+                    sources: Vec::new(),
+                    reasons: vec!["orphan".into()],
+                    sizes: crate::model::SizeSet { stat: 1_000 + i as u64, ..Default::default() },
+                    attribution_delta: 0,
+                },
+            );
+        }
+        let outcome = analyse(&mut g, &[]);
+        let f = g.fusion.as_ref().unwrap();
+        assert_eq!(f.ghost_modules.len(), GHOSTS_IN_SUMMARY);
+        assert_eq!(
+            f.ghost_modules_truncated,
+            (GHOSTS_IN_SUMMARY * 3 + 17 - GHOSTS_IN_SUMMARY) as u64
+        );
+        // exact, not sampled
+        assert_eq!(outcome.ghost_count, GHOSTS_IN_SUMMARY * 3 + 17);
+        let expected_bytes: u64 = (0..(GHOSTS_IN_SUMMARY * 3 + 17)).map(|i| 1_000 + i as u64).sum();
+        assert_eq!(outcome.ghost_bytes, expected_bytes);
+        // deterministic: the largest are listed first
+        assert!(f.ghost_modules[0].declared_size >= f.ghost_modules[1].declared_size);
+    }
+    /// A real webpack map writes sources as `webpack://<namespace>/./src/x.ts`
+    /// while stats writes the module as `./src/x.ts`. These are the same file and
+    /// the join has to see it. This pair produced 0/830 attributed on a fixture
+    /// built from the project's own generators, which is how it was found.
+    #[test]
+    fn webpack_url_sources_join_with_relative_module_names() {
+        let map_path =
+            crate::sourcemap::normalise_source_path("webpack://fixture/./src/module-0.ts", None);
+        let mod_path = crate::sourcemap::normalise_source_path("./src/module-0.ts", None);
+        assert!(
+            suffix_match(&mod_path, &map_path),
+            "normalised map path {map_path:?} should match module path {mod_path:?}"
+        );
+    }
+    /// The index has to agree with the linear scan it replaced, on the awkward
+    /// cases: a `webpack://` prefix, a relative name, two sources sharing a
+    /// suffix, and a path that shares only its file name.
+    #[test]
+    fn the_suffix_index_agrees_with_the_linear_scan() {
+        use super::{PathIndex, matching_sources, matching_sources_indexed};
+        let mut table: HashMap<String, u64> = HashMap::new();
+        for (path, bytes) in [
+            ("webpack://app/./src/a.ts", 100u64),
+            ("webpack://app/./src/nested/b.ts", 200),
+            ("webpack://app/./vendor/c.ts", 300),
+            ("webpack://app/./src/nested/dup.ts", 50),
+            ("webpack://other/./src/nested/dup.ts", 70),
+        ] {
+            table.insert(path.to_string(), bytes);
+        }
+        let index = PathIndex::build(&table);
+        for name in [
+            "./src/a.ts",
+            "src/nested/b.ts",
+            "./vendor/c.ts",
+            "nested/dup.ts",
+            "./src/nested/dup.ts",
+            "./src/missing.ts",
+            "a.ts",
+        ] {
+            let m = module(name, 1);
+            let scanned = matching_sources(&m, &table);
+            let indexed = matching_sources_indexed(&m, &index);
+            assert_eq!(scanned, indexed, "index and scan disagree for {name}");
+        }
     }
 }

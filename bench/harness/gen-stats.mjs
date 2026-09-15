@@ -18,8 +18,37 @@ import fs from 'node:fs';
 const target = Number(process.argv[2] || 381_000_000);
 const out = process.argv[3] || 'stats-synthetic.json';
 
-const N_ASSETS = 1500;
-const N_CHUNKS = 200;
+// Asset shape is configurable because the fusion benchmarks need a build that a
+// single source map can actually *cover*: with 1,500 assets, one map covers 0.1%
+// of the bytes and the tool correctly refuses to call the result ground truth
+// (coverage < 0.99). One asset of the bundle's real size is the case B8 means.
+const argOf = (flag, dflt) => {
+  const i = process.argv.indexOf(flag);
+  return i > -1 ? Number(process.argv[i + 1]) : dflt;
+};
+const N_ASSETS = argOf('--assets', 1500);
+const N_CHUNKS = Math.min(200, N_ASSETS);
+const ASSET_NAME = process.argv.includes('--asset-name')
+  ? process.argv[process.argv.indexOf('--asset-name') + 1]
+  : null;
+const ASSET_BYTES = argOf('--asset-bytes', 0);
+
+// `--sources-from <map>` names the modules after a source map's `sources`, so the
+// pair is coherent: a stats file whose modules are `node_modules/pkgN/...` next to
+// a map of `src/module-N.ts` has a 0% coverage *by construction*, and measuring
+// B8 on it would measure nothing but the tool correctly refusing to invent a join.
+let SOURCE_NAMES = null;
+if (process.argv.includes('--sources-from')) {
+  const mapPath = process.argv[process.argv.indexOf('--sources-from') + 1];
+  const map = JSON.parse(fs.readFileSync(mapPath, 'utf8'));
+  // `webpack://fixture/./src/module-0.ts` -> `./src/module-0.ts`, which is how
+  // webpack itself names a module in stats.
+  SOURCE_NAMES = map.sources.map((s) => {
+    const clean = s.replace(/^webpack:\/\/[^/]*\/?/, '');
+    return clean.startsWith('.') ? clean : `./${clean.replace(/^\.?\//, '')}`;
+  });
+  console.error(`naming modules after ${SOURCE_NAMES.length} sources from ${map.file}`);
+}
 
 const fd = fs.openSync(out, 'w');
 let written = 0;
@@ -37,8 +66,8 @@ for (let i = 0; i < N_ASSETS; i++) {
     (i ? ',' : '') +
       JSON.stringify({
         type: 'asset',
-        name: `chunk.${i}.js`,
-        size: 20000 + i * 37,
+        name: ASSET_NAME ?? `chunk.${i}.js`,
+        size: ASSET_BYTES || 20000 + i * 37,
         chunks: [i % N_CHUNKS],
         chunkNames: [`chunk-${i % N_CHUNKS}`],
         emitted: true,
@@ -72,6 +101,12 @@ for (let i = 0; i < N_CHUNKS; i++) {
 w('],"modules":[');
 
 const sourceUnit = 'function f(a,b){return a+b*2-1;} '.repeat(60); // ~1.7 KB
+
+// `id` is 1-based here, so the name lines up with the map's source order.
+const moduleName = (n) =>
+  SOURCE_NAMES
+    ? SOURCE_NAMES[(n - 1) % SOURCE_NAMES.length]
+    : `./node_modules/pkg${n % 400}/dist/index-${n}.js`;
 let first = true;
 let id = 1;
 while (written < target) {
@@ -82,9 +117,10 @@ while (written < target) {
         id,
         // Identifiers must be unique: they are the join key (unified-graph.md
         // §2), so a generator that repeats them would silently dedupe the graph
-        // and make every module count a lie.
-        identifier: `/repo/node_modules/pkg${id % 400}/dist/index-${id}.js`,
-        name: `./node_modules/pkg${id % 400}/dist/index-${id}.js`,
+        // and make every module count a lie. With `--sources-from` the name comes
+        // from the map instead, which is how a real pair is coherent.
+        identifier: moduleName(id),
+        name: moduleName(id),
         index: id,
         size: 1700 + (id % 900),
         cacheable: true,
