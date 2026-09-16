@@ -18,16 +18,28 @@ Rules that are not negotiable:
 
 | id | scenario | fixture class | target | measured | owner |
 |----|----------|---------------|--------|----------|-------|
-| B1 | stats 363 MB / 154,379 modules, ingest | synthetic | ≤ 2 s, ≤ 200 MB | **1,334 ms / 126 MB** (ingest 1,139 ms) | WS-1 ✅ |
-| B2 | stats 1,049 MB / 445,602 modules, ingest | synthetic | ≤ 3 s, ≤ 400 MB | **3,628 ms / 346 MB** — memory passes, wall **misses by 0.6 s** | WS-1 ⚠️ |
-| B3 | 400 MB full pipeline | synthetic | ≤ 5 s, ≤ 200 MB | unverified | WS-2 |
-| B4 | 1 GB full pipeline | synthetic | ≤ 15 s, ≤ 400 MB | unverified | WS-2 |
-| B5 | `.map` 50 MB / 10k sources, parse + attribute | real + synthetic | ≤ 1 s | unverified | WS-3 |
+| B1 | stats 363 MB / 154,379 modules, ingest | synthetic | ≤ 2 s, ≤ 200 MB | **1,392 ms / 157 MB** (ingest only) | WS-1 ✅ |
+| B2 | stats 1,049 MB / 445,602 modules, ingest | synthetic | ≤ 3 s, ≤ 400 MB | **4,402 ms / 350 MB** — memory passes, wall **misses by 1.4 s** | WS-1 ⚠️ |
+| B3 | 400 MB full pipeline (ingest + 1,500 assets + report) | synthetic | ≤ 5 s, ≤ 200 MB | **1,753 ms / 156 MB** (was 3,052 ms / 670 MB) | WS-2 ✅ |
+| B4 | 1 GB full pipeline | synthetic | ≤ 15 s, ≤ 400 MB | **5,172 ms / 376 MB** (was 8,080 ms / 962 MB) | WS-2 ✅ |
+| B5 | `.map` 50 MB / 10k sources, parse + attribute | real + synthetic | ≤ 1 s | **10k: 46 ms · 50k: 209 ms / 67 MB** (SME: 18,380 ms / 562,269 ms) | WS-3 ✅ |
 | B6 | `source-map-explorer` baseline on the same `.map` | real + synthetic | any number, must exist | **0.22-0.25 s (small real), 18.4 s median (10k sources), 562 s (50k sources); 31-642 MB** | **WS-S ✅** |
 | B7 | gzip 25,600 assets | synthetic | — | **2,177 ms → 342 ms (6.4x)** | WS-2 |
-| B8 | fusion memory, 1 GB stats + 50 MB map | synthetic | < 500 MB peak | **partially met**: 67 MB on a 36.5 MB map + fusion; the 1 GB stats + map combination still unmeasured | WS-4 ⚠️ |
-| B9 | parity diff vs WBA / SME | real | ≤ 0.1 %, ordering only | unverified | WS-7 |
-| B10 | report: 10k modules, first paint / interaction | real | < 2 s / > 30 fps | unverified | WS-5 |
+| B8 | fusion memory, 1 GB stats + 36.5 MB map | synthetic | < 500 MB peak | **152 MB / 4,942 ms**, coverage 100%, 50,000/50,000 attributed (was 73,838 ms) | WS-4 ✅ |
+| B9 | parity diff vs WBA / SME | real | ≤ 0.1 %, ordering only | **0 ppm** on assets and modules for preact, marked, chalk (real webpack builds) | WS-7 ✅ |
+| B10 | report: 10k modules, first paint / interaction | real | < 2 s / > 30 fps | unverified — no browser in CI; measured instead as report bytes and generation time (1.6 MB, 1.27 s at 154k modules) | WS-5 ⚠️ |
+
+Every number above is a median of 3 runs on the reference machine unless the row
+says otherwise, sampled by `bench/harness/measure.ps1`. Two caveats stated rather
+than buried:
+
+- **B2 still misses its wall target** (4.4 s vs 3 s) and is the one open
+  performance miss. Memory is comfortable at 350 MB. The gap is serde's DOM
+  cursor over a 445,602-element module array; a hand-written streaming parser
+  for the `modules` key is the obvious next step and is not written.
+- **B8's fixture has one asset.** It is a memory-and-join test, not a claim
+  about a 1,500-asset build with a map for each asset.
+
 
 ## 2. Reference baselines (measured, reference machine)
 
@@ -131,4 +143,32 @@ architectural rather than a micro-optimisation:
 WS-2 owns the measurement of the corrected approach; WS-5 owns the payload
 shape. Until then `--bench` is the honest path for large inputs: it measures the
 part we have actually optimised.
+
+## 7. Closed: the payload bottleneck (WS-5, 2026-09-16)
+
+The three fixes in §6 shipped, and the result is the B3/B4 row above.
+
+| stage | 363 MB fixture, before | after |
+|---|---|---|
+| report generation | ~24 s | **1.27 s** |
+| `report.html` | 125.6 MB | **1.56 MB** |
+| detail | inlined, 125 MB | `report.html.data.js`, 36 MB, loaded on demand |
+
+- The treemap payload is a two-level tree of group nodes with sizes only
+  (`MAX_CHILDREN = 256`, `MAX_ASSETS = 64`, tail folded into a visible node).
+- Module detail is a companion `<script src>`, not a fetch: `fetch()` cannot read
+  a sibling file from `file://`, and a report is opened by double-clicking it.
+- The single-file promise is kept up to 2 MB of detail and documented above it:
+  under the limit the detail is inlined and the companion file is removed, so a
+  small report really is one file.
+
+Two follow-on bugs the same measurement exposed, both now regression-tested:
+
+- The companion `<script src>` was written with a literal
+  `REPLACED_BY_DATA_SCRIPT` placeholder that nothing substituted, so every report
+  above the inline limit shipped a detail file that no report ever loaded.
+- The module table had been re-added to the HTML payload (it belongs in
+  `--mode json` for the parity harness), which put every report back to 55 MB.
+  `--mode json` carries the module table; the HTML does not.
+
 

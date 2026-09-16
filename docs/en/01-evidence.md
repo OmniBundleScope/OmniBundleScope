@@ -71,9 +71,57 @@ Three things follow, and they are the technical core of this project:
 3. **Real wins are structural.** rayon on gzip gave 6.4x. That is the shape of
    this project's claims: no per-item process, no V8 heap, actual parallelism.
 
-**Unverified and load-bearing:** the attribution-tree stage (the ~60 s WBA spends
-after parsing) is *not* yet reimplemented. B3/B4 in `bench-spec.md` are the
-first real test of the "< 5 s for 400 MB" target, and WS-2 owns it.
+**Superseded 2026-09-16:** the attribution-tree stage is now implemented (WS-2,
+rayon over assets, sizes from disk) and B3/B4 are measured in §2b below. The
+table above is kept as the record of the *reference* tool's numbers, which is
+what those numbers are: WBA and the readFileSync floor, not us.
+
+## 2b. Our own full-pipeline numbers (WS-2/WS-4/WS-5, measured 2026-09-16)
+
+Same fixtures, but the whole pipeline: ingest, measure every asset, fuse the
+source maps, render the report. Peak memory is sampled every 25 ms from the
+child process (`bench/harness/measure.ps1`); both working set and private bytes
+are recorded because working set includes file-backed pages of the 1 GB stream
+and moved between 411 MB and 1,008 MB for the *same* run.
+
+| benchmark | input | target | before | **now** |
+|---|---|---|---|---|
+| B1 ingest | 363 MB / 154,379 modules | ≤ 2,000 ms, ≤ 200 MB | 1,139 ms / 126 MB | 1,392 ms / 157 MB |
+| B2 ingest | 1,049 MB / 445,602 modules | ≤ 3,000 ms, ≤ 400 MB | 3,318 ms / 346 MB | 4,402 ms / 350 MB |
+| B3 **full pipeline** | 363 MB stats + 1,500 assets (71.6 MB on disk) | ≤ 5,000 ms, ≤ 200 MB | 3,052 ms / **670 MB** | **1,753 ms / 156 MB** |
+| B4 **full pipeline** | 1,049 MB stats + 1,500 assets | ≤ 15,000 ms, ≤ 400 MB | 8,080 ms / **962 MB** | **5,172 ms / 376 MB** |
+| B5 source map | 10k sources, 7.1 MB map | ≤ 1,000 ms | — | 46 ms |
+| B5 source map | 50k sources, 36.5 MB map | ≤ 1,000 ms | — | 209 ms / 67 MB |
+| B8 **stats + map** | 1 GB stats + 36.5 MB map, one 17.6 MB asset fully covered | < 500 MB | 73,838 ms / 152 MB | **4,942 ms / 152 MB** |
+
+Reference points for the same inputs: WBA 63.6 s / 2,295 MB on the 363 MB
+fixture; SME 562,269 ms / 642 MB on the 50k map.
+
+Three bugs, all found by these targets and none of them visible in the ingest
+numbers, which is the argument for measuring the pipeline rather than its parts:
+
+1. **A `serde_json::Value` per module.** The detail payload was built as a
+   `Value` tree and then serialised: 550 MB of heap for 154,379 modules, on top
+   of the graph itself. B3 went 3,052 ms / 670 MB → 1,753 ms / 156 MB when the
+   payload was serialised from a borrowed view and streamed to disk.
+2. **A "summary" that scaled with input.** `ghost_modules` held one entry per
+   unmapped module — 445,602 entries, 47 MB of report payload — plus a hidden
+   byte total summed *after* truncation, so it under-reported. Counts and totals
+   are now exact and the lists are bounded samples that say what they dropped.
+3. **An O(modules x sources) join.** 2.5 billion comparisons on B8: 73.8 s. A
+   suffix index built once per asset made it 4.9 s with the same matching
+   semantics (a test asserts index and scan agree on the awkward cases).
+
+Plus one measurement bug worth recording: `PeakWorkingSet64` reads 0 after the
+process exits under Windows PowerShell 5.1, so the sampler polls instead, and
+reports both working set and private bytes rather than picking the flattering
+one.
+
+**Still unverified:** emitted file sizes and gzip are measured on the synthetic
+1,500-asset fixture, not on a real 25,600-asset production build; and the B8
+fixture has one asset, so "1 GB stats + 50 MB map" is a memory-and-join test,
+not a claim about a 1,500-asset build with a map for each one.
+
 
 ## 3. The source-map-explorer measurement (WS-S, **done 2026-09-03**)
 
@@ -157,10 +205,28 @@ nicety, and the ghost/hidden classifier needs hand-labelled ground truth
 cd bench
 ./fixtures/fetch.sh                 # real fixtures, pinned by commit
 node harness/gen-stats.mjs 381000000 out/stats-400mb.json
-node harness/run-wba.mjs            # baseline: wall + peak RSS per phase
-cargo run --release --bin bench-stats -- ../out/stats-400mb.json
+node harness/materialize-assets.mjs --stats out/stats-400mb.json --out out/dist
+powershell -File harness/measure.ps1 -Binary ../target/release/omnibundle.exe \
+    -Target out/dist -Extra '--mode static --report out/report.html' -Runs 3
+node harness/parity.mjs --stats fixtures/artifacts/webpack/marked/stats.json \
+    --bundle fixtures/artifacts/webpack/marked
 node harness/check-i18n.mjs         # docs parity across four languages
 ```
+
+The B8 fixture needs a *coherent pair* — a stats file whose modules are the map's
+sources, which is what `--sources-from` is for:
+
+```bash
+node harness/gen-map.mjs 50000 out/map-50k.json 18500087
+node harness/gen-bundle.mjs out/map-50k.json 18500087 out/dist/bundle.js
+node harness/gen-stats.mjs 1049000000 out/dist/stats.json \
+    --assets 1 --asset-name bundle.js --asset-bytes 18500087 \
+    --sources-from out/map-50k.json
+```
+
+A stats file full of `node_modules/pkgN/...` modules next to a map of
+`src/module-N.ts` has 0% coverage *by construction*, and measuring that would
+only prove the tool refuses to invent a join (it does, correctly).
 
 `bench-spec.md` §2 defines the protocol (3 runs, median, first run discarded on
 a cold cache, same machine), §5 defines the result format. The point of writing
