@@ -9,7 +9,7 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
-omnibundle-core = { path = "../omnibundle-core" }
+omnibundle-core = { version = "0.1.0", path = "../omnibundle-core" }
 serde_json = { workspace = true }
 
 [lints]

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="440" viewBox="0 0 880 440" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
+<rect width="880" height="440" fill="#0e1116"/>
+<rect x="1.0" y="1.0" width="448.6" height="438.0" fill="#4c8dff" fill-opacity="0.92"><title>main.js: 116 KB</title></rect>
+<text x="7.0" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">main.js</text>
+<text x="7.0" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">116 KB</text>
+<rect x="451.6" y="1.0" width="427.4" height="438.0" fill="#0bb6a8" fill-opacity="0.92"><title>(modules outside any asset): 110 KB</title></rect>
+<text x="457.6" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">(modules outside any asset)</text>
+<text x="457.6" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">110 KB</text>
+<text x="12" y="428" fill="#8b98a9" font-size="11">marked 18.0.14, webpack production build · package · stats.json · 11 modules · dimension parsed</text>
+</svg>

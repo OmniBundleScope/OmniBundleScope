@@ -1,0 +1,60 @@
+{
+  "name": "omnibundle",
+  "version": "0.1.0",
+  "description": "Analyse bundler output (stats.json, source maps, esbuild metafiles, dist folders) in one pass, with real byte attribution and a memory bill you can see.",
+  "keywords": [
+    "webpack",
+    "rspack",
+    "vite",
+    "rollup",
+    "esbuild",
+    "bundle-analyzer",
+    "source-map",
+    "bundle-size",
+    "tree-shaking",
+    "dead-code",
+    "ci",
+    "size-budget",
+    "rust"
+  ],
+  "homepage": "https://github.com/omnibundle/omnibundle#readme",
+  "bugs": {
+    "url": "https://github.com/omnibundle/omnibundle/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/omnibundle/omnibundle.git"
+  },
+  "license": "MIT OR Apache-2.0",
+  "author": "OmniBundle contributors",
+  "type": "module",
+  "bin": {
+    "omnibundle": "bin/omnibundle.js"
+  },
+  "exports": {
+    ".": "./bin/omnibundle.js"
+  },
+  "files": [
+    "bin/",
+    "install.mjs",
+    "README.md",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "postinstall": "node install.mjs",
+    "test": "node --test"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ]
+}

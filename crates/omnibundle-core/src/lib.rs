@@ -14,12 +14,12 @@
 //! - `report`    WS-5 report payload (the HTML shell lives in `assets/report`)
 //! - `model`     WS-0 contract-owned: the unified graph. Changes need an ADR.
 
-// Lint policy: the CI gate is `clippy --workspace --all-targets -D warnings` on
-// the default (correctness) groups. `pedantic` is deliberately *not* the gate —
-// it is a wish list, and a gate nobody can keep green is a gate that gets
-// switched off. Running it is still useful, and it earned its keep here: it is
-// what found the `u64 as i64` in the attribution delta and the unchecked
-// `f64 as u64` in size scaling. Both are now correct rather than allowed.
+// Lint policy: the workspace sets `clippy::pedantic = warn` and every crate opts
+// in with `[lints] workspace = true`, so CI's
+// `clippy --workspace --all-targets -- -D warnings` gates on pedantic too. It is
+// currently green, and it earned that: it is what found the `u64 as i64` in the
+// attribution delta and the unchecked `f64 as u64` in size scaling, both of
+// which are now correct rather than allowed.
 //
 // Two groups are allowed on purpose:
 // - `cast_precision_loss` is display math (`bytes as f64 / 1024.0`); a byte
