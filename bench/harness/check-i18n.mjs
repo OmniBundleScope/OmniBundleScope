@@ -3,7 +3,7 @@
 //
 //   node check-i18n.mjs            # all languages
 //   node check-i18n.mjs --lang zh  # one language
-//
+// same headings, same links, same code blocks/commands, same numbers >= 1000,
 // Rules: same file set, same headings, same links, same code blocks/commands,
 // same numbers ≥ 1000, glossary headers. Missing translations are reported as
 // `pending`; stale ones (EN revision moved on) as `stale` and they block the

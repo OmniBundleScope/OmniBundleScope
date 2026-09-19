@@ -1,0 +1,37 @@
+version: 2
+updates:
+  # The whole dependency surface is small and pinned by Cargo.lock, so weekly
+  # batches are enough: this is a tool people run in CI, not a web app that has
+  # to ship patches the same day.
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Clippy is pedantic here, so a lint change in a dependency is a build
+      # failure; keeping serde and friends together makes that one PR to fix.
+      serde:
+        patterns: ["serde", "serde_json"]
+      parallel-io:
+        patterns: ["rayon", "crossbeam*", "memmap2"]
+      compression:
+        patterns: ["flate2", "miniz*", "libz*"]
+
+  - package-ecosystem: npm
+    directory: /bench
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # The baseline tools are pinned separately: bumping webpack-bundle-analyzer
+      # or source-map-explorer changes every published number, so it gets its
+      # own PR and its own measurement, not a scheduled bump.
+      baselines:
+        patterns: ["webpack-bundle-analyzer", "source-map-explorer", "webpack"]
+        exclude-patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

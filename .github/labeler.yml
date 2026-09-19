@@ -1,0 +1,28 @@
+# Labels follow the workstream lanes in docs/contracts/OWNERS.md, so an issue
+# or PR routes to the lane that owns it without anyone assigning it by hand.
+"area: stats":
+  - changed-files: {globs: ["crates/omnibundle-core/src/stats/**"]}
+"area: sizes":
+  - changed-files: {globs: ["crates/omnibundle-core/src/sizes/**"]}
+"area: sourcemap":
+  - changed-files: {globs: ["crates/omnibundle-core/src/sourcemap/**"]}
+"area: fusion":
+  - changed-files: {globs: ["crates/omnibundle-core/src/fusion/**"]}
+"area: report":
+  - changed-files: {globs: ["crates/omnibundle-core/src/report/**", "assets/report/**"]}
+"area: model":
+  - changed-files: {globs: ["crates/omnibundle-core/src/model.rs", "docs/contracts/**"]}
+"area: cli":
+  - changed-files: {globs: ["crates/omnibundle-cli/**"]}
+"area: wasm":
+  - changed-files: {globs: ["crates/omnibundle-wasm/**"]}
+"area: bench":
+  - changed-files: {globs: ["bench/**"]}
+"area: ci":
+  - changed-files: {globs: [".github/**"]}
+"area: npm":
+  - changed-files: {globs: ["npm/**"]}
+"area: docs":
+  - changed-files: {globs: ["docs/**", "*.md"]}
+"area: npm-packaging":
+  - changed-files: {globs: ["npm/omnibundle/package.json", "npm/omnibundle/install.mjs"]}

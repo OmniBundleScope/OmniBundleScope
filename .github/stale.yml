@@ -1,0 +1,16 @@
+# An issue with no reply in 30 days is usually either fixed, or not a real
+# issue. 7 days for the PR equivalent.
+daysUntilStale: 30
+daysUntilClose: 14
+staleLabel: stale
+closeLabel: "not planned"
+exemptLabels:
+  - pinned
+  - security
+  - "help wanted"
+markComment: >
+  This issue has had no activity for 30 days, so it is marked stale. If it still
+  applies, a comment brings it back — no need to re-open it.
+closeComment: >
+  Closing this after 14 days without a reply. If the problem is real, comment and
+  it reopens immediately.

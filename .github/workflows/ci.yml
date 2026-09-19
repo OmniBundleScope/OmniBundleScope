@@ -37,17 +37,38 @@ jobs:
       - name: fmt
         run: cargo fmt --all --check
 
-      # The core crate is held to a higher bar than the wrappers: it is the code
-      # that must stay portable to wasm, and its lints are the ones that keep it
-      # IO-free (docs/en/06-release-and-ci.md §4).
-      - name: clippy (core, deny warnings)
-        run: cargo clippy -p omnibundle-core --all-targets -- -D warnings
+      # The workspace sets `clippy::pedantic`, and every crate opts in, so this
+      # gates on the whole pedantic set, not just the default correctness lints.
+      # It found the wrapping `u64 as i64` in the attribution delta and an
+      # unchecked `f64 as u64` in size scaling, which is why it is worth the
+      # churn of keeping green.
+      - name: clippy (workspace, pedantic, deny warnings)
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: docs parity (EN source, 3 translations)
         working-directory: bench
         run: |
           npm ci --no-audit --no-fund
           node harness/check-i18n.mjs
+
+      # A shell round-trip corrupted a UTF-8 file here once and the diff looked
+      # like plausible text, so this is a gate rather than a hope. It is also the
+      # only thing that catches a broken translation link before a user does.
+      - name: no encoding damage in any tracked file
+        working-directory: bench
+        run: node harness/check-encoding.mjs
+
+      - name: the npm shim honours argv and the exit codes
+        working-directory: npm/omnibundle
+        run: |
+          npm test
+          # The shim has to work from a build produced by this job, which is what
+          # OMNIBUNDLE_BIN is for.
+          OMNIBUNDLE_BIN="$GITHUB_WORKSPACE/target/release/omnibundle" npm test
+
+      - name: the README images are valid geometry
+        working-directory: bench
+        run: node harness/check-treemap-svg.mjs ../docs/assets/*.svg
 
       - name: smoke run on a fixture
         working-directory: bench
@@ -56,7 +77,7 @@ jobs:
           node fixtures/build/build-fixtures.mjs
         continue-on-error: true
 
-      - name: smoke: end to end on a real build
+      - name: end to end on a real webpack build
         if: matrix.os == 'ubuntu-latest'
         working-directory: bench
         run: |
@@ -80,7 +101,7 @@ jobs:
         run: |
           npm ci --no-audit --no-fund
           for fx in preact marked chalk; do node fixtures/build/build-webpack.mjs $fx; done
-      - name: parity (gate: 0.1 % on assets and modules)
+      - name: parity (gate - 0.1 % on assets and modules)
         working-directory: bench
         run: |
           for fx in preact marked chalk; do
