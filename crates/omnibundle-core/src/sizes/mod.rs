@@ -15,10 +15,16 @@ use crate::model::{SizeSet, UnifiedBundleGraph};
 /// cleverer trick available, and pretending otherwise would be dishonest.
 ///
 /// # Errors
-/// Returns an error when an asset named in the stats file is missing from `dir`
-/// (`OB0002`) or cannot be read. A missing asset is an error rather than a
-/// zero: a silently zero-sized asset makes the treemap lie about where the
-/// bytes went.
+/// Returns an error when an asset cannot be read at all. A **missing** asset is
+/// not an error: stats files routinely list assets that were cleaned up, or you
+/// pointed at the wrong directory, and refusing to produce a report in that case
+/// would make the tool useless on real projects. A missing asset keeps its
+/// declared size, gets an `OB0002` info diagnostic naming up to five of them, and
+/// the report says which dimension it used.
+///
+/// What it must never become is a silent zero: a zero-sized asset would make the
+/// treemap lie about where the bytes went, which is why the declared size stands
+/// instead of `0`.
 pub fn attribute_from_disk(graph: &mut UnifiedBundleGraph, dir: &Path) -> Result<()> {
     // (asset index, name, bytes) — collect the paths first so the parallel pass
     // does no IO on the critical path of the iterator.
@@ -112,12 +118,41 @@ fn propagate_asset_sizes_to_modules(graph: &mut UnifiedBundleGraph) {
         .collect();
 
     for module in graph.modules.values_mut() {
-        let factor =
-            module.chunks.iter().filter_map(|c| scale.get(c)).fold(1.0_f64, |acc, f| acc.max(*f));
-        // A factor of exactly 1.0 means the module's chunk had no measured
-        // size, so the declared size stands unchanged — no rescaling, and no
-        // float comparison deciding it either way.
-        if factor > 1.0 {
+        // The mean of the module's chunks' factors, not the maximum.
+        //
+        // This used to be `fold(1.0, |acc, f| acc.max(*f))`, which could never
+        // return a factor below 1.0 - so whenever the emitted files were
+        // *smaller* than the bundler claimed (minification, tree-shaking, a
+        // stale stats file, i.e. most of the reason to run an analyser at all)
+        // every module kept its inflated declared size and the invariant in
+        // `unified-graph.md` §4 failed in the direction that overstates the
+        // bundle. Found by a property test, after a lint-driven change had
+        // already broken the other half of it.
+        //
+        // A mean is the honest choice for a module in several chunks: its bytes
+        // are spread across them, and we do not track a per-chunk split to do
+        // better. For the single-chunk module - which is nearly all of them, and
+        // every fixture here - it is exact.
+        let mut sum = 0.0_f64;
+        let mut measured_chunks = 0usize;
+        for chunk_id in &module.chunks {
+            if let Some(factor) = scale.get(chunk_id) {
+                sum += *factor;
+                measured_chunks += 1;
+            }
+        }
+        let factor = if measured_chunks == 0 { 1.0 } else { sum / measured_chunks as f64 };
+
+        // `factor == 1.0` means the module's chunks were never measured, so the
+        // declared size stands unchanged.
+        //
+        // Comparing floats for equality is normally the wrong thing, and clippy
+        // says so. Here it is the correct test: 1.0 is the sentinel the scale
+        // map carries for "not measured", and every other value is a ratio of
+        // two measured integers. Writing this as `factor > 1.0` instead silently
+        // disables downscaling for the same reason.
+        #[allow(clippy::float_cmp, clippy::if_not_else)]
+        if factor != 1.0 {
             // `as u64` on a float is UB-adjacent for a negative or NaN input and
             // saturating above 2^64, and a wrapped value here would be a module
             // claiming to be 18 exabytes. The scale factor is a measured ratio,

@@ -17,6 +17,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { squarify } from './treemap-layout.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
@@ -79,69 +80,6 @@ const children =
     ? [...tree.children].sort((a, b) => b.size - a.size)
     : flattenByPackage();
 const dimensionLabel = groupBy === 'asset' ? 'assets' : groupBy;
-
-// Squarified treemap: Bruls/Huizing/van Wijk.
-//
-// This is the *same* algorithm as `assets/report/shell.js`, and deliberately so:
-// the README image should be the product's rendering, not a lookalike. It is a
-// copy rather than an import because the report has to stay a single file that
-// opens from `file://`, which rules out a module reference. The two are held
-// together by `check-treemap-svg.mjs`, which fails on any overlap or uncovered
-// canvas area - a squarify that silently double-places a row still *looks*
-// plausible in a thumbnail, which is exactly why it needs a geometric gate.
-function squarify(items, x, y, w, h) {
-  const out = [];
-  const total = items.reduce((a, b) => a + b.size, 0);
-  if (total <= 0 || w <= 0 || h <= 0) return out;
-
-  const scale = (w * h) / total;
-  const rest = items.slice();
-  let rect = { x, y, w, h };
-
-  const worst = (row, side) => {
-    const s = row.reduce((a, b) => a + b.size * scale, 0);
-    if (s <= 0) return Infinity;
-    const mx = row.reduce((a, b) => Math.max(a, b.size * scale), 0);
-    const mn = row.reduce((a, b) => Math.min(a, b.size * scale), Infinity);
-    return Math.max((side * side * mx) / (s * s), (s * s) / (side * side * mn));
-  };
-
-  while (rest.length) {
-    const vertical = rect.w >= rect.h; // lay the row along the shorter side
-    const side = vertical ? rect.h : rect.w;
-    const row = [];
-    let best = Infinity;
-    while (rest.length) {
-      const candidate = worst(row.concat([rest[0]]), side);
-      if (row.length && candidate > best) break;
-      row.push(rest.shift());
-      best = candidate;
-    }
-
-    const rowArea = row.reduce((a, b) => a + b.size * scale, 0);
-    const thickness = rowArea / side;
-
-    if (vertical) {
-      let cy = rect.y;
-      for (const it of row) {
-        const hgt = (it.size * scale) / thickness;
-        out.push({ node: it, x: rect.x, y: cy, w: thickness, h: hgt });
-        cy += hgt;
-      }
-      rect = { x: rect.x + thickness, y: rect.y, w: rect.w - thickness, h: rect.h };
-    } else {
-      let cx = rect.x;
-      for (const it of row) {
-        const wid = (it.size * scale) / thickness;
-        out.push({ node: it, x: cx, y: rect.y, w: wid, h: thickness });
-        cx += wid;
-      }
-      rect = { x: rect.x, y: rect.y + thickness, w: rect.w, h: rect.h - thickness };
-    }
-    if (rect.w <= 0.5 || rect.h <= 0.5) break;
-  }
-  return out;
-}
 
 // Cap the rectangles so the image stays legible. The fold node says how many
 // groups it stands for, so the picture never implies it shows everything.

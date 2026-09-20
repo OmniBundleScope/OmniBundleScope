@@ -98,7 +98,7 @@ pub fn parse_reader<R: Read>(reader: R) -> Result<ParsedSourceMap> {
         let mut merged = ParsedSourceMap { file: raw.file, ..ParsedSourceMap::default() };
         for section in raw.sections {
             let base = base_offset(&section.map.mappings, section.offset.line);
-            let sub = decode(&section.map.mappings)?;
+            let sub = decode(&section.map.mappings, section.map.sources.len())?;
             // A source-map v3 `sources` index is a u32 on the wire; a section
             // list that would need more than 2^32 sources is not a map, and
             // saturating keeps the index inside the field rather than wrapping.
@@ -126,7 +126,7 @@ pub fn parse_reader<R: Read>(reader: R) -> Result<ParsedSourceMap> {
         });
     }
 
-    let mappings = decode(&raw.mappings)?;
+    let mappings = decode(&raw.mappings, raw.sources.len())?;
     Ok(ParsedSourceMap {
         file: raw.file,
         sources: raw.sources,
@@ -195,7 +195,7 @@ fn remap_indices(mut mappings: Vec<Mapping>, name_count: usize, source_base: u32
 ///
 /// One pass, no intermediate `String`s, no per-file accumulators. Capacity is
 /// pre-reserved so the decode does not reallocate mid-flight.
-pub fn decode(mappings: &str) -> Result<Vec<Mapping>> {
+pub fn decode(mappings: &str, sources_len: usize) -> Result<Vec<Mapping>> {
     let mut out: Vec<Mapping> = Vec::with_capacity(mappings.len() / 8 + 8);
     let mut generated_offset = 0u32;
     let mut source_index = 0i64;
@@ -234,6 +234,19 @@ pub fn decode(mappings: &str) -> Result<Vec<Mapping>> {
                 return Err(Error::Malformed(
                     "source map has negative deltas (corrupt mappings)".into(),
                 ));
+            }
+
+            // A source index past the end of `sources` is a corrupt map, and the
+            // interesting part is what it used to do: `attribute_by_source_in`
+            // credits the bytes after the last mapping to that source, and with
+            // an index out of range it silently credited nothing. The report
+            // then stated a smaller total as ground truth - the exact failure
+            // this tool exists to remove. Found by a property test, not by a
+            // fixture.
+            if source_index >= i64::try_from(sources_len).unwrap_or(i64::MAX) {
+                return Err(Error::Malformed(format!(
+                    "source map mapping references source {source_index} but only {sources_len} are declared"
+                )));
             }
 
             out.push(Mapping {
@@ -317,6 +330,19 @@ impl ParsedSourceMap {
     /// of the generated file, so the bytes after the final mapping are credited
     /// to that mapping's source. A map whose last segment owns a lot of bytes
     /// (typically an inlined runtime) is the common case this fixes.
+    ///
+    /// # What is deliberately *not* attributed
+    ///
+    /// The bytes **before** the first mapping. A map that starts at column 0 has
+    /// no such gap, so this only matters for maps that start mid-line; crediting
+    /// the prologue to the first source would be a guess, and this function's
+    /// output becomes the `attributed` dimension that a report claims as ground
+    /// truth. Under-attributing by a few bytes makes coverage marginally lower,
+    /// which is the safe direction: it can downgrade `attributed` to `parsed`,
+    /// never inflate a size.
+    ///
+    /// The total therefore satisfies
+    /// `sum(attribution) == generated_len - first_mapping_offset`.
     pub fn attribute_by_source_in(&self, generated_len: u64) -> Vec<(usize, u64)> {
         let mut out = vec![0u64; self.sources.len()];
         for pair in self.mappings.windows(2) {
@@ -559,6 +585,31 @@ mod tests {
         let empty = r#"{"version":3,"file":"o.js","sources":[],"names":[],"mappings":""}"#;
         let map = parse_bytes(empty.as_bytes()).unwrap();
         assert!(map.mappings.is_empty());
-        assert_eq!(decode("").unwrap().len(), 0);
+        assert_eq!(decode("", 0).unwrap().len(), 0);
+    }
+
+    /// A mapping that points past the end of `sources` must be rejected.
+    ///
+    /// Found by a property test: the tail after the last mapping is credited to
+    /// that mapping's source, so an out-of-range index used to make the tail
+    /// vanish silently, and the report then stated a smaller total as ground
+    /// truth.
+    #[test]
+    fn an_out_of_range_source_index_is_rejected() {
+        // Two segments, both pointing at source 1, with only one source declared.
+        let raw =
+            br#"{"version":3,"file":"b.js","sources":["a.ts"],"names":[],"mappings":"AAAA,CCAA"}"#;
+        let err = parse_bytes(raw).expect_err("source index 1 of 1 must be rejected");
+        assert!(err.to_string().contains("source"), "the error should name the problem: {err}");
+    }
+
+    /// The same map with the sources declared must parse: the point is to reject
+    /// the corrupt input, not to become stricter than the format.
+    #[test]
+    fn a_well_formed_map_still_parses() {
+        let raw = br#"{"version":3,"file":"b.js","sources":["a.ts","b.ts"],"names":[],"mappings":"AAAA,CCAA"}"#;
+        let map = parse_bytes(raw).expect("valid map");
+        assert_eq!(map.mappings.len(), 2);
+        assert_eq!(map.mappings[1].source_index, 1);
     }
 }

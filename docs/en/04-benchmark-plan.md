@@ -30,7 +30,11 @@ Rules that are not negotiable:
 | B10 | report: 10k modules, first paint / interaction | real | < 2 s / > 30 fps | unverified — no browser in CI; measured instead as report bytes and generation time (1.6 MB, 1.27 s at 154k modules) | WS-5 ⚠️ |
 
 Every number above is a median of 3 runs on the reference machine unless the row
-says otherwise, sampled by `bench/harness/measure.ps1`. Two caveats stated rather
+says otherwise, sampled by `bench/harness/measure.ps1`. Memory varies about 15 %
+run to run because working set includes file-backed pages of the input stream - B3 measured
+156 MB in one session and 132 MB in the next, on the same binary and fixture. Private
+bytes are the stable figure and both are quoted; the target is checked against
+the larger of the two so the published number is not the flattering one. Two caveats stated rather
 than buried:
 
 - **B2 still misses its wall target** (4.4 s vs 3 s) and is the one open
