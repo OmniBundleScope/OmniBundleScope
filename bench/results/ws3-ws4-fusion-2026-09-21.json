@@ -1,0 +1,60 @@
+{
+  "measurement": "WS-3 source map ingest + WS-4 fusion, end to end on a real build",
+  "date": "2026-09-21",
+  "machine": "windows, rustc 1.97.1, release profile",
+  "real_build_run": {
+    "fixture": "bench/fixtures/artifacts/preact (preact@10.29.8 bundled by our esbuild config)",
+    "command": "omnibundle . --mode static --report report.html",
+    "input": "stats.json (12 modules, 1 asset 35 KB) + bundle.js.map + bundle.min.js.map",
+    "output": {
+      "ingest_ms": 5,
+      "total_ms": 6,
+      "dimension_used": "attributed",
+      "fusion": {
+        "maps": 2,
+        "coverage": 1.0,
+        "modules_attributed": 12,
+        "module_count": 12,
+        "ghost_count": 0,
+        "hidden_source_count": 0
+      },
+      "note": "ground truth chosen because the maps cover 100 % of the declared bytes; the summary says so instead of echoing the requested dimension"
+    }
+  },
+  "scale_bench": {
+    "command": "omnibundle <map> --bench-map (3 runs, median)",
+    "rows": [
+      { "fixture": "preact bundle.js.map", "class": "real", "sources": 12, "mappings": 4310, "wall_ms_median": 7, "reference_sme_ms": 252, "ratio": 36.0 },
+      { "fixture": "marked bundle.js.map", "class": "real", "sources": 11, "mappings": 11057, "wall_ms_median": 9, "reference_sme_ms": 224, "ratio": 24.9 },
+      { "fixture": "synthetic 10k sources (7.1 MB)", "class": "synthetic", "sources": 10000, "mappings": 400000, "wall_ms_median": 46, "reference_sme_ms": 18380, "ratio": 399.6 },
+      { "fixture": "synthetic 50k sources (36.5 MB)", "class": "synthetic", "sources": 50000, "mappings": 2000000, "wall_ms_median": 209, "parse_ms": 152, "attribute_ms": 38, "peak_rss_mb": 67, "reference_sme_ms": 562269, "reference_sme_peak_rss_mb": 642, "ratio": 2690.0 }
+    ]
+  },
+  "targets": {
+    "B5": "≤ 1 s for a 50 MB / 10k-source map: met at 46 ms (10k) and 209 ms (50k / 36.5 MB)",
+    "B8": "fusion memory < 500 MB on 1 GB stats + 50 MB map: partially met — 67 MB on the 36.5 MB map; the 1 GB stats + map combination is not yet measured together"
+  },
+  "bugs_found_by_own_tests": [
+    {
+      "what": "the first VLQ decoder split segments on ':' and produced an empty mapping list",
+      "why_it_matters": "source map segments pack all fields into one colon-free run ('IACE' = 4 values); field identity comes from position",
+      "caught_by": "unit test decodes_the_canonical_example",
+      "fix": "positional field decoding with a shared segment decoder; tests now build mappings from a VLQ encoder so the intent is readable"
+    },
+    {
+      "what": "bytes after the last mapping were never attributed, so an inlined runtime showed as 0 bytes",
+      "caught_by": "unit test fusion_attributes_ghost_and_hidden",
+      "fix": "attribute_by_source_in(generated_len) credits the tail to the last segment; the CLI passes the measured asset size"
+    },
+    {
+      "what": "two maps for the same sources (readable + minified) were merged into one table, double counting",
+      "caught_by": "the end-to-end run on the preact fixture",
+      "fix": "attribution is scoped per asset; modules are matched against the tables of the assets they belong to"
+    },
+    {
+      "what": "the summary printed the requested size dimension instead of the one used",
+      "caught_by": "reading the output against the contract (unified-graph.md §3)",
+      "fix": "the report states the dimension it used, with OB0050 explaining an upgrade or downgrade"
+    }
+  ]
+}

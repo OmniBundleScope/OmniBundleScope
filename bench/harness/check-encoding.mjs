@@ -29,6 +29,9 @@ const repoRoot = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const SKIP_DIRS = new Set([
   '.git', 'target', 'node_modules', 'artifacts', 'vendor', 'coverage', 'repos',
 ]);
+// Path prefixes to skip anywhere in the tree, for generated output that is not a
+// directory name we can match on (ook/book/).
+const SKIP_PREFIXES = ['book/book'];
 // Authored files that are allowed to contain the patterns on purpose - a doc
 // *about* mojibake, for instance.
 const ALLOW = new Set(['bench/harness/check-encoding.mjs']);
@@ -68,12 +71,13 @@ const problems = [];
 let scanned = 0;
 
 for (const file of walk(repoRoot)) {
+  const rel = relative(repoRoot, file).replace(/\\/g, '/');
+  if (ALLOW.has(rel)) continue;
+  if (SKIP_PREFIXES.some((prefix) => rel.startsWith(prefix))) continue;
   scanned++;
   const bytes = readFileSync(file);
   const text = bytes.toString('utf8');
 
-  const rel = relative(repoRoot, file).replace(/\\/g, '/');
-  if (ALLOW.has(rel)) continue;
   if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
     problems.push(`${rel}: has a UTF-8 BOM`);
   }

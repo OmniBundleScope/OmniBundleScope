@@ -1,0 +1,38 @@
+[book]
+# `src` points at `../docs` so the chapters *are* the repository's documents
+# rather than copies of them. A site that duplicates the docs has two answers to
+# every question within a release, and only one of them gets fixed.
+src = "../docs"
+title = "OmniBundle"
+description = "One tool for every bundler: bundler graph plus source maps, in a fraction of the memory."
+authors = ["OmniBundle contributors"]
+language = "en"
+
+[build]
+build-dir = "book"
+create-missing = false
+# Every chapter in SUMMARY.md must exist. The failure mode this prevents is a
+# doc silently vanishing from the table of contents while remaining in the
+# repository, which is how a book quietly rots.
+
+[output.html]
+# No theme gimmicks: this is a reference, not a landing page. The README is the
+# landing page.
+default-theme = "light"
+preferred-dark-theme = "navy"
+smart-punctuation = true
+
+[output.html.search]
+enable = true
+limit-results = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 2
+boost-paragraph = 1
+
+[output.linkcheck]
+# mdbook-linkcheck is a separate binary, so it is marked optional: a plain
+# `mdbook build` must work without it. CI installs it, because a renamed
+# contract file must not leave thirty dead links behind.
+optional = true
+follow-web-links = false

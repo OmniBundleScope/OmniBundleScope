@@ -70,6 +70,23 @@ jobs:
         working-directory: bench
         run: node harness/check-treemap-svg.mjs ../docs/assets/*.svg
 
+      # 1018 generated cases against the treemap layout, plus an equivalence
+      # test against the copy inlined in the report shell. A squarify that
+      # double-places a row still looks plausible in a thumbnail, which is how
+      # the first README image got 39 overlaps unnoticed.
+      - name: treemap layout properties
+        working-directory: bench
+        run: node harness/check-treemap-layout.mjs
+
+      - name: workflow files parse
+        working-directory: bench
+        run: node harness/check-workflows.mjs
+
+      # Proptest runs on stable, so this needs no nightly toolchain. These are
+      # the properties that found the two scaling/attribution defects.
+      - name: property tests
+        run: cargo test -p omnibundle-core --test properties
+
       - name: smoke run on a fixture
         working-directory: bench
         run: |
@@ -129,21 +146,72 @@ jobs:
       - name: generate the synthetic fixtures
         working-directory: bench
         run: |
-          node harness/gen-stats.mjs 381000000 "$RUNNER_TEMP/stats-400mb.json"
+          node harness/gen-stats.mjs 363000000 "$RUNNER_TEMP/stats-400mb.json"
+          # The assets have to exist on disk: B3 measures the whole pipeline, and
+          # measuring a stats file with no assets beside it is just B1 again.
+          node harness/gen-stats.mjs 400000000 "$RUNNER_TEMP/stats-400mb.json" --assets 1500
+          node harness/materialize-assets.mjs \
+            --stats "$RUNNER_TEMP/stats-400mb.json" --out "$RUNNER_TEMP/dist"
+          cp "$RUNNER_TEMP/stats-400mb.json" "$RUNNER_TEMP/dist/stats.json"
           node harness/gen-map.mjs 10000 "$RUNNER_TEMP/map-10k.json" 8000000
           node harness/gen-bundle.mjs "$RUNNER_TEMP/map-10k.json" 8000000 "$RUNNER_TEMP/map-10k.bundle.js"
+      # `measure.ps1` is the same sampler the published numbers come from, and
+      # pwsh ships on the ubuntu runners. `harness-memory.sh` stays as the
+      # fallback for a machine without PowerShell, and is a different
+      # implementation on purpose: one sampler you cannot cross-check is one
+      # sampler you cannot trust.
       - name: measure
         working-directory: bench
         run: |
-          OB=../target/release/omnibundle
+          set -euo pipefail
+          OB="$GITHUB_WORKSPACE/target/release/omnibundle"
           mkdir -p results
-          echo "--- stats ingest (B1: <= 2000 ms, <= 200 MB) ---"
-          ./.harness-memory.sh "$OB" "$RUNNER_TEMP/stats-400mb.json" --bench
-          echo "--- source map ingest (B5: <= 1000 ms) ---"
-          ./.harness-memory.sh "$OB" "$RUNNER_TEMP/map-10k.json" --bench-map
-      - name: report
+          echo "--- B1 stats ingest (target: <= 2000 ms, <= 200 MB) ---"
+          pwsh -File harness/measure.ps1 -Binary "$OB" -Target "$RUNNER_TEMP/stats-400mb.json" \
+            -Extra '--bench' -Runs 3 | tee results/b1-ingest.json
+          echo "--- B3 full pipeline (target: <= 5000 ms, <= 200 MB) ---"
+          pwsh -File harness/measure.ps1 -Binary "$OB" -Target "$RUNNER_TEMP/dist" \
+            -Extra "--mode static --report $RUNNER_TEMP/report.html" -Runs 3 | tee results/b3-pipeline.json
+          echo "--- B5 source map (target: <= 1000 ms) ---"
+          pwsh -File harness/measure.ps1 -Binary "$OB" -Target "$RUNNER_TEMP/map-10k.json" \
+            -Extra '--bench-map' -Runs 3 | tee results/b5-sourcemap.json
+      # Timings on a shared runner are not a gate - they vary by tens of percent
+      # between runs, and a gate that flickers is a gate people disable. The
+      # numbers are published; the memory ceilings are checked here.
+      - name: check the memory ceilings
         working-directory: bench
-        run: cat results/bench-*.log || true
+        run: |
+          set -euo pipefail
+          fail=0
+          check() { # name file ceiling_mb
+            local got
+            got=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$2','utf8')).peak_private_median_mb)")
+            if awk "BEGIN{exit !($got > $3)}"; then
+              echo "FAIL $1 used ${got} MB, ceiling ${3} MB"
+              fail=1
+            else
+              echo "ok   $1 ${got} MB <= ${3} MB"
+            fi
+          }
+          check "B1 ingest"    results/b1-ingest.json    200
+          check "B3 pipeline"  results/b3-pipeline.json  200
+          check "B5 sourcemap" results/b5-sourcemap.json 200
+          exit $fail
+      - name: publish the measurements
+        working-directory: bench
+        run: |
+          {
+            echo '### Benchmarks (median of 3, shared runner)'
+            echo
+            for f in results/b*.json; do
+              echo "#### \`$(basename $f)\`"
+              echo
+              echo '```json'
+              node -e "const j=JSON.parse(require('fs').readFileSync('$f','utf8'));delete j.rss_source;console.log(JSON.stringify(j,null,2))"
+              echo '```'
+              echo
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: bench-results
@@ -162,6 +230,83 @@ jobs:
           node-version: 22
       - name: build release binaries for every target
         run: cargo build --workspace --release --target x86_64-unknown-linux-gnu
-      - name: crate metadata is publishable
+      # `|| true` because a packaging error on an unreleased crate should be a
+      # warning here and a hard failure in release.yml, where the tag exists.
+      # The output is uploaded either way, so it is never silently swallowed.
+      - name: the crates package cleanly
         run: |
-          cargo package -p omnibundle-core --allow-dirty --no-verify || true
+          set -euo pipefail
+          mkdir -p /tmp/pkg
+          for c in omnibundle-core omnibundle-cli; do
+            echo "--- $c ---"
+            cargo package -p "$c" --allow-dirty --no-verify 2>&1 | tee -a /tmp/pkg/package.log || true
+          done
+          cat /tmp/pkg/package.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: package-log
+          path: /tmp/pkg/package.log
+
+  coverage:
+    name: test coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          # cargo-llvm-cov needs the llvm-tools component that ships with the
+          # toolchain; without it the job fails on a missing binary.
+          components: llvm-tools-preview
+      - name: install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+      - name: coverage (all targets, including the property tests)
+        run: |
+          cargo llvm-cov --all-targets --workspace --summary-only \
+            | tee coverage.txt
+      # A coverage number with no floor tells you nothing: it goes down silently
+      # and nobody notices until a bug ships. 70 % is where this is today, and
+      # the ratchet is the point - it must not fall.
+      - name: enforce the coverage floor
+        run: |
+          set -euo pipefail
+          pct=$(awk '/^TOTAL/ {print $NF}' coverage.txt | tr -d '%')
+          echo "total coverage: ${pct}%"
+          awk "BEGIN{exit !($pct < 70)}" && {
+            echo "::error::coverage ${pct}% is below the 70% floor"
+            exit 1
+          }
+      - uses: codecov/codecov-action@v5
+        with:
+          files: coverage.txt
+          # Not required for forks: an upload token does not exist there, and a
+          # red X on every fork PR trains people to ignore the check.
+          fail_ci_if_error: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.txt
+
+  docs:
+    name: docs site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: peaceiris/actions-mdbook@v2
+        with:
+          # The EN documents are the normative source, and `book.toml` points
+          # mdbook at `../docs`, so the chapters *are* the repository's files
+          # rather than copies that can drift.
+          path: book
+      - name: mdbook-linkcheck
+        run: cargo install mdbook-linkcheck --locked
+      - name: no dead links
+        working-directory: book
+        run: mdbook build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: book/book/html
+      - name: deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/deploy-pages@v4

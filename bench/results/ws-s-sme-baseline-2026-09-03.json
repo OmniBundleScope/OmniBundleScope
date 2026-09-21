@@ -1,0 +1,31 @@
+{
+  "measurement": "WS-S source-map-explorer baseline",
+  "date": "2026-09-03",
+  "machine": "windows, node 24.18.0, 8 cores reference machine",
+  "protocol": "bench-spec.md §2; peak RSS sampled at 100 ms by harness/run-bench.ps1; first run on a cold file cache discarded and reported separately",
+  "tool": { "name": "source-map-explorer", "version": "2.5.3", "invocation": "source-map-explorer <bundle.js> --no-border-checks" },
+  "runs": [
+    { "fixture": "chalk@6.0.1", "class": "real", "map_kb": 29, "bundle_kb": 14, "wall_ms": 1645, "peak_rss_mb": 48, "note": "cold run: module load + Defender scan; every later run of the same shape is ~0.2-0.3 s" },
+    { "fixture": "preact@10.29.8", "class": "real", "map_kb": 97, "bundle_kb": 35, "wall_ms": 252, "peak_rss_mb": 31 },
+    { "fixture": "preact@10.29.8 (minified)", "class": "real", "map_kb": 97, "bundle_kb": 13, "wall_ms": 237, "peak_rss_mb": 49 },
+    { "fixture": "marked@18.0.14", "class": "real", "map_kb": 177, "bundle_kb": 84, "wall_ms": 224, "peak_rss_mb": 48 },
+    { "fixture": "marked@18.0.14 (minified)", "class": "real", "map_kb": 177, "bundle_kb": 45, "wall_ms": 226, "peak_rss_mb": 48 },
+    { "fixture": "synthetic 10k sources", "class": "synthetic", "map_mb": 7.1, "bundle_mb": 3.53, "wall_ms": 23173, "peak_rss_mb": 277, "note": "run 1 (cold)" },
+    { "fixture": "synthetic 10k sources", "class": "synthetic", "map_mb": 7.1, "bundle_mb": 3.53, "wall_ms": 18380, "peak_rss_mb": 277, "note": "run 2" },
+    { "fixture": "synthetic 10k sources", "class": "synthetic", "map_mb": 7.1, "bundle_mb": 3.53, "wall_ms": 18325, "peak_rss_mb": 274, "note": "run 3" },
+    { "fixture": "synthetic 50k sources", "class": "synthetic", "map_mb": 36.47, "bundle_mb": 17.64, "wall_ms": 562269, "peak_rss_mb": 642, "note": "single run: a second run would cost another 9.4 minutes, so the 3-run median was not affordable here; documented deviation from bench-spec.md §2" }
+  ],
+  "scaling": {
+    "10k_sources": { "wall_ms_median": 18380, "peak_rss_mb": 277 },
+    "50k_sources": { "wall_ms": 562269, "peak_rss_mb": 642 },
+    "data_ratio": 5.0,
+    "time_ratio": 30.6,
+    "verdict": "superlinear: 5x the sources costs ~31x the time. Reproduces the upstream report that getWebTreeMapData dominates at 10k files (source-map-explorer#186)."
+  },
+  "conclusion": {
+    "small_real_projects": "no pain: 0.22-1.65 s and 31-49 MB, dominated by process start-up",
+    "large_maps": "real, reproducible pain: 18.4 s at 7 MB, 9.4 minutes at 36.5 MB, 277-642 MB RSS",
+    "implication": "the OmniBundle stop-the-line condition R1 (>1 s on realistic maps) is NOT triggered for small projects, but IS triggered for large ones; the product case is therefore about the large-project segment, and the positioning must say so explicitly",
+    "open": "WS-S phase breakdown is still unmeasured (SME does not report per-phase timings); the win mechanism (zero-allocation VLQ + binary search over sorted mappings) is therefore still a hypothesis until B5 is run"
+  }
+}

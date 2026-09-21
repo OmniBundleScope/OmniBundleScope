@@ -1,0 +1,58 @@
+{
+  "measurement": "WS-1 stats ingest, release build, streaming from disk",
+  "date": "2026-09-03",
+  "machine": "windows, rustc 1.97.1, release profile",
+  "protocol": "bench-spec.md §2 (3 runs, median, first cold run reported separately). Peak RSS sampled at 100 ms by harness/run-bench.ps1.",
+  "fixture": "bench/harness/gen-stats.mjs — 1500 assets, 200 chunks, modules with embedded source strings. Identifiers made unique after the first generator draft reused 400 of them, which silently deduped the graph (154,379 vs the real 445,602 keys).",
+  "runs": [
+    {
+      "input": "ob-stats-400mb.json",
+      "input_mb": 363.35,
+      "modules": 154379,
+      "assets": 1500,
+      "packages": 400,
+      "tool": "omnibundle@0.1.0 --bench",
+      "ingest_ms": 1139,
+      "total_ms": 1334,
+      "peak_rss_mb": 126,
+      "target": "B1: <= 2000 ms, <= 200 MB",
+      "verdict": "pass"
+    },
+    {
+      "input": "ob-stats-1gb.json",
+      "input_mb": 1049.04,
+      "modules": 445602,
+      "assets": 1500,
+      "packages": 400,
+      "tool": "omnibundle@0.1.0 --bench",
+      "ingest_ms": 3318,
+      "total_ms": 3628,
+      "peak_rss_mb": 346,
+      "target": "B2: <= 3000 ms, <= 400 MB",
+      "verdict": "memory passes (346 MB), wall time misses by 0.6 s (3628 ms vs 3000 ms) — recorded as missed, not retargeted"
+    },
+    {
+      "input": "ob-stats-400mb.json",
+      "tool": "webpack-bundle-analyzer@4.10.2",
+      "wall_ms": 63617,
+      "peak_rss_mb": 2295,
+      "fixture_class": "synthetic",
+      "note": "same corrected fixture; stats-only path"
+    }
+  ],
+  "comparison_on_identical_input": {
+    "input": "ob-stats-400mb.json (363 MB, 154,379 modules)",
+    "omnibundle": { "wall_ms": 1334, "peak_rss_mb": 126 },
+    "webpack_b_bundle_analyzer": { "wall_ms": 63617, "peak_rss_mb": 2295 },
+    "wall_ratio": 47.7,
+    "memory_ratio": 18.2
+  },
+  "regression_found_and_fixed": {
+    "what": "the first CLI read the whole file with std::fs::read before parsing",
+    "measured": { "400mb": { "wall_ms": 127170, "peak_rss_mb": 2262 }, "1gb": { "wall_ms": 479501, "peak_rss_mb": 6417 } },
+    "cause": "the file size lands on the memory floor before a single module is parsed; 1 GB input became 6.4 GB resident",
+    "fix": "core::stats::ingest_reader over a 1 MiB BufReader (ingest_file), with a 512 KiB head read used only for artifact sniffing",
+    "after": { "400mb": { "wall_ms": 1334, "peak_rss_mb": 126 }, "1gb": { "wall_ms": 3628, "peak_rss_mb": 346 } },
+    "lesson": "the memory story is a property of the IO path, not of the parser. A benchmark that only measures parse time would have missed this entirely."
+  }
+}
