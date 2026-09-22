@@ -33,7 +33,7 @@ source map から実バイトの帰属、esbuild の metafile、あるいはた�
 | | 時間 | ピークメモリ |
 |---|---|---|
 | [`webpack-bundle-analyzer@4.10.2`](https://github.com/webpack-contrib/webpack-bundle-analyzer) | 63.6 s | 2,295 MB |
-| **OmniBundle** | **1.75 s** | **156 MB** |
+| **OmniBundle** | **1.87 s** | **126 MB** |
 | | **36 倍速い** | **15 分の 1 のメモリ** |
 
 50,000 ソース / 36.5 MB の source map に対する

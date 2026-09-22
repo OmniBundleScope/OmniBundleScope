@@ -84,15 +84,25 @@ child process (`bench/harness/measure.ps1`); both working set and private bytes
 are recorded because working set includes file-backed pages of the 1 GB stream
 and moved between 411 MB and 1,008 MB for the *same* run.
 
+Raw records, committed so they can be inspected rather than taken on trust:
+
+| row | record |
+|---|---|
+| B3 | `bench/results/b3-full-pipeline-2026-09-16.json` |
+| B4 | `bench/results/b4-full-pipeline-2026-09-16.json` |
+| B8 | `bench/results/b8-stats-plus-map-2026-09-16.json` |
+| SME baseline | `bench/results/ws-s-sme-baseline-2026-09-03.json` |
+| WBA ingest | `bench/results/ws1-stats-ingest-2026-09-03.json` |
+
 | benchmark | input | target | before | **now** |
 |---|---|---|---|---|
 | B1 ingest | 363 MB / 154,379 modules | ≤ 2,000 ms, ≤ 200 MB | 1,139 ms / 126 MB | 1,392 ms / 157 MB |
 | B2 ingest | 1,049 MB / 445,602 modules | ≤ 3,000 ms, ≤ 400 MB | 3,318 ms / 346 MB | 4,402 ms / 350 MB |
-| B3 **full pipeline** | 363 MB stats + 1,500 assets (71.6 MB on disk) | ≤ 5,000 ms, ≤ 200 MB | 3,052 ms / **670 MB** | **1,753 ms / 156 MB** |
-| B4 **full pipeline** | 1,049 MB stats + 1,500 assets | ≤ 15,000 ms, ≤ 400 MB | 8,080 ms / **962 MB** | **5,172 ms / 376 MB** |
+| B3 **full pipeline** | 363 MB stats + 1,500 assets (71.6 MB on disk) | ≤ 5,000 ms, ≤ 200 MB | 3,052 ms / **670 MB** | **1,869 ms / 126 MB** |
+| B4 **full pipeline** | 1,049 MB stats + 1,500 assets | ≤ 15,000 ms, ≤ 400 MB | 8,080 ms / **962 MB** | **6,140 ms / 376 MB** |
 | B5 source map | 10k sources, 7.1 MB map | ≤ 1,000 ms | — | 46 ms |
 | B5 source map | 50k sources, 36.5 MB map | ≤ 1,000 ms | — | 209 ms / 67 MB |
-| B8 **stats + map** | 1 GB stats + 36.5 MB map, one 17.6 MB asset fully covered | < 500 MB | 73,838 ms / 152 MB | **4,942 ms / 152 MB** |
+| B8 **stats + map** | 1 GB stats + 36.5 MB map, one 17.6 MB asset fully covered | < 500 MB | 73,838 ms / 152 MB | **3,573 ms / 137 MB** |
 
 Reference points for the same inputs: WBA 63.6 s / 2,295 MB on the 363 MB
 fixture; SME 562,269 ms / 642 MB on the 50k map.

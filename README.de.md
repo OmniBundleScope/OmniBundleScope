@@ -34,8 +34,8 @@ messen, Source Maps zusammenführen, Report rendern:
 | | Zeit | Spitzenbelegung |
 |---|---|---|
 | [`webpack-bundle-analyzer@4.10.2`](https://github.com/webpack-contrib/webpack-bundle-analyzer) | 63,6 s | 2.295 MB |
-| **OmniBundle** | **1,75 s** | **156 MB** |
-| | **36× schneller** | **15× kleiner** |
+| **OmniBundle** | **1,87 s** | **126 MB** |
+| | **34× schneller** | **18× kleiner** |
 
 Und auf einer 36,5-MB-Source-Map mit 50.000 Quellen, gegen
 [`source-map-explorer@2.5.3`](https://github.com/danvk/source-map-explorer):

@@ -32,8 +32,8 @@ fuse the source maps, render the report:
 | | time | peak memory |
 |---|---|---|
 | [`webpack-bundle-analyzer@4.10.2`](https://github.com/webpack-contrib/webpack-bundle-analyzer) | 63.6 s | 2,295 MB |
-| **OmniBundle** | **1.75 s** | **156 MB** |
-| | **36x faster** | **15x smaller** |
+| **OmniBundle** | **1.87 s** | **126 MB** |
+| | **34x faster** | **18x smaller** |
 
 And on a 36.5 MB source map with 50,000 sources, against
 [`source-map-explorer@2.5.3`](https://github.com/danvk/source-map-explorer):

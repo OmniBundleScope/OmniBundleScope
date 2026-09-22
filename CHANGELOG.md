@@ -47,7 +47,7 @@ implemented and measured; WASM and the WebGL renderer are not.
 | B3 | the same, full pipeline + 1,500 assets | ≤ 5 s, ≤ 200 MB | **1.75 s / 156 MB** |
 | B4 | 1 GB stats, 445,602 modules, full pipeline | ≤ 15 s, ≤ 400 MB | **5.17 s / 376 MB** |
 | B5 | 36.5 MB source map, 50k sources | ≤ 1 s | **209 ms / 67 MB** |
-| B8 | 1 GB stats + 36.5 MB map, fused | < 500 MB | **4.94 s / 152 MB**, coverage 100% |
+| B8 | 1 GB stats + 36.5 MB map, fused | < 500 MB | **3.57 s / 137 MB**, coverage 100% |
 | B9 | parity vs WBA, real webpack builds | ≤ 0.1 % | **0 ppm** on assets and modules |
 
 Reference points on the same inputs: `webpack-bundle-analyzer@4.10.2` 63.6 s /

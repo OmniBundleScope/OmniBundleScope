@@ -31,7 +31,7 @@ esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张�
 | | 耗时 | 峰值内存 |
 |---|---|---|
 | [`webpack-bundle-analyzer@4.10.2`](https://github.com/webpack-contrib/webpack-bundle-analyzer) | 63.6 s | 2,295 MB |
-| **OmniBundle** | **1.75 s** | **156 MB** |
+| **OmniBundle** | **1.87 s** | **126 MB** |
 | | **快 36 倍** | **内存少 15 倍** |
 
 在一份 50,000 个 source、36.5 MB 的 source map 上，对比
