@@ -11,7 +11,6 @@ repository = "https://github.com/omnibundle/omnibundle"
 authors = ["OmniBundle contributors"]
 homepage = "https://github.com/omnibundle/omnibundle"
 documentation = "https://omnibundle.github.io/omnibundle/"
-readme = "README.md"
 keywords = ["webpack", "bundler", "bundle-analyzer", "source-map", "tree-shaking"]
 categories = ["development-tools::build-utils", "command-line-utilities"]
 

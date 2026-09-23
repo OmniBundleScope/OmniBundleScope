@@ -82,6 +82,12 @@ jobs:
         working-directory: bench
         run: node harness/check-workflows.mjs
 
+      # crates.io renders the licence from files inside the published package,
+      # so each crate carries a copy; this keeps those copies honest.
+      - name: licence copies match the canonical files
+        working-directory: bench
+        run: node harness/check-licenses.mjs
+
       # Proptest runs on stable, so this needs no nightly toolchain. These are
       # the properties that found the two scaling/attribution defects.
       - name: property tests

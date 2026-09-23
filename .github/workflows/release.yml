@@ -169,3 +169,28 @@ jobs:
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  crates-io:
+    name: publish to crates.io
+    needs: [verify, binaries]
+    runs-on: ubuntu-latest
+    # crates.io is the secondary channel - npm and the release binaries are the
+    # primary ones - so a failure here does not fail the release job. Publishing
+    # the core first is mandatory and ordering is the whole difficulty: the CLI
+    # depends on a *published* core, so a single `cargo publish` pass would
+    # always fail on one of them.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: publish omnibundle-core
+        run: |
+          set -euo pipefail
+          cargo publish -p omnibundle-core --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+          # crates.io needs a moment to serve the new version to the index
+          # before anything can depend on it.
+          sleep 30
+      - name: publish omnibundle-cli
+        run: cargo publish -p omnibundle-cli --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+      - name: publish omnibundle-wasm
+        run: cargo publish -p omnibundle-wasm --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
