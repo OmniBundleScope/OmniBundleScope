@@ -4,13 +4,29 @@
 // silently wrong, and since the README image is generated rather than drawn by
 // hand, it needs a check like any other output.
 //
-//   node bench/harness/check-treemap-svg.mjs docs/assets/*.svg
+//   node bench/harness/check-treemap-svg.mjs docs/assets/treemap-*.svg
+//
+// Only treemap images are checked. The performance charts in the same directory
+// are matplotlib output with a different structure and their own gate (the
+// generator refuses to write a clipped one, and CI regenerates and diffs them);
+// running this over them would report a meaningless "0 rects".
 
-import { readFileSync } from 'node:fs';
+import { existsSync, globSync, readFileSync } from 'node:fs';
 
 let failures = 0;
 
-for (const path of process.argv.slice(2)) {
+// Expand the glob here rather than relying on the shell: PowerShell passes *
+// through literally, and a check that only works under bash is a check that
+// silently skips on half the machines people run it on.
+const targets = process.argv.slice(2).flatMap((arg) =>
+  globSync(arg, { cwd: process.cwd() }).map((p) => p.replace(/\\\\/g, '/')),
+);
+if (targets.length === 0) {
+  console.error('usage: node check-treemap-svg.mjs <treemap.svg> ...');
+  process.exit(2);
+}
+
+for (const path of targets) {
   const svg = readFileSync(path, 'utf8');
   const width = Number(/width="(\d+)"/.exec(svg)?.[1] ?? 0);
   const height = Number(/height="(\d+)"/.exec(svg)?.[1] ?? 0);
@@ -22,6 +38,12 @@ for (const path of process.argv.slice(2)) {
     h: +m[4],
     title: m[5],
   }));
+
+  if (rects.length === 0) {
+    console.error(`FAIL ${path}: no labelled rectangles found - is this a treemap image?`);
+    failures++;
+    continue;
+  }
 
   let overlaps = 0;
   for (let i = 0; i < rects.length; i++) {

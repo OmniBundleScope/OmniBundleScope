@@ -68,7 +68,7 @@ jobs:
 
       - name: the README images are valid geometry
         working-directory: bench
-        run: node harness/check-treemap-svg.mjs ../docs/assets/*.svg
+        run: node harness/check-treemap-svg.mjs ../docs/assets/treemap-*.svg
 
       # 1018 generated cases against the treemap layout, plus an equivalence
       # test against the copy inlined in the report shell. A squarify that
@@ -92,6 +92,24 @@ jobs:
       # the properties that found the two scaling/attribution defects.
       - name: property tests
         run: cargo test -p omnibundle-core --test properties
+
+      # The charts are generated, not drawn, and they are only trustworthy if
+      # regenerating them is reproducible. This also fails if a label formatter
+      # drifts: the SVG stores glyphs as paths, so nothing else would notice a
+      # 46 ms measurement being labelled "0.0 s".
+      - name: the charts regenerate
+        working-directory: bench
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet matplotlib
+          python harness/make-charts.py
+          git diff --exit-code -- ../docs/assets \
+            || { echo "::error::the committed charts differ from a fresh run; run bench/harness/make-charts.py and commit the result"; exit 1; }
+
+      # Every headline figure in every README must be the number the record says.
+      - name: the READMEs quote the records
+        working-directory: bench
+        run: node harness/check-readme-numbers.mjs
 
       - name: smoke run on a fixture
         working-directory: bench

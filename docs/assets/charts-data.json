@@ -1,0 +1,51 @@
+{
+  "generated_by": "bench/harness/make-charts.py",
+  "note": "Every number plotted, with where it came from. The README cites this file so a reader can check the figure against the records instead of trusting the picture.",
+  "provenance": {
+    "omni_stats": "bench/results/b3-full-pipeline-2026-09-16.json (median of 3) and b4-full-pipeline-2026-09-16.json (median of 3)",
+    "omni_map": "bench/results/ws3-sourcemap-ingest-2026-09-21.json (median of 3 for 10k and 50k)",
+    "wba_363mb": "docs/en/01-evidence.md \u00a72, 63.617 s / 2,295 MB",
+    "wba_1gb": "docs/en/01-evidence.md \u00a72, 176.3 s / 1,437 MB - baseline session, same reference machine, not the same run as the 363 MB row",
+    "sme": "bench/results/ws-s-sme-baseline-2026-09-03.json. The 1k row is the real preact build (median of 3); 10k is a median of 3; 50k is a single 9.4-minute run, because three runs would have taken half an hour",
+    "targets": "docs/en/04-benchmark-plan.md - B3 <= 5 s / <= 200 MB, B4 <= 15 s / <= 400 MB, B5 <= 1 s, B8 < 500 MB"
+  },
+  "stats_pipeline": {
+    "363 MB stats, 154,379 modules": {
+      "ob_s": 1.869,
+      "ref_s": 63.617,
+      "ref": "webpack-bundle-analyzer 4.10.2",
+      "ob_mb": 126.8,
+      "ref_mb": 2295.0
+    },
+    "1 GB stats, 445,602 modules": {
+      "ob_s": 6.14,
+      "ref_s": 176.3,
+      "ref": "webpack-bundle-analyzer 4.10.2",
+      "ob_mb": 375.9,
+      "ref_mb": 1437.0
+    }
+  },
+  "source_maps": [
+    {
+      "sources": 1000,
+      "omnibundle_seconds": 0.0046,
+      "source_map_explorer_seconds": 0.252,
+      "omnibundle_mb": 30.0,
+      "source_map_explorer_mb": 49.0
+    },
+    {
+      "sources": 10000,
+      "omnibundle_seconds": 0.046,
+      "source_map_explorer_seconds": 18.38,
+      "omnibundle_mb": 31.0,
+      "source_map_explorer_mb": 277.0
+    },
+    {
+      "sources": 50000,
+      "omnibundle_seconds": 0.209,
+      "source_map_explorer_seconds": 562.269,
+      "omnibundle_mb": 67.0,
+      "source_map_explorer_mb": 642.0
+    }
+  ]
+}

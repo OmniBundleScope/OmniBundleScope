@@ -1,0 +1,611 @@
+#!/usr/bin/env python3
+"""Generate the performance charts for the README and the docs.
+
+    python bench/harness/make-charts.py
+
+Why a script and not checked-in images: a chart nobody can regenerate is a
+picture of a benchmark that used to be true. This reads the same harness records
+the docs cite and writes a sidecar JSON next to the SVGs listing every plotted
+number with its provenance, so a reader can diff the chart against the record
+instead of trusting it.
+
+Two themes are emitted for every chart and the README picks between them with a
+`prefers-color-scheme` <picture>, because a chart designed only for light mode is
+an unreadable grey block on a dark page.
+
+Design rules, applied rather than assumed:
+  - the tool being replaced recedes (slate), the subject is the only saturated
+    colour, so the eye lands on the comparison and not on the decoration;
+  - every value is labelled directly, so there is no legend to decode and no
+    axis to squint at;
+  - log axes wherever the values span orders of magnitude, because a linear axis
+    would render 46 ms as a hairline next to 562 s and quietly hide the result;
+  - the ratio between the pair is stated in words, because that is the claim;
+  - the fixture class and the protocol are printed on the figure. A benchmark
+    without its provenance is a marketing asset, not a measurement.
+"""
+
+from __future__ import annotations
+
+import json
+import pathlib
+import sys
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.ticker import FuncFormatter  # noqa: E402
+
+REPO = pathlib.Path(__file__).resolve().parents[2]
+OUT = REPO / "docs" / "assets"
+
+# ---------------------------------------------------------------- data
+# Every number below is transcribed from a committed record under
+# bench/results/ or from docs/en/01-evidence.md, which cites the session each
+# came from. The sidecar written next to the SVGs repeats this provenance so the
+# figure can be audited without reading this script.
+
+# (label, OmniBundle seconds, reference tool seconds, reference name)
+STATS = {
+    "363 MB stats, 154,379 modules": {
+        "ob_s": 1.869,
+        "ref_s": 63.617,
+        "ref": "webpack-bundle-analyzer 4.10.2",
+    },
+    "1 GB stats, 445,602 modules": {
+        "ob_s": 6.140,
+        "ref_s": 176.3,
+        "ref": "webpack-bundle-analyzer 4.10.2",
+    },
+}
+STATS_MEM = {
+    "363 MB stats, 154,379 modules": {"ob_mb": 126.8, "ref_mb": 2295.0},
+    "1 GB stats, 445,602 modules": {"ob_mb": 375.9, "ref_mb": 1437.0},
+}
+
+# source map attribution, by number of sources
+MAP_POINTS = [
+    # sources, omnibundle seconds, sme seconds, omnibundle MB, sme MB
+    (1_000, 0.0046, 0.252, 30.0, 49.0),
+    (10_000, 0.046, 18.380, 31.0, 277.0),
+    (50_000, 0.209, 562.269, 67.0, 642.0),
+]
+
+PROVENANCE = {
+    "omni_stats": "bench/results/b3-full-pipeline-2026-09-16.json (median of 3) and b4-full-pipeline-2026-09-16.json (median of 3)",
+    "omni_map": "bench/results/ws3-sourcemap-ingest-2026-09-21.json (median of 3 for 10k and 50k)",
+    "wba_363mb": "docs/en/01-evidence.md §2, 63.617 s / 2,295 MB",
+    "wba_1gb": "docs/en/01-evidence.md §2, 176.3 s / 1,437 MB - baseline session, same reference machine, not the same run as the 363 MB row",
+    "sme": "bench/results/ws-s-sme-baseline-2026-09-03.json. The 1k row is the real preact build (median of 3); 10k is a median of 3; 50k is a single 9.4-minute run, because three runs would have taken half an hour",
+    "targets": "docs/en/04-benchmark-plan.md - B3 <= 5 s / <= 200 MB, B4 <= 15 s / <= 400 MB, B5 <= 1 s, B8 < 500 MB",
+}
+
+# ---------------------------------------------------------------- themes
+
+THEMES = {
+    "light": {
+        "bg": "#ffffff",
+        "surface": "#f6f8fb",
+        "ink": "#0f172a",
+        "muted": "#64748b",
+        "grid": "#e2e8f0",
+        "accent": "#2563eb",
+        "accent_soft": "#93b4fb",
+        "ref": "#a3b0c2",
+        "ref_ink": "#475569",
+    },
+    "dark": {
+        "bg": "#0e1116",
+        "surface": "#151a21",
+        "ink": "#e6edf3",
+        "muted": "#8b98a9",
+        "grid": "#222a35",
+        "accent": "#4c8dff",
+        "accent_soft": "#2b4d80",
+        "ref": "#4d5866",
+        "ref_ink": "#9aa7b6",
+    },
+}
+
+
+def style_axes(ax, theme, *, xgrid=True):
+    ax.set_facecolor(theme["bg"])
+    ax.xaxis.grid(True, color=theme["grid"], linewidth=0.8, zorder=0)
+    ax.yaxis.grid(False)
+    ax.set_axisbelow(True)
+    for side in ("top", "right", "left"):
+        ax.spines[side].set_visible(False)
+    ax.spines["bottom"].set_color(theme["grid"])
+    ax.tick_params(colors=theme["muted"], labelsize=9, length=0)
+    if not xgrid:
+        ax.xaxis.grid(False)
+        ax.yaxis.grid(True, color=theme["grid"], linewidth=0.8, zorder=0)
+
+
+def human_time(seconds: float) -> str:
+    if seconds >= 60:
+        return f"{seconds / 60:.1f} min" if seconds < 600 else f"{seconds / 60:.0f} min"
+    if seconds >= 1:
+        return f"{seconds:.2f} s".replace(".00 ", " ")
+    # One decimal below ten milliseconds: rounding 4.6 ms to "5 ms" is a 9 %
+    # error on the label of the fastest measurement in the whole set, which is
+    # exactly the number a reader is most likely to quote back at you.
+    if seconds >= 0.01:
+        return f"{seconds * 1000:.0f} ms"
+    return f"{seconds * 1000:.1f} ms"
+
+
+def human_mb(mb: float) -> str:
+    if mb >= 1024:
+        return f"{mb / 1024:.2f} GB"
+    return f"{mb:.0f} MB"
+
+
+def ratio(a: float, b: float) -> str:
+    """How many times faster `a` is than `b`."""
+    factor = b / a
+    if factor >= 10:
+        return f"{factor:.0f}x"
+    return f"{factor:.1f}x"
+
+
+def check_formatters() -> None:
+    """The SVG embeds glyphs as paths, so a label cannot be read back out of it.
+
+    That makes the label text the one part of the figure no reviewer can check by
+    looking, so it is pinned here instead: if someone changes the formatting, this
+    fails rather than the chart quietly saying "0.0 s" for a 46 ms measurement.
+    """
+    cases_time = [
+        (0.0046, "4.6 ms"),
+        (0.046, "46 ms"),
+        (0.209, "209 ms"),
+        (1.869, "1.87 s"),
+        (6.140, "6.14 s"),
+        (18.380, "18.38 s"),
+        (63.617, "1.1 min"),
+        (176.3, "2.9 min"),
+        (562.269, "9.4 min"),
+    ]
+    cases_mb = [
+        (30.0, "30 MB"),
+        (67.0, "67 MB"),
+        (126.8, "127 MB"),
+        (375.9, "376 MB"),
+        (642.0, "642 MB"),
+        (2295.0, "2.24 GB"),
+    ]
+    cases_ratio = [(1.869, 63.617, "34x"), (0.209, 562.269, "2690x"), (0.046, 18.380, "400x")]
+
+    for value, expected in cases_time:
+        actual = human_time(value)
+        assert actual == expected, f"human_time({value}) = {actual!r}, expected {expected!r}"
+    for value, expected in cases_mb:
+        actual = human_mb(value)
+        assert actual == expected, f"human_mb({value}) = {actual!r}, expected {expected!r}"
+    for ours, theirs, expected in cases_ratio:
+        actual = ratio(ours, theirs)
+        assert actual == expected, f"ratio({ours}, {theirs}) = {actual!r}, expected {expected!r}"
+
+
+# ---------------------------------------------------------------- charts
+
+
+def chart_pipeline(name: str, theme: dict) -> pathlib.Path:
+    """Time and memory against webpack-bundle-analyzer, one row per input."""
+    fig, (ax_time, ax_mem) = plt.subplots(
+        1, 2, figsize=(11.2, 3.5), dpi=200, constrained_layout=True
+    )
+    fig.patch.set_facecolor(theme["bg"])
+
+    rows = list(STATS.items())
+    ys = list(range(len(rows)))[::-1]
+    height = 0.34
+
+    for y, (label, data) in zip(ys, rows):
+        mem = STATS_MEM[label]
+        # reference tool first (upper bar), OmniBundle second (lower bar)
+        ax_time.barh(y + height / 2, data["ref_s"], height=height, color=theme["ref"], zorder=3)
+        ax_time.barh(y - height / 2, data["ob_s"], height=height, color=theme["accent"], zorder=3)
+        ax_mem.barh(y + height / 2, mem["ref_mb"], height=height, color=theme["ref"], zorder=3)
+        ax_mem.barh(y - height / 2, mem["ob_mb"], height=height, color=theme["accent"], zorder=3)
+
+        ax_time.text(
+            data["ref_s"] * 1.12,
+            y + height / 2,
+            human_time(data["ref_s"]),
+            va="center",
+            color=theme["ref_ink"],
+            fontsize=9.5,
+        )
+        ax_time.text(
+            data["ob_s"] * 1.12,
+            y - height / 2,
+            human_time(data["ob_s"]),
+            va="center",
+            color=theme["accent"],
+            fontsize=9.5,
+            fontweight="bold",
+        )
+        ax_mem.text(
+            mem["ref_mb"] * 1.08,
+            y + height / 2,
+            human_mb(mem["ref_mb"]),
+            va="center",
+            color=theme["ref_ink"],
+            fontsize=9.5,
+        )
+        ax_mem.text(
+            mem["ob_mb"] * 1.08,
+            y - height / 2,
+            human_mb(mem["ob_mb"]),
+            va="center",
+            color=theme["accent"],
+            fontsize=9.5,
+            fontweight="bold",
+        )
+
+    for ax, xmax, formatter in (
+        (ax_time, 400.0, human_time),
+        (ax_mem, 6000.0, human_mb),
+    ):
+        style_axes(ax, theme)
+        ax.set_xscale("log")
+        ax.set_xlim(0.9, xmax)
+        ax.set_yticks(ys)
+        ax.set_yticklabels([label for label, _ in rows], fontsize=9.5, color=theme["ink"])
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: "" if v in (0.9, xmax) else formatter(v)))
+        ax.set_ylim(-0.7, len(rows) - 0.3)
+
+    ax_time.set_title(
+        "wall clock", loc="left", fontsize=11, color=theme["ink"], fontweight="bold", pad=12
+    )
+    ax_mem.set_title(
+        "peak memory", loc="left", fontsize=11, color=theme["ink"], fontweight="bold", pad=12
+    )
+
+    # The ratio sits at the far right of the row, in the space past the longest
+    # bar. Placing it near the bars puts it on top of them, which is the one
+    # thing a log axis makes easy to do by accident.
+    for y, (label, data) in zip(ys, rows):
+        mem = STATS_MEM[label]
+        ax_time.text(
+            0.995,
+            y,
+            f"{ratio(data['ob_s'], data['ref_s'])} faster",
+            transform=ax_time.get_yaxis_transform(),
+            va="center",
+            ha="right",
+            color=theme["accent"],
+            fontsize=9.5,
+            fontweight="bold",
+        )
+        ax_mem.text(
+            0.995,
+            y,
+            f"{ratio(mem['ref_mb'], mem['ob_mb'])} less",
+            transform=ax_mem.get_yaxis_transform(),
+            va="center",
+            ha="right",
+            color=theme["accent"],
+            fontsize=9.5,
+            fontweight="bold",
+        )
+
+    fig.suptitle(
+        "One pass: parse stats, measure every asset, fuse the source maps, render the report",
+        x=0.008,
+        ha="left",
+        fontsize=12.5,
+        color=theme["ink"],
+        fontweight="bold",
+    )
+    fig.text(
+        0.008,
+        -0.035,
+        "synthetic fixtures, median of 3 runs on the reference machine · "
+        "the 1 GB reference row is from the baseline session · "
+        "grey is webpack-bundle-analyzer 4.10.2",
+        ha="left",
+        fontsize=8.5,
+        color=theme["muted"],
+    )
+
+    return save(fig, name, theme)
+
+
+def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
+    """Attribution time and memory against source-map-explorer, by source count."""
+    fig, (ax_time, ax_mem) = plt.subplots(
+        1, 2, figsize=(11.2, 3.5), dpi=200, constrained_layout=True
+    )
+    fig.patch.set_facecolor(theme["bg"])
+
+    sources = [p[0] for p in MAP_POINTS]
+    ob_s = [p[1] for p in MAP_POINTS]
+    sme_s = [p[2] for p in MAP_POINTS]
+    ob_mb = [p[3] for p in MAP_POINTS]
+    sme_mb = [p[4] for p in MAP_POINTS]
+
+    for ax, ours, theirs, ours_mb, theirs_mb, formatter in (
+        (ax_time, ob_s, sme_s, None, None, human_time),
+        (ax_mem, ob_mb, sme_mb, None, None, human_mb),
+    ):
+        ax.plot(sources, theirs, color=theme["ref"], linewidth=2.4, marker="o",
+                markersize=5, zorder=3, label="source-map-explorer 2.5.3")
+        ax.plot(sources, ours, color=theme["accent"], linewidth=2.4, marker="o",
+                markersize=5, zorder=4, label="OmniBundle")
+        style_axes(ax, theme, xgrid=False)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xticks(sources)
+        ax.set_xticklabels([f"{s // 1000}k" if s >= 1000 else str(s) for s in sources])
+        ax.set_xlabel("sources in the map", fontsize=9, color=theme["muted"])
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: formatter(v)))
+        for spine in ("bottom",):
+            ax.spines[spine].set_color(theme["grid"])
+
+    for x, ours, theirs in zip(sources, ob_s, sme_s):
+        ax_time.annotate(
+            human_time(ours),
+            (x, ours),
+            textcoords="offset points",
+            xytext=(0, -16),
+            ha="center",
+            color=theme["accent"],
+            fontsize=9,
+            fontweight="bold",
+        )
+        ax_time.annotate(
+            human_time(theirs),
+            (x, theirs),
+            textcoords="offset points",
+            xytext=(0, 9),
+            ha="center",
+            color=theme["ref_ink"],
+            fontsize=9,
+        )
+    for x, ours, theirs in zip(sources, ob_mb, sme_mb):
+        ax_mem.annotate(
+            human_mb(ours),
+            (x, ours),
+            textcoords="offset points",
+            xytext=(0, -16),
+            ha="center",
+            color=theme["accent"],
+            fontsize=9,
+            fontweight="bold",
+        )
+        ax_mem.annotate(
+            human_mb(theirs),
+            (x, theirs),
+            textcoords="offset points",
+            xytext=(0, 9),
+            ha="center",
+            color=theme["ref_ink"],
+            fontsize=9,
+        )
+
+    ax_time.set_title("attribution time", loc="left", fontsize=11, color=theme["ink"],
+                      fontweight="bold", pad=12)
+    ax_mem.set_title("peak memory", loc="left", fontsize=11, color=theme["ink"],
+                     fontweight="bold", pad=12)
+
+    ax_time.legend(
+        loc="upper left",
+        frameon=False,
+        fontsize=9,
+        labelcolor=theme["muted"],
+        handlelength=1.6,
+    )
+
+    # The finding, stated in words: 5x the sources costs SME 30x the time.
+    ax_time.annotate(
+        "5x the sources,\n30x the time",
+        xy=(50_000, 562.269),
+        xytext=(3_300, 120),
+        color=theme["ref_ink"],
+        fontsize=9.5,
+        style="italic",
+        ha="center",
+        arrowprops=dict(arrowstyle="-", color=theme["ref"], linewidth=1),
+    )
+    ax_time.annotate(
+        f"{ratio(MAP_POINTS[-1][1], MAP_POINTS[-1][2])} faster at 50k",
+        xy=(50_000, 0.209),
+        xytext=(11_000, 1.05),
+        color=theme["accent"],
+        fontsize=9.5,
+        fontweight="bold",
+        ha="center",
+        arrowprops=dict(arrowstyle="-", color=theme["accent"], linewidth=1),
+    )
+
+    fig.suptitle(
+        "Source map attribution, by the number of sources",
+        x=0.008,
+        ha="left",
+        fontsize=12.5,
+        color=theme["ink"],
+        fontweight="bold",
+    )
+    fig.text(
+        0.008,
+        -0.035,
+        "1k is the real preact build; 10k and 50k are synthetic · median of 3 except 50k, "
+        "which is a single 9.4-minute run · log-log axes",
+        ha="left",
+        fontsize=8.5,
+        color=theme["muted"],
+    )
+
+    return save(fig, name, theme)
+
+
+def chart_budget(name: str, theme: dict) -> pathlib.Path:
+    """Peak memory against input size, with the published ceiling drawn in."""
+    fig, ax = plt.subplots(figsize=(7.4, 3.6), dpi=200, constrained_layout=True)
+    fig.patch.set_facecolor(theme["bg"])
+
+    points = [
+        # input MB, measured MB, ceiling MB, label
+        (363.0, 126.8, 200.0, "363 MB"),
+        (1049.0, 375.9, 400.0, "1 GB"),
+        (1049.0, 137.0, 500.0, "1 GB + 36.5 MB map"),
+    ]
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+
+    ax.plot(xs, ys, color=theme["accent"], linewidth=2.2, marker="o", markersize=7, zorder=4)
+    for x, y, ceiling, label in points:
+        ax.annotate(
+            f"{human_mb(y)}\n{label}",
+            (x, y),
+            textcoords="offset points",
+            xytext=(0, -34),
+            ha="center",
+            color=theme["ink"],
+            fontsize=9,
+        )
+        ax.plot([x, x], [y, ceiling], color=theme["grid"], linewidth=1.4, linestyle=(0, (3, 3)), zorder=2)
+        ax.plot([x], [ceiling], marker="_", markersize=18, color=theme["ref_ink"], zorder=3)
+
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xticks([363, 1049])
+    ax.set_xticklabels(["363 MB", "1 GB"])
+    ax.set_xlabel("input size", fontsize=9, color=theme["muted"])
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: human_mb(v)))
+    ax.set_ylim(80, 700)
+    style_axes(ax, theme, xgrid=False)
+
+    ax.annotate(
+        "the dash is the published ceiling\nfor that target, not the measurement",
+        xy=(1049, 500),
+        xytext=(430, 610),
+        color=theme["muted"],
+        fontsize=9,
+        style="italic",
+        arrowprops=dict(arrowstyle="-", color=theme["muted"], linewidth=0.9),
+    )
+
+    fig.suptitle(
+        "Peak memory stays under the budget as the input grows",
+        x=0.008,
+        ha="left",
+        fontsize=12.5,
+        color=theme["ink"],
+        fontweight="bold",
+    )
+    fig.text(
+        0.008,
+        -0.04,
+        "median of 3, sampled every 25 ms · working set includes file-backed pages of the "
+        "input, so the figure moves about 15% between runs",
+        ha="left",
+        fontsize=8.5,
+        color=theme["muted"],
+    )
+
+    return save(fig, name, theme)
+
+
+def theme_name(theme: dict) -> str:
+    return "light" if theme["bg"] == THEMES["light"]["bg"] else "dark"
+
+
+def save(fig, name: str, theme: dict) -> tuple[pathlib.Path, pathlib.Path]:
+    """Write the SVG (for GitHub) and a PNG, and refuse to write a clipped one.
+
+    A chart nobody can regenerate is a stale claim, and a chart whose labels are
+    clipped is worse than no chart. There is no way to *look* at a figure from
+    here, so the check is mechanical: matplotlib lays out inside the figure box,
+    and anything that overflows shows up as ink in the outermost pixel ring. If
+    that ring is not uniformly background, something was cut off.
+    """
+    svg_path = OUT / f"chart-{name}-{theme_name(theme)}.svg"
+    png_path = OUT / f"chart-{name}-{theme_name(theme)}.png"
+    fig.savefig(svg_path, format="svg", facecolor=theme["bg"], bbox_inches="tight")
+    fig.savefig(png_path, format="png", facecolor=theme["bg"], bbox_inches="tight", dpi=200)
+    plt.close(fig)
+
+    assert_not_clipped(png_path, theme)
+    return svg_path, png_path
+
+
+def assert_not_clipped(png_path: pathlib.Path, theme: dict) -> None:
+    """Fail if ink reaches the edge of the rendered image."""
+    import numpy as np
+    from matplotlib import image as mpimg
+
+    data = mpimg.imread(png_path)
+    if data.ndim == 2:
+        data = np.stack([data] * 3, axis=-1)
+    rgb = data[..., :3]
+
+    background = rgb[0, 0]
+    ring = np.concatenate([rgb[0, :, :], rgb[-1, :, :], rgb[:, 0, :], rgb[:, -1, :]])
+    distance = np.abs(ring - background).max(axis=-1)
+    # Anti-aliasing means the background itself varies by a hair between pixels.
+    clipped = int((distance > 0.02).sum())
+    if clipped > 0:
+        raise SystemExit(
+            f"{png_path.name}: {clipped} pixels of ink in the outermost ring - "
+            "something is clipped. Fix the layout rather than the crop."
+        )
+
+
+CHARTS = {
+    "pipeline": chart_pipeline,
+    "source-maps": chart_source_maps,
+    "memory-budget": chart_budget,
+}
+
+
+def main() -> int:
+    # First: the label formatters. The SVG stores glyphs as paths, so a label
+    # cannot be read back out of the figure and nothing else would notice a
+    # formatting change that turned 46 ms into "0.0 s".
+    check_formatters()
+
+    OUT.mkdir(parents=True, exist_ok=True)
+    written = []
+    for name, fn in CHARTS.items():
+        for key, theme in THEMES.items():
+            svg_path, png_path = fn(name, theme)
+            written.append(svg_path)
+            print(
+                f"wrote {svg_path.relative_to(REPO)} "
+                f"({svg_path.stat().st_size // 1024} KB) + png"
+            )
+
+    sidecar = {
+        "generated_by": "bench/harness/make-charts.py",
+        "note": "Every number plotted, with where it came from. The README cites this "
+        "file so a reader can check the figure against the records instead of "
+        "trusting the picture.",
+        "provenance": PROVENANCE,
+        "stats_pipeline": {
+            label: {**data, **STATS_MEM[label]} for label, data in STATS.items()
+        },
+        "source_maps": [
+            {
+                "sources": s,
+                "omnibundle_seconds": ob,
+                "source_map_explorer_seconds": sme,
+                "omnibundle_mb": obmb,
+                "source_map_explorer_mb": smemb,
+            }
+            for s, ob, sme, obmb, smemb in MAP_POINTS
+        ],
+    }
+    sidecar_path = OUT / "charts-data.json"
+    sidecar_path.write_text(json.dumps(sidecar, indent=2) + "\n", encoding="utf-8")
+    print(f"wrote {sidecar_path.relative_to(REPO)}")
+    print("ok   no clipped pixels in any chart")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

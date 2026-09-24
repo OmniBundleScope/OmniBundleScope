@@ -2,14 +2,15 @@
 
 # OmniBundle
 
-**あらゆるバンドラーのための一つのツール。** `stats.json` から依存グラフ、
-source map から実バイトの帰属、esbuild の metafile、あるいはただの `dist/` ディレクトリを
-すべて同一のグラフに統合し、メモリは仅仅その一部で済みます。
+**あらゆるバンドラーのための一つのツール。** `stats.json` から依存グラフ、source map から
+実バイトの帰属、esbuild の metafile、あるいはただの `dist/` ディレクトリを、すべて同一の
+グラフに統合します。メモリは仅仅その一部で済みます。
 
 [![CI](https://github.com/omnibundle/omnibundle/actions/workflows/ci.yml/badge.svg)](https://github.com/omnibundle/omnibundle/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/omnibundle-core.svg)](https://crates.io/crates/omnibundle-core)
 [![npm](https://img.shields.io/npm/v/omnibundle.svg)](https://www.npmjs.com/package/omnibundle)
 [![release](https://img.shields.io/github/v/release/omnibundle/omnibundle?include_prereleases&sort=semver)](https://github.com/omnibundle/omnibundle/releases/latest)
+[![docs](https://img.shields.io/badge/docs-mdbook-informational)](docs/SUMMARY.md)
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
@@ -18,8 +19,9 @@ source map から実バイトの帰属、esbuild の metafile、あるいはた�
 </div>
 
 <p align="center">
+  <a href="#問題">問題</a> ·
   <a href="#実測値">実測値</a> ·
-  <a href="#ゴーストコードと隠しコード">ゴーストコードと隠しコード</a> ·
+  <a href="#ゴーストコードと隠しコード">ゴーストと隠しコード</a> ·
   <a href="#インストール">インストール</a> ·
   <a href="#現状">正直な現状</a> ·
   <a href="#なぜこう作るのか">なぜこう作るのか</a>
@@ -27,77 +29,94 @@ source map から実バイトの帰属、esbuild の metafile、あるいはた�
 
 ---
 
-1 GB の `stats.json` に対してフルパイプライン（パース、アセット実測、source map の統合、
-レポート生成）を通した結果:
+## 問題
 
-| | 時間 | ピークメモリ |
-|---|---|---|
-| [`webpack-bundle-analyzer@4.10.2`](https://github.com/webpack-contrib/webpack-bundle-analyzer) | 63.6 s | 2,295 MB |
-| **OmniBundle** | **1.87 s** | **126 MB** |
-| | **36 倍速い** | **15 分の 1 のメモリ** |
+バンドル解析ツールをビルドに向けて差し出すと、メモリが足りないか、1 分かかり、
+そして再利用できない図が返ってきます。`webpack-bundle-analyzer` は `stats.json` 全体を
+JS ヒープに載せます。363 MB のビルドでは、それで「これ有多大？」に答えるために
+**63.6 秒と 2.3 GB**。ツリーマップを描き終えても、本当にコストになっている二つのことは
+依然として答えられません（[後述](#ゴーストコードと隠しコード)）。
 
-50,000 ソース / 36.5 MB の source map に対する
-[`source-map-explorer@2.5.3`](https://github.com/danvk/source-map-explorer) との比較:
+OmniBundle は stats をストリームで読み、生成されたバイトを実測し、source map を
+モジュールグラフに join し、使った次元を明示します。
 
-| | 時間 | ピークメモリ |
-|---|---|---|
-| `source-map-explorer` | 562 s（9.4 分） | 642 MB |
-| **OmniBundle** | **0.21 s** | **67 MB** |
+## 実測値
 
-同じマシン、同じ fixture、3 回の実行の中央値。这里的数値はすべて `bench/` のハーネスで
-再現できます。プロトコルは[ベンチマーク](docs/en/04-benchmark-plan.md)、
-**達成できなかった**目標を含む全記録は[証跡ログ](docs/en/01-evidence.md)にあります。
+フルパイプライン — stats のパース、ディスク上の全アセットの実測、source map の統合、
+レポートの生成。合成 fixture、参照マシンで 3 回実行の中央値。
 
-## 何をするのか
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-pipeline-dark.svg">
+  <img alt="OmniBundle と webpack-bundle-analyzer を比較した横棒グラフ。所要時間: 363 MB の stats で 1.87 s 対 63.6 s、1 GB で 6.14 s 対 176.3 s。ピークメモリ: 127 MB 対 2,295 MB、および 376 MB 対 1,437 MB。" src="docs/assets/chart-pipeline-light.svg" width="100%">
+</picture>
 
-```bash
-npx omnibundle ./dist
-```
+| 入力 | OmniBundle | webpack-bundle-analyzer | 比 |
+|---|---|---|---|
+| 363 MB `stats.json`、154,379 モジュール | **1.87 s / 127 MB** | 63.6 s / 2,295 MB | **34 倍速く、18 分の 1** |
+| 1 GB `stats.json`、445,602 モジュール | **6.14 s / 376 MB** | 176.3 s / 1,437 MB | 29 倍速く、3.8 分の 1 |
 
-```
-dist  ·  154379 modules  ·  1500 assets  ·  400 packages  ·  ingest 1392 ms  ·  total 1753 ms  ·  dimension parsed
-wrote dist/report.html (1.6 MB), detail in a companion script (loaded on demand)
-```
+Source map の帰属を、map に含まれる source 数で見たもの。これが大きな map を参照ツールで
+扱えなくしている超線形性です。**データは 5 倍なのに時間は 30 倍になり**、こちらはほぼ直線です。
 
-- **全バンドラー、1 つのグラフ。** webpack / rspack の `stats.json` が依存構造、source map が
-  実バイトの帰属、esbuild の metafile がモジュールグラフを提供します。後付けで拼接するのではなく
-  統合します。
-- **4 つのサイズ次元、そしてどれを使ったかを明示します。** `stat`（バンドラーの申告値）、
-  `parsed`（ディスク上の実バイト）、`gzip`（level 6）、`attributed`（source map が説明できる
-  バイト）。map が部分的な場合は `attributed` を `parsed` に降格させ、CLI がその理由を明示します。
-  ground truth を持たないのにそう主張するレポートは、レポートが無いより悪いのです。
-- **実際に CI を止められるサイズバジェット。** `omnibundle.config.json` で合計バイト、
-  個別の chunk、個別のパッケージを制限でき、規則ごとに次元を指定できます。超過時は終了コード 1 と
-  `OB0040`。**一致する対象が一つも無い規則はエラー**であり、黙って通ることはありません。
-- **JSON と CSV** で既存のパイプラインに繋げます。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-source-maps-dark.svg">
+  <img alt="source 数に対する source map 帰属の時間とメモリの両対数グラフ。source-map-explorer は 1,000 source の 0.25 s から 50,000 source の 562 s へ。OmniBundle は 4.6 ms から 209 ms へ。50,000 source でのメモリは 642 MB 対 67 MB。" src="docs/assets/chart-source-maps-light.svg" width="100%">
+</picture>
 
-![OmniBundle のレポート（package 別）](docs/assets/treemap-large.svg)
-
-<sub>package 別に、1,500 アセット横断で集計。合成 fixture、8,021 モジュール、400 パッケージ
-（大规模モノレポビルドの形状）。ラベルはツール自身の出力で、
-画像は `bench/harness/render-treemap-svg.mjs` が生成しており手描きではありません。</sub>
+ここにある数値はすべて `bench/` のハーネスで再現でき、原材料の記録もコミットされています:
+[`docs/assets/charts-data.json`](docs/assets/charts-data.json) が出所を一覧し、
+[証跡ログ](docs/en/01-evidence.md) が取得セッションを示します。
 
 ## ゴーストコードと隠しコード
 
-参照ツールのどちらにも出せない二つの診断です。OmniBundle の本当の新しさはここです。
+参照ツールのどちらにも出せない二つの診断です。OmniBundle の本当の新しさです。
 
-- **ゴーストコード** — バンドラーが宣言してバンドルしたのに、**どの source map にも説明が
-  無い**モジュール。tree-shaking の取りこぼし、あるいは map 無しのアセット-built です。
+- **ゴーストコード** — バンドラーが宣言してバンドルしたのに、**どの source map にも
+  説明が無い**モジュール。tree-shaking の取りこぼし、あるいは map 無しのアセット。
   成果物には入っているのに、どのサイズレポートにも現れません。
 - **隠しコード** — **どのモジュールにも属さない**生成バイト。インライン化されたコード片、
-  `eval`、バンドラーが注入した polyfill。成果物には入っているのに、どのモジュールのサイズにも
-  属しません。
+  `eval`、バンドラーが注入した polyfill。成果物には入っているのに、どのモジュールの
+  サイズにも属しません。
 
 OmniBundle は各ソースのバイト配分をそれを生み出したモジュールへ畳み込み、帳尻が合わなかった
 残りを丸め誤差ではなく診断に変えます:
 
 ```
+$ omnibundle ./dist
+fused-app  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 4721 ms  ·  total 4864 ms  ·  dimension attributed
 fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · 0 ghost · 0 hidden source(s)
+wrote dist/report.html (0.4 MB), detail in a companion script (loaded on demand)
 ```
 
+そして合わなかったときは、どちらの方向にズレたかを明示します。2 アセットのうち 1 つだけ
+map を持つビルドの場合:
+
+```
+$ omnibundle ./dist
+ob-partial  ·  11 modules  ·  2 assets  ·  0 packages  ·  ingest 4 ms  ·  total 5 ms  ·  dimension parsed
+fusion: 1 map(s) · coverage 50% · 0/11 modules attributed · 11 ghost (226 KB of declared) · 11 hidden source(s) (45 KB)
+```
+
+`dimension attributed` ではなく `dimension parsed` です。半分のビルドに map が無いので、
+ground truth の次元は取り消され、レポートの 1 行目にそう書かれています。両者を
+こっそり平均するツールは、どの測定にも属さない数字を報告してしまいます。
+
 帰属は実際の join key 上の最長サフィックス一致で行います
-（`docs/contracts/unified-graph.md`）。内容ハッシュは**使いません**。修正後のサイズ合計は
-アセット合計との不変条件で検証し、暗黙に丸めずに loud に失敗します（`OB0042`）。
+（[`unified-graph.md`](docs/contracts/unified-graph.md)）。内容ハッシュは**使いません**。
+修正後のサイズ合計はアセット合計との不変条件で検証し、勝手に丸めずに loud に失敗します
+（`OB0042`）。
+
+## レポート
+
+<p align="center">
+  <img alt="OmniBundle の HTML レポート: パッケージ別の squarified treemap、検索可能なモジュール一覧、3 つのグルーピング軸、ライトとダークのテーマ。" src="docs/assets/treemap-large.svg" width="100%">
+</p>
+
+<sub>パッケージ別、1,500 アセットを横断して集計。合成 fixture、8,021 モジュール、
+400 パッケージ — 大規模モノレポビルドの形状です。実際の fixture データから
+`bench/harness/render-treemap-svg.mjs` が生成しており、スクリーンショットではありません。
+ラベルの意味はツール自身の出力です。HTML レポートにはさらに検索、3 つのグルーピング軸、
+モジュール単位の内訳、ライト/ダーク、そしてネットワーク通信ゼロが含まれます。</sub>
 
 ## インストール
 
@@ -149,6 +168,9 @@ omnibundle ./dist/map.js.map --bench-map            # 帰属のみ計測
 | 2 | コマンドライン引数が不正 |
 | 3 | 入力が読めない、または一致対象の無いバジェット規則がある |
 
+一致対象の無い規則は**意図的に**エラーです。規則の書き間違いで CI が黙って
+通ってよいはずがありません。
+
 </details>
 
 ## 現状
@@ -162,6 +184,7 @@ omnibundle ./dist/map.js.map --bench-map            # 帰属のみ計測
 | レポートの初回描画 / 30 fps | **未検証** — CI にブラウザが無い。代わりに 154,379 モジュールで 1.56 MB / 1.27 s を測定 |
 | WASM ビルド、WebGL レンダラ | 未着手 |
 | Windows / macOS / Linux | CI の 3 プラットフォームでテスト |
+| Rust テスト 57 件、npm テスト 4 件、生成レイアウト 1,018 ケース | すべて green |
 
 唯一の未達項目は、原因は [CHANGELOG](CHANGELOG.md) に明記しています:
 445,602 要素のモジュール配列に対する `serde_json` の DOM カーソルです。
@@ -173,19 +196,20 @@ omnibundle ./dist/map.js.map --bench-map            # 帰属のみ計測
 | 判断 | 根拠 |
 |---|---|
 | ストリーミング JSON、`simd-json` ではない | `simd-json` は文書全体をメモリに要求します。それはまさに壊そうとしている天井です（[ADR-0001](docs/decisions/ADR-0001-streaming-over-simd-json.md)） |
-| 自前の HTML レポート、viewer の vendor はしない | 制御できない viewer は fork 無しでは融合データを表示できず、fork すれば UI の面倒は自分たちのものになります（[ADR-0002](docs/decisions/ADR-0002-self-built-report.md)） |
+| 自前の HTML レポート、viewer の vendor はしない | 制御できない viewer は fork 無しでは融合データを表示できません（[ADR-0002](docs/decisions/ADR-0002-self-built-report.md)） |
 | サイズと gzip には rayon | 25,600 アセット: 直列 2,177 ms → **342 ms**（6.4 倍）。パースは元々ボトルネックではありません |
-| 正確な件数、有限のリスト | 未マップモジュールごとに `GhostModule` を 1 件持つことで、`summary` と書かれたフィールドに 47 MB 使っていました。件数は正確に保ち、リストは何を落としたかを報告する有限サンプルに |
-| 失敗できないベンチマークはベンチマークではない | B3 が目標 200 MB に対して 670 MB を出したのは、detail payload が `serde_json::Value` のツリーだったためです。目標は機能しました |
+| join にサフィックス索引 | モジュールごとに全ソースを走査すると 25 億回の比較。索引で 73.8 s → 4.9 s |
+| 正確な件数、有限のリスト | 未マップモジュールごとに 1 件持つことで、`summary` と書かれたフィールドに 47 MB 使っていました |
+| fixture より性質テスト | 実際の欠陥を 2 つ捕まえました — モジュールサイズが**縮小しない**ことと、範囲外の source index で帰属が黙って消えること。どちらもリポジトリ内の fixture では見えませんでした |
 
 ###  만들らなかったものとその理由
 
-| 却下した案 | 理由 |
+|  Verworfen | Grund |
 |---|---|
-| WBA の viewer を vendor | fork 無しでは融合データを表示できず、fork すれば UI の面倒は自分たちのもの |
-| `simd-json` | 文書全体をメモリに 요구します。それは問題そのもの |
-| Phase 1 で WebGL treemap | 10k ノードなら Canvas 2D で十分。レンダラ差し替えは安定した payload の後の Phase 2 |
-| 汎用ビルドツール | 実測された痛みはメモリ天井・項目ごとのプロセス・超線形アルゴリズムです。すべて揃っています |
+| WBA の viewer を取り込む | fork 無しでは融合データを表示できず、fork すれば UI の面倒は自分たちのもの |
+| `simd-json` | 文書全体をメモリに要求します。それは問題そのもの |
+| Phase 1 で WebGL treemap | 10k ノードは Canvas 2D で十分。レンダラ差し替えは安定した payload の後の Phase 2 |
+| 汎用ビルドツール | 実測された痛みはメモリ天井、項目ごとのプロセス、または超線形アルゴリズム。すべて揃っています |
 
 ## ドキュメント
 
@@ -201,7 +225,7 @@ omnibundle ./dist/map.js.map --bench-map            # 帰属のみ計測
 
 すべての変更は測定を同梱するか、測定が不要である理由を議論します。
 [CONTRIBUTING.md](CONTRIBUTING.md) をご覧ください。ゲートは `cargo test`、
-`clippy -D warnings`（pedantic 込み）、`cargo fmt`、
+`clippy -D warnings`（pedantic 込み）、`cargo fmt`、70% のカバレッジ下限、
 `webpack-bundle-analyzer` との整合性比較、4 言語ドキュメント検査です。
 [行動規範](CODE_OF_CONDUCT.md) · [セキュリティ方針](SECURITY.md)
 
@@ -213,7 +237,8 @@ MIT（[LICENSE-MIT](LICENSE-MIT)）または Apache-2.0（[LICENSE-APACHE](LICEN
 
 <div align="center">
   <sub>
-    公開で開発中。数値への異議や反論は
+    公開で開発中。数値への異議は
     <a href="https://github.com/omnibundle/omnibundle/issues">issues</a> へどうぞ。
+    ベンチマークを意味あるままに保つ唯一の手段です。
   </sub>
 </div>

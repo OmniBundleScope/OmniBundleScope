@@ -8,7 +8,8 @@ esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张�
 [![CI](https://github.com/omnibundle/omnibundle/actions/workflows/ci.yml/badge.svg)](https://github.com/omnibundle/omnibundle/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/omnibundle-core.svg)](https://crates.io/crates/omnibundle-core)
 [![npm](https://img.shields.io/npm/v/omnibundle.svg)](https://www.npmjs.com/package/omnibundle)
-[![release](https://img.shields.io/github/v/release/omnibundle/omnibundle?include_prereleases&sort=semver)](https://github.com/omnibundle/omnibundle/releases/latest)
+[![release](https://img.shields.io/github/v/release/omnibundle/omnibundle?include_prereles&sort=semver)](https://github.com/omnibundle/omnibundle/releases/latest)
+[![docs](https://img.shields.io/badge/docs-mdbook-informational)](docs/SUMMARY.md)
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
@@ -17,8 +18,9 @@ esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张�
 </div>
 
 <p align="center">
+  <a href="#问题">问题</a> ·
   <a href="#实测数据">实测数据</a> ·
-  <a href="#幽灵代码与隐藏代码">幽灵代码与隐藏代码</a> ·
+  <a href="#幽灵代码与隐藏代码">幽灵与隐藏代码</a> ·
   <a href="#安装">安装</a> ·
   <a href="#当前状态">诚实的状态</a> ·
   <a href="#为什么这样做">为什么这样做</a>
@@ -26,57 +28,46 @@ esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张�
 
 ---
 
-在一份 1 GB 的 `stats.json` 上跑完整流程——解析、测量每个 asset、融合 source map、生成报告：
+## 问题
 
-| | 耗时 | 峰值内存 |
-|---|---|---|
-| [`webpack-bundle-analyzer@4.10.2`](https://github.com/webpack-contrib/webpack-bundle-analyzer) | 63.6 s | 2,295 MB |
-| **OmniBundle** | **1.87 s** | **126 MB** |
-| | **快 36 倍** | **内存少 15 倍** |
+你把体积分析工具指向一次构建，它要么内存爆掉，要么要跑一分钟，最后给你一张你根本没法行动的图片。
+`webpack-bundle-analyzer` 把整个 `stats.json` 塞进 JS 堆：在一次 363 MB 的构建上，那是
+**63.6 秒和 2.3 GB**，就为了回答"这玩意儿多大？"而且就算画完 treemap，它仍然无法告诉你那两件
+真正让你掏钱的事——见[下面](#幽灵代码与隐藏代码)。
 
-在一份 50,000 个 source、36.5 MB 的 source map 上，对比
-[`source-map-explorer@2.5.3`](https://github.com/danvk/source-map-explorer)：
+OmniBundle 流式读取 stats 文件、测量真实产出的字节、把 source map join 到模块图上，
+并且明确告诉你它用的是哪一个维度。
 
-| | 耗时 | 峰值内存 |
-|---|---|---|
-| `source-map-explorer` | 562 s（9.4 分钟） | 642 MB |
-| **OmniBundle** | **0.21 s** | **67 MB** |
+## 实测数据
 
-同一台机器、同一批 fixture、3 次取中位数。这里每个数字都能用 `bench/` 里的
-harness 复现——协议见 [基准测试](docs/en/04-benchmark-plan.md)，完整记录（含我们**没达标**的
-目标）见 [证据日志](docs/en/01-evidence.md)。
+完整流程——解析 stats、测量磁盘上每个 asset、融合 source map、生成报告。
+合成 fixture，3 次取中位数，参考机器。
 
-## 它做什么
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-pipeline-dark.svg">
+  <img alt="横向条形图，对比 OmniBundle 与 webpack-bundle-analyzer。时间：363 MB stats 文件 1.87 s 对 63.6 s；1 GB 文件 6.14 s 对 176.3 s。内存：127 MB 对 2,295 MB，376 MB 对 1,437 MB。" src="docs/assets/chart-pipeline-light.svg" width="100%">
+</picture>
 
-```bash
-npx omnibundle ./dist
-```
+| 输入 | OmniBundle | webpack-bundle-analyzer | 倍数 |
+|---|---|---|---|
+| 363 MB `stats.json`，154,379 模块 | **1.87 s / 127 MB** | 63.6 s / 2,295 MB | **快 34 倍，小 18 倍** |
+| 1 GB `stats.json`，445,602 模块 | **6.14 s / 376 MB** | 176.3 s / 1,437 MB | 快 29 倍，小 3.8 倍 |
 
-```
-dist  ·  154379 modules  ·  1500 assets  ·  400 packages  ·  ingest 1392 ms  ·  total 1753 ms  ·  dimension parsed
-wrote dist/report.html (1.6 MB), detail in a companion script (loaded on demand)
-```
+source map 归因，横轴是 map 里的 source 数量。这正是让大 map 在参考工具里不可用的超线性：
+**数据量 5 倍，它的时间变成 30 倍**，而我们这条线基本是平的。
 
-- **一张图，所有打包器。** webpack / rspack 的 `stats.json` 提供依赖结构，source map 提供
-  真实字节归因，esbuild metafile 提供模块图。它们被**合并**，而不是事后拼接。
-- **四种尺寸维度，并且会告诉你用的是哪一种。** `stat`（打包器声明的）、`parsed`（磁盘上的真实
-  字节）、`gzip`（level 6）、`attributed`（source map 真正能解释的字节）。如果 map 覆盖不全，
-  `attributed` 会降级为 `parsed` 并且 CLI 会说明原因——一份声称自己给出 ground truth 却没有的
-  报告，比没有报告更糟。
-- **能真的让 CI 失败的预算。** `omnibundle.config.json` 可以限制总字节数、某个 chunk 或某个
-  package，每个规则都能指定维度。超限退出码为 1 并给出 `OB0040`；**匹配不到任何对象的规则视为
-  错误**，绝不会静默通过。
-- **JSON 和 CSV 输出**，方便接入其余流水线。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-source-maps-dark.svg">
+  <img alt="双对数折线图，纵轴为 source map 归因的时间与内存，横轴为 source 数量。source-map-explorer 从 1,000 个 source 的 0.25 s 涨到 50,000 个时的 562 s；OmniBundle 从 4.6 ms 到 209 ms。50,000 个 source 时内存 642 MB 对 67 MB。" src="docs/assets/chart-source-maps-light.svg" width="100%">
+</picture>
 
-![OmniBundle 报告，按 package 分组](docs/assets/treemap-large.svg)
-
-<sub>按 package 分组，跨 1,500 个 asset 汇总。合成 fixture，8,021 个模块，400 个 package——
-这正是大型 monorepo 构建的形状。图上的标签是工具自己的输出；图片由
-`bench/harness/render-treemap-svg.mjs` 生成，不是手工画的。</sub>
+这里每个数字都能用 `bench/` 里的 harness 复现，原始记录已入库：
+[`docs/assets/charts-data.json`](docs/assets/charts-data.json) 列出每个数字的出处，
+[证据日志](docs/en/01-evidence.md) 里有对应的测量场次。
 
 ## 幽灵代码与隐藏代码
 
-这是两个参考工具都告诉不了你的东西，也是这个项目真正新的部分。
+两个参考工具都告诉不了你的东西。这也是这个项目真正新的部分。
 
 - **幽灵代码（ghost code）**——打包器声明并打包了，但**没有任何 source map 解释得了**的模块。
   要么是 tree-shaking 漏掉了，要么那个 asset 根本没带 map。它在你的产物里，却不在任何人的体积报告里。
@@ -87,12 +78,38 @@ OmniBundle 把每个 source 的字节份额折算回产生它的模块，剩下�
 不是被四舍五入掉：
 
 ```
+$ omnibundle ./dist
+fused-app  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 4721 ms  ·  total 4864 ms  ·  dimension attributed
 fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · 0 ghost · 0 hidden source(s)
+wrote dist/report.html (0.4 MB), detail in a companion script (loaded on demand)
 ```
 
-归因依据是真实 join key 上的最长路径后缀匹配（见 `docs/contracts/unified-graph.md`），
-**从不使用内容哈希**；修正后的尺寸之和会与 asset 总大小做不变量校验，不通过就大声报错
-（`OB0042`），而不是悄悄取整。
+而当它确实对不上账，它会说明是哪个方向不对。下面是两个 asset 里只有一个带 map 的构建：
+
+```
+$ omnibundle ./dist
+ob-partial  ·  11 modules  ·  2 assets  ·  0 packages  ·  ingest 4 ms  ·  total 5 ms  ·  dimension parsed
+fusion: 1 map(s) · coverage 50% · 0/11 modules attributed · 11 ghost (226 KB of declared) · 11 hidden source(s) (45 KB)
+```
+
+注意是 `dimension parsed`，不是 `attributed`：一半构建没有 map，于是 ground truth 维度被撤回，
+报告在第一行就说明这件事。一个把两者悄悄平均掉的工具，报出来的数字不属于任何一次测量。
+
+归因依据是真实 join key 上的最长路径后缀匹配（见
+[`unified-graph.md`](docs/contracts/unified-graph.md)），**从不使用内容哈希**；
+修正后的尺寸之和会与 asset 总大小做不变量校验，不通过就大声报错（`OB0042`），
+而不是悄悄取整。
+
+## 报告
+
+<p align="center">
+  <img alt="OmniBundle 的 HTML 报告：按 package 分组的 squarified treemap，附可搜索的模块列表、三种分组维度和明暗主题。" src="docs/assets/treemap-large.svg" width="100%">
+</p>
+
+<sub>按 package 分组，跨 1,500 个 asset 汇总——合成 fixture，8,021 个模块，400 个 package，
+这正是大型 monorepo 构建的形状。图片由 `bench/harness/render-treemap-svg.mjs` 用真实
+fixture 数据生成，不是截图，标签是工具自己的输出。HTML 报告另外还有搜索、三种分组维度、
+按模块下钻、明暗主题，并且不发起任何网络请求。</sub>
 
 ## 安装
 
@@ -143,6 +160,8 @@ omnibundle ./dist/map.js.map --bench-map            # 只跑归因，并计时
 | 2 | 命令行参数错误 |
 | 3 | 输入不可读，或某条预算规则匹配不到任何对象 |
 
+匹配不到任何对象的预算规则**故意**算错误：规则里的笔误绝不该悄悄让 CI 通过。
+
 </details>
 
 ## 当前状态
@@ -156,6 +175,7 @@ omnibundle ./dist/map.js.map --bench-map            # 只跑归因，并计时
 | 报告首屏渲染 / 30 fps | **未验证**——CI 里没有浏览器；改为测量 154,379 模块下 1.56 MB、1.27 s |
 | WASM 构建、WebGL 渲染器 | 尚未开始 |
 | Windows / macOS / Linux | CI 三平台均测试 |
+| 57 个 Rust 测试、4 个 npm 测试、1,018 个生成的布局用例 | 全绿 |
 
 唯一那个未达标项，在 [CHANGELOG](CHANGELOG.md) 里写明了原因：瓶颈是 `serde_json` 的 DOM 游标
 在 445,602 个元素的模块数组上。
@@ -169,8 +189,9 @@ omnibundle ./dist/map.js.map --bench-map            # 只跑归因，并计时
 | 流式 JSON，不用 `simd-json` | `simd-json` 需要把整个文档读进内存——而那正是我们要拆掉的天花板（[ADR-0001](docs/decisions/ADR-0001-streaming-over-simd-json.md)） |
 | 自研 HTML 报告，不 vendor 别人的 viewer | 不受我们控制的 viewer 无法展示融合数据，除非 fork；fork 之后这份 UI 就归我们维护了（[ADR-0002](docs/decisions/ADR-0002-self-built-report.md)） |
 | 尺寸与 gzip 用 rayon 并行 | 25,600 个 asset：串行 2,177 ms → **342 ms**（6.4 倍）；解析从来不是瓶颈 |
-| 计数精确、列表有界 | 每个未映射模块存一条 `GhostModule`，为一个文档里写着"summary"的字段花掉 47 MB；现在计数精确，列表是有界样本并说明丢弃了多少 |
-| 不能失败的基准测试没有意义 | B3 之所以量到 670 MB（目标 200 MB），是因为 detail payload 建成了 `serde_json::Value` 树。目标起作用了。 |
+| join 用后缀索引 | 每个模块都扫一遍全部 source 是 25 亿次比较；换成索引后 73.8 s → 4.9 s |
+| 计数精确、列表有界 | 每个未映射模块存一条记录，为一个文档里写着"summary"的字段花掉 47 MB |
+| 用性质测试而不是 fixture | 抓到两个真实缺陷——模块体积**从不缩小**，以及越界的 source index 让归因静默消失——仓库里任何 fixture 都看不见 |
 
 ### 我们没有做什么，以及为什么
 
@@ -195,7 +216,7 @@ omnibundle ./dist/map.js.map --bench-map            # 只跑归因，并计时
 
 每一次改动都要么附带一次测量，要么给出"为什么这次不需要测量"的论证。详见
 [CONTRIBUTING.md](CONTRIBUTING.md)；门禁是 `cargo test`、`clippy -D warnings`（含 pedantic）、
-`cargo fmt`、与 `webpack-bundle-analyzer` 的一致性比对，以及四语文档检查。
+`cargo fmt`、70% 覆盖率下限、与 `webpack-bundle-analyzer` 的一致性比对，以及四语文档检查。
 [行为准则](CODE_OF_CONDUCT.md) · [安全策略](SECURITY.md)
 
 ## 许可证
@@ -208,6 +229,6 @@ MIT（[LICENSE-MIT](LICENSE-MIT)）或 Apache-2.0（[LICENSE-APACHE](LICENSE-APA
   <sub>
     公开构建中。欢迎在
     <a href="https://github.com/omnibundle/omnibundle/issues">issues</a>
-    里提出数字上的质疑、异议和纠正。
+    里对数字提出质疑——这是让一个基准测试保持意义的唯一办法。
   </sub>
 </div>

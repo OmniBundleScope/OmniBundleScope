@@ -10,14 +10,17 @@ merged into one graph, in a fraction of the memory.
 [![crates.io](https://img.shields.io/crates/v/omnibundle-core.svg)](https://crates.io/crates/omnibundle-core)
 [![npm](https://img.shields.io/npm/v/omnibundle.svg)](https://www.npmjs.com/package/omnibundle)
 [![release](https://img.shields.io/github/v/release/omnibundle/omnibundle?include_prereleases&sort=semver)](https://github.com/omnibundle/omnibundle/releases/latest)
-[![docs](https://img.shields.io/badge/docs-10%20specs-informational)](docs/en/00-prd.md)
+[![docs](https://img.shields.io/badge/docs-mdbook-informational)](docs/SUMMARY.md)
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
+
+[English](README.en.md) · [中文](README.zh.md) · [日本語](README.ja.md) · [Deutsch](README.de.md)
 
 </div>
 
 <p align="center">
-  <a href="#measured">the numbers</a> ·
+  <a href="#the-problem">the problem</a> ·
+  <a href="#the-measurements">the measurements</a> ·
   <a href="#ghost-code-and-hidden-code">ghost &amp; hidden code</a> ·
   <a href="#install">install</a> ·
   <a href="#status">honest status</a> ·
@@ -26,68 +29,55 @@ merged into one graph, in a fraction of the memory.
 
 ---
 
-Measured on a 1 GB `stats.json`, the full pipeline — parse, measure every asset,
-fuse the source maps, render the report:
+## The problem
 
-| | time | peak memory |
-|---|---|---|
-| [`webpack-bundle-analyzer@4.10.2`](https://github.com/webpack-contrib/webpack-bundle-analyzer) | 63.6 s | 2,295 MB |
-| **OmniBundle** | **1.87 s** | **126 MB** |
-| | **34x faster** | **18x smaller** |
+You point a bundle analyser at a build and it runs out of memory, or takes a
+minute, and gives you a picture you cannot act on. `webpack-bundle-analyzer`
+holds the entire `stats.json` in the JS heap: on a 363 MB build that is
+**63.6 seconds and 2.3 GB** to answer "how big is this?" And once it has drawn
+the treemap it still cannot tell you the two things that actually cost you
+money — see [below](#ghost-code-and-hidden-code).
 
-And on a 36.5 MB source map with 50,000 sources, against
-[`source-map-explorer@2.5.3`](https://github.com/danvk/source-map-explorer):
+OmniBundle streams the stats file, measures the emitted bytes, joins the source
+maps onto the module graph, and says which dimension it used.
 
-| | time | peak memory |
-|---|---|---|
-| `source-map-explorer` | 562 s (9.4 min) | 642 MB |
-| **OmniBundle** | **0.21 s** | **67 MB** |
+## The measurements
 
-Same machine, same fixtures, median of three runs. Every number here is
-reproducible with the harness in `bench/` — see
-[benchmarks](docs/en/04-benchmark-plan.md) for the protocol and
-[evidence](docs/en/01-evidence.md) for the full log, including the targets we
-miss.
+Full pipeline — parse stats, measure every asset on disk, fuse the source maps,
+render the report. Synthetic fixtures, median of three runs, reference machine.
 
-## What it does
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-pipeline-dark.svg">
+  <img alt="Horizontal bar charts comparing OmniBundle with webpack-bundle-analyzer. Wall clock: 1.87 s against 63.6 s on a 363 MB stats file, 6.14 s against 176.3 s on 1 GB. Peak memory: 127 MB against 2,295 MB, and 376 MB against 1,437 MB." src="docs/assets/chart-pipeline-light.svg" width="100%">
+</picture>
 
-```bash
-npx omnibundle ./dist
-```
+| input | OmniBundle | webpack-bundle-analyzer | ratio |
+|---|---|---|---|
+| 363 MB `stats.json`, 154,379 modules | **1.87 s / 127 MB** | 63.6 s / 2,295 MB | **34× faster, 18× smaller** |
+| 1 GB `stats.json`, 445,602 modules | **6.14 s / 376 MB** | 176.3 s / 1,437 MB | 29× faster, 3.8× smaller |
 
-```
-dist  ·  154379 modules  ·  1500 assets  ·  400 packages  ·  ingest 1392 ms  ·  total 1753 ms  ·  dimension parsed
-wrote dist/report.html (1.6 MB), detail in a companion script (loaded on demand)
-```
+Source map attribution, by how many sources the map holds. This is the
+superlinearity that makes big maps unusable in the reference tool: **five times
+the sources costs it thirty times the time**, while ours stays linear.
 
-- **One graph, every bundler.** webpack and rspack `stats.json` for the
-  dependency structure, source maps for real byte attribution, esbuild
-  metafiles for the module graph. Merged, not stitched together afterwards.
-- **Four size dimensions, and it tells you which one it used.** `stat` (what the
-  bundler declared), `parsed` (real bytes on disk), `gzip` (level 6), and
-  `attributed` (bytes a source map actually accounts for). A partial map
-  downgrades `attributed` to `parsed` and the CLI says so — a report that
-  claimed ground truth it did not have would be worse than no report.
-- **Budgets that fail CI.** `omnibundle.config.json` limits total bytes, a chunk,
-  or a package, each on a named dimension. A breach exits 1 with `OB0040`; a
-  rule that matches nothing is an error, never a silent pass.
-- **JSON and CSV** for the rest of your pipeline.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-source-maps-dark.svg">
+  <img alt="Log-log line charts of source map attribution time and memory against the number of sources. source-map-explorer rises from 0.25 s at 1,000 sources to 562 s at 50,000; OmniBundle from 4.6 ms to 209 ms. Memory: 642 MB against 67 MB at 50,000 sources." src="docs/assets/chart-source-maps-light.svg" width="100%">
+</picture>
 
-![OmniBundle report, grouped by package](docs/assets/treemap-large.svg)
-
-<sub>Grouped by package, summed across 1,500 assets. Synthetic fixture, 8,021
-modules, 400 packages — the shape a large monorepo build has. Labels are the
-tool's own output; the image is generated by
-`bench/harness/render-treemap-svg.mjs`, not drawn by hand.</sub>
+Every number here is reproducible with the harness in `bench/`, and the raw
+records are committed: [`docs/assets/charts-data.json`](docs/assets/charts-data.json)
+lists each figure with its provenance, and
+[the evidence log](docs/en/01-evidence.md) has the sessions behind it.
 
 ## Ghost code and hidden code
 
 The two things neither reference tool can tell you. This is the part that is
 actually new.
 
-- **Ghost code** — a module the bundler declared and shipped, that *no* source
-  map accounts for. Tree-shaking missed it, or the asset was built without a
-  map. It is in your bundle and in nobody's size report.
+- **Ghost code** — a module the bundler declared and shipped that *no* source map
+  accounts for. Tree-shaking missed it, or the asset was built without a map. It
+  is in your bundle and in nobody's size report.
 - **Hidden code** — generated bytes that map back to *no* module. An inlined
   snippet, an `eval`, a polyfill the bundler injected. It is in your bundle and
   in no module's size.
@@ -96,13 +86,45 @@ OmniBundle folds each source's byte share into the modules that produced it, and
 whatever does not reconcile becomes a diagnostic instead of a rounding error:
 
 ```
+$ omnibundle ./dist
+fused-app  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 4721 ms  ·  total 4864 ms  ·  dimension attributed
 fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · 0 ghost · 0 hidden source(s)
+wrote dist/report.html (0.4 MB), detail in a companion script (loaded on demand)
 ```
 
-Attribution is done by longest-suffix path match on the real join key
-(`docs/contracts/unified-graph.md`), never by content hash, and the sum of the
-corrected sizes is checked against the asset total with an invariant that fails
-loudly (`OB0042`) instead of quietly rounding.
+and when it does not add up, it says which way. A build where one of two assets
+ships without a source map:
+
+```
+$ omnibundle ./dist
+ob-partial  ·  11 modules  ·  2 assets  ·  0 packages  ·  ingest 4 ms  ·  total 5 ms  ·  dimension parsed
+fusion: 1 map(s) · coverage 50% · 0/11 modules attributed · 11 ghost (226 KB of declared) · 11 hidden source(s) (45 KB)
+```
+
+Note `dimension parsed`, not `attributed`: half the build is unmapped, so the
+ground-truth dimension was withdrawn and the report says so on its first line.
+A tool that quietly averaged the two in would be reporting a number that belongs
+to no measurement.
+
+Attribution is a longest-suffix path match on the real join key
+([`unified-graph.md`](docs/contracts/unified-graph.md)), never a content hash,
+and the corrected sizes are checked against the asset total by an invariant that
+fails loudly (`OB0042`) instead of quietly rounding. A map that covers only part
+of the build downgrades the report from the `attributed` dimension to `parsed`
+and the CLI says so — a report that claimed ground truth it did not have would
+be worse than no report.
+
+## The report
+
+<p align="center">
+  <img alt="OmniBundle HTML report: a squarified treemap of a build grouped by package, with a searchable module list, three grouping dimensions and light/dark themes." src="docs/assets/treemap-large.svg" width="100%">
+</p>
+
+<sub>Grouped by package, summed across 1,500 assets — synthetic fixture, 8,021
+modules, 400 packages, the shape a large monorepo build has. Generated from real
+fixture data by `bench/harness/render-treemap-svg.mjs`, not a screenshot; the
+labels are the tool's own output. The HTML report adds search, three grouping
+dimensions, a per-module drill-down, light/dark, and no network requests.</sub>
 
 ## Install
 
@@ -154,21 +176,25 @@ omnibundle ./dist/map.js.map --bench-map            # attribution only, timed
 | 2 | bad command line |
 | 3 | input unreadable, or a budget rule that matches nothing |
 
+A budget rule that matches nothing is an error on purpose: a typo in a rule must
+not quietly pass CI.
+
 </details>
 
 ## Status
 
-Pre-1.0, and this table is the honest one. Anything unmeasured says so.
+Pre-1.0, and this is the honest table. Anything unmeasured says so.
 
 | area | state |
 |---|---|
 | stats ingest, size attribution, source maps, fusion, report, budgets, JSON/CSV | implemented, measured, gated in CI |
-| 1 GB ingest wall time | **misses**: 4.40 s against a 3 s target (memory is fine at 350 MB) |
+| 1 GB ingest, wall clock | **misses**: 4.40 s against a 3 s target (memory is fine at 350 MB) |
 | report first paint / 30 fps | **unverified** — CI has no browser; measured instead as 1.56 MB and 1.27 s at 154,379 modules |
 | WASM build, WebGL renderer | not started |
 | Windows / macOS / Linux | tested in CI on all three |
+| 57 Rust tests, 4 npm tests, 1,018 generated layout cases | green |
 
-The one miss is stated in the [changelog](CHANGELOG.md) with its cause: it is
+The one miss is stated with its cause in the [changelog](CHANGELOG.md): it is
 `serde_json`'s DOM cursor over a 445,602-element module array.
 
 ## Why
@@ -179,9 +205,10 @@ Every design decision traces to a measurement, not a preference.
 |---|---|
 | streaming JSON, not `simd-json` | `simd-json` needs the whole document in memory — that is the ceiling we are removing ([ADR-0001](docs/decisions/ADR-0001-streaming-over-simd-json.md)) |
 | our own HTML report, no vendored viewer | a viewer we do not control cannot show fusion data without a fork ([ADR-0002](docs/decisions/ADR-0002-self-built-report.md)) |
-| rayon for the size and gzip work | 25,600 assets: 2,177 ms serial → **342 ms** (6.4x); the parse was never the bottleneck |
-| exact counts, bounded lists | one `GhostModule` per unmapped module cost 47 MB for a field documented as a *summary*; the counts stay exact, the lists are samples that report what they dropped |
-| a benchmark that cannot fail is not a benchmark | B3 measured 670 MB against a 200 MB target because the detail payload was a `serde_json::Value` tree. The target worked. |
+| rayon for size and gzip work | 25,600 assets: 2,177 ms serial → **342 ms** (6.4×); the parse was never the bottleneck |
+| a suffix index for the join | scanning every source per module is 2.5 billion comparisons; the index made it 73.8 s → 4.9 s |
+| exact counts, bounded lists | one entry per unmapped module cost 47 MB for a field documented as a *summary* |
+| property tests over fixtures | two real defects — module sizes never scaled **down**, and an out-of-range source index made attribution vanish silently — that no fixture in the repo could see |
 
 ### What we did not build, and why
 
@@ -189,7 +216,7 @@ Every design decision traces to a measurement, not a preference.
 |---|---|
 | vendor WBA's viewer | it cannot show fusion data without a fork, and then we own a UI we do not control |
 | `simd-json` | needs the document in memory, which is the problem |
-| WebGL treemap in Phase 1 | 10k nodes is fine on Canvas 2D; the renderer swap is Phase 2 behind a stable payload |
+| WebGL treemap in Phase 1 | 10k nodes is fine on Canvas 2D; the swap is Phase 2 behind a stable payload |
 | a general build tool | measured pain is a memory ceiling, a per-item process, or a superlinear algorithm. This has all three. |
 
 ## Documentation
@@ -202,21 +229,22 @@ Every design decision traces to a measurement, not a preference.
 ## Contributing
 
 Every change ships with a measurement, or an argument for why it cannot have
-one. See [CONTRIBUTING.md](CONTRIBUTING.md); the gates are `cargo test`, `clippy
--D warnings` (pedantic), `cargo fmt`, parity against `webpack-bundle-analyzer`,
-and a four-language docs check. [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) ·
-[SECURITY.md](SECURITY.md)
+one. See [CONTRIBUTING.md](CONTRIBUTING.md); the gates are `cargo test`,
+`clippy -D warnings` (pedantic), `cargo fmt`, 70% coverage floor, parity
+against `webpack-bundle-analyzer`, and a four-language docs check.
+[Code of conduct](CODE_OF_CONDUCT.md) · [Security](SECURITY.md)
 
 ## Licence
 
-MIT [(`LICENSE-MIT`](LICENSE-MIT)) or Apache-2.0
-[(`LICENSE-APACHE`](LICENSE-APACHE)), at your option.
+MIT ([LICENSE-MIT](LICENSE-MIT)) or Apache-2.0
+([LICENSE-APACHE](LICENSE-APACHE)), at your option.
 
 ---
 
 <div align="center">
   <sub>
-    Built in public. Numbers, disagreements and corrections are welcome in
-    <a href="https://github.com/omnibundle/omnibundle/issues">issues</a>.
+    Built in public. Disagreements about the numbers are welcome in
+    <a href="https://github.com/omnibundle/omnibundle/issues">issues</a> — they are
+    the only thing keeping a benchmark meaningful.
   </sub>
 </div>
