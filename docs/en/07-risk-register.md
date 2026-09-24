@@ -1,7 +1,6 @@
 # 07 — Risk register
 
-Owner: WS-0 · Translations: [ZH](../zh/07-risk-register.md) ·
-[JA](../ja/07-risk-register.md) · [DE](../de/07-risk-register.md)
+Owner: WS-0 · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 Each risk has a trigger, a mitigation and a named lane. A risk without a
 measurable trigger is a worry, not a risk, and gets deleted at the next review.

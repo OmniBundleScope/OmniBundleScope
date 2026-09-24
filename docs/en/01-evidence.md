@@ -1,7 +1,6 @@
 # 01 — Evidence: why this project exists
 
-Owner: WS-0, with WS-S for the source-map section · Translations:
-[ZH](../zh/01-evidence.md) · [JA](../ja/01-evidence.md) · [DE](../de/01-evidence.md)
+Owner: WS-0, with WS-S for the source-map section · Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 This document is the honest ledger behind OmniBundle. Every number here was
 measured on the reference machine unless it is explicitly marked as coming from

@@ -1,7 +1,6 @@
 # OmniBundle — Product Requirements (V1.0 + verification annotations)
 
-Owner: WS-0 · Status: product scope frozen for Phase 1 · Translations:
-[ZH](../zh/00-prd.md) · [JA](../ja/00-prd.md) · [DE](../de/00-prd.md)
+Owner: WS-0 · Status: product scope frozen for Phase 1 · Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 > The first section is the original PRD, kept verbatim. The second section
 > annotates every measurable claim with what we have actually verified. That

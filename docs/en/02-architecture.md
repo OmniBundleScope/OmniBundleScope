@@ -1,7 +1,6 @@
 # 02 — Architecture
 
-Owner: WS-0 · Translations: [ZH](../zh/02-architecture.md) ·
-[JA](../ja/02-architecture.md) · [DE](../de/02-architecture.md)
+Owner: WS-0 · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 ## 1. Crates
 

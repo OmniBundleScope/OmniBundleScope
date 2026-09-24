@@ -111,6 +111,12 @@ jobs:
         working-directory: bench
         run: node harness/check-readme-numbers.mjs
 
+      # 30 dead links were sitting in the docs headers, pointing at translations
+      # that do not exist yet. This found them in one run.
+      - name: no dead relative links
+        working-directory: bench
+        run: node harness/check-links.mjs
+
       - name: smoke run on a fixture
         working-directory: bench
         run: |

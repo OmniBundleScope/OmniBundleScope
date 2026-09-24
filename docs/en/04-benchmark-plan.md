@@ -1,7 +1,6 @@
 # 04 — Benchmark plan
 
-Owner: WS-A (protocol) · Translations: [ZH](../zh/04-benchmark-plan.md) ·
-[JA](../ja/04-benchmark-plan.md) · [DE](../de/04-benchmark-plan.md)
+Owner: WS-A (protocol) · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 Normative protocol: `docs/contracts/bench-spec.md`. This file is the **status
 board**: every target, its current number or an explicit `unverified`, and the

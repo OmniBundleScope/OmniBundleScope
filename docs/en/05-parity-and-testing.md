@@ -1,7 +1,6 @@
 # 05 — Parity and testing
 
-Owner: WS-7 · Translations: [ZH](../zh/05-parity-and-testing.md) ·
-[JA](../ja/05-parity-and-testing.md) · [DE](../de/05-parity-and-testing.md)
+Owner: WS-7 · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 OmniBundle replaces tools people already trust. "Trust" here means one thing:
 **the numbers must match**, or the tool is lying with a nicer UI.

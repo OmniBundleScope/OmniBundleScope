@@ -1,7 +1,6 @@
 # 03 — Implementation plan
 
-Owner: WS-0 · Translations: [ZH](../zh/03-implementation-plan.md) ·
-[JA](../ja/03-implementation-plan.md) · [DE](../de/03-implementation-plan.md)
+Owner: WS-0 · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 This plan is expressed as **milestones and dependencies, not dates**. Several
 workstreams run in parallel here; a calendar would imply commitments nobody

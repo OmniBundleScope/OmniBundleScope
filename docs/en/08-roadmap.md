@@ -1,7 +1,6 @@
 # 08 — Roadmap
 
-Owner: WS-0 · Translations: [ZH](../zh/08-roadmap.md) ·
-[JA](../ja/08-roadmap.md) · [DE](../de/08-roadmap.md)
+Owner: WS-0 · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 The PRD's calendar (M1-2, M3-4, …) is kept here for continuity with the vision,
 but the operative plan is `03-implementation-plan.md` (milestones, no dates).

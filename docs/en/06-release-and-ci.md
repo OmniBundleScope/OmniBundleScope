@@ -1,7 +1,6 @@
 # 06 — Release, distribution and CI
 
-Owner: WS-8 · Translations: [ZH](../zh/06-release-and-ci.md) ·
-[JA](../ja/06-release-and-ci.md) · [DE](../de/06-release-and-ci.md)
+Owner: WS-8 · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 ## 1. Artefacts
 
