@@ -551,6 +551,8 @@ def save(fig, name: str, theme: dict) -> tuple[pathlib.Path, pathlib.Path]:
     fig.savefig(png_path, format="png", facecolor=theme["bg"], bbox_inches="tight", dpi=200)
     plt.close(fig)
 
+    svg_path.write_text(stable_svg(svg_path.read_text(encoding="utf-8")), encoding="utf-8")
+
     assert_not_clipped(png_path, theme)
     if collisions:
         listed = "\n".join(f"    {c}" for c in collisions[:8])
@@ -560,6 +562,35 @@ def save(fig, name: str, theme: dict) -> tuple[pathlib.Path, pathlib.Path]:
             "  Fix the layout, not the font size."
         )
     return svg_path, png_path
+
+
+def stable_svg(text: str) -> str:
+    """Make one SVG byte-identical across runs, so `git diff` after a
+    regeneration means something.
+
+    matplotlib makes two runs of the same figure differ in two ways, neither of
+    which is a change to the chart:
+
+    - `<dc:date>` inside the metadata records when it was drawn.
+    - generated element ids are random (`pc626e149fb`, `m581a584697`), so every
+      `clip-path="url(#...)"` and `<use xlink:href="#..."` differs even when the
+      geometry is untouched.
+
+    Without this, the CI gate that regenerates the charts and fails on a diff
+    fails on every run, and a gate that always fails is a gate nobody reads.
+    Ids are renumbered in order of first appearance, which is stable because the
+    draw order is.
+    """
+    text = re.sub(r"<dc:date>.*?</dc:date>", "<dc:date>1970-01-01T00:00:00</dc:date>", text)
+    ids: dict[str, str] = {}
+    # matplotlib ids are a one or two letter prefix plus hex digits.
+    generated = r"([a-z]{1,2}[0-9a-f]{10})"
+
+    def rename_id(raw: str) -> str:
+        return ids.setdefault(raw, f"ob{len(ids)}")
+
+    text = re.sub(rf"#{generated}\b", lambda m: "#" + rename_id(m.group(1)), text)
+    return re.sub(rf'\bid="{generated}"', lambda m: 'id="' + rename_id(m.group(1)) + '"', text)
 
 
 def measure_probe(probe: str) -> dict:

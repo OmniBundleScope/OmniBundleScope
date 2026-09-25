@@ -37,7 +37,16 @@ implemented and measured; WASM and the WebGL renderer are not.
   package, each optionally on a named dimension. A breach exits 1 with `OB0040`;
   a rule that matches nothing is an error, not a silent pass.
 - **`--mode json` and `--mode csv`** for CI and BI consumers.
+- **A build folder with no bundler metadata** (`omnibundle ./dist`): the output
+  and its source maps, which is what Vite, Rollup, Parcel and tsup give you by
+  default. Sizes are measured rather than declared, so they are exact, and each
+  source in a map becomes a module. Ghost code is defined against a declared
+  graph, so this mode reports itself as undetectable (`OB0051`) instead of the
+  reassuring zero it would otherwise print.
 - **Parity harness** against `webpack-bundle-analyzer` on real webpack builds.
+- **Performance charts** generated from the records in `bench/results/`, with a
+  gate that fails the build if a label overlaps, is clipped, or arrives below
+  9 px at README width.
 
 ### Measured
 
