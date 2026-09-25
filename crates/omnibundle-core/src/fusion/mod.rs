@@ -4,7 +4,7 @@ use std::path::Path;
 use rayon::prelude::*;
 
 use crate::model::{
-    GhostModule, GhostReason, HiddenSource, Module, Severity, SizeDimension, SourceRef,
+    GhostModule, GhostReason, HiddenSource, Module, Severity, SizeDimension, SizeSet, SourceRef,
     UnifiedBundleGraph,
 };
 use crate::sourcemap::ParsedSourceMap;
@@ -37,7 +37,12 @@ pub fn analyse(
     graph: &mut UnifiedBundleGraph,
     maps: &[(String, ParsedSourceMap)],
 ) -> FusionOutcome {
-    let mut outcome = FusionOutcome::default();
+    let mut outcome = FusionOutcome {
+        // There is a declared graph in this path, so a ghost count means
+        // something: modules the bundler shipped that no mapping accounts for.
+        ghosts_detectable: true,
+        ..FusionOutcome::default()
+    };
 
     // 1. attribute each map **into the asset it belongs to**, never into one
     //    global table: a build directory usually holds both `bundle.js.map` and
@@ -223,9 +228,148 @@ pub fn analyse(
     outcome
 }
 
+/// Attribute a build folder that has **no bundler metadata**.
+///
+/// Vite, Rollup, Parcel and tsup emit `dist/` and, optionally, `*.map` — and no
+/// `stats.json`, because there is no cross-bundler format for one. Refusing that
+/// input would make the tool useless for exactly the projects most people build
+/// with, so this path uses what is always there:
+///
+/// - the source maps, which attribute bytes back to original source paths without
+///   needing to know who built them. Each source becomes a module, so the report
+///   groups by source file and the sizes are ground truth.
+/// - the bytes in the file that no source owns, which is **hidden code** — and
+///   that detection needs nothing but the map.
+///
+/// Ghost code, on the other hand, is defined against a declared module graph.
+/// With no graph there is nothing to compare against, so this reports it as
+/// undetectable with a diagnostic (`OB0051`) instead of a reassuring zero.
+pub fn analyse_sources_only(
+    graph: &mut UnifiedBundleGraph,
+    maps: &[(String, ParsedSourceMap)],
+) -> FusionOutcome {
+    let mut outcome = FusionOutcome {
+        // No declared module graph, so ghost code is undetectable here rather
+        // than absent. The CLI prints this instead of a reassuring zero.
+        ghosts_detectable: false,
+        ..FusionOutcome::default()
+    };
+    if maps.is_empty() {
+        graph.diagnostics.push(crate::folder::no_declared_graph_diagnostic());
+        graph.diagnostics.push(crate::model::Diagnostic {
+            severity: Severity::Warning,
+            code: "OB0050".into(),
+            message: "no source maps next to the output: only file sizes are known. Build with \
+                      --sourcemap to get per-source attribution."
+                .into(),
+            subject: None,
+            data: serde_json::Value::Null,
+        });
+        recompute_totals(graph);
+        graph.totals.size_dimension = SizeDimension::Parsed;
+        return outcome;
+    }
+
+    let mut hidden: Vec<HiddenSource> = Vec::new();
+    let mut hidden_total = 0u64;
+    let mut hidden_count = 0usize;
+
+    for (map_name, map) in maps {
+        let asset_name = asset_for_map(graph, map_name);
+        let generated = generated_len_for(graph, map_name, map);
+        let table = map.attribution_by_path_in(None, generated);
+        let mapped: u64 = table.values().sum();
+
+        for (path, bytes) in table {
+            let id = format!("source:{path}");
+            graph.modules.entry(id.clone()).or_insert_with(|| Module {
+                id,
+                name: path.clone(),
+                issuer: None,
+                reasons: Vec::new(),
+                package: crate::folder::package_ref(&path),
+                chunks: Vec::new(),
+                sizes: SizeSet { stat: 0, ..SizeSet::default() },
+                attribution_delta: 0,
+                sources: vec![SourceRef { file: path.clone(), bytes, line: None }],
+            });
+            if let Some(module) = graph.modules.get_mut(&format!("source:{path}")) {
+                module.sizes.attributed = Some(bytes);
+            }
+            outcome.attributed_modules += 1;
+            outcome.attributed_bytes += bytes;
+        }
+
+        // Bytes in the asset that no source owns: the tail after the last
+        // mapping, an inlined snippet, an eval, an injected polyfill.
+        let asset_size =
+            graph.assets.iter().find(|a| a.name == asset_name).map_or(0, |a| a.sizes.effective());
+        if asset_size > mapped {
+            let unowned = asset_size - mapped;
+            hidden_total += unowned;
+            hidden_count += 1;
+            hidden.push(HiddenSource {
+                file: format!("{asset_name} (no source owns these bytes)"),
+                bytes: unowned,
+                location: Some(asset_name.clone()),
+            });
+            outcome.mapped_bytes += mapped;
+        }
+    }
+
+    hidden.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.file.cmp(&b.file)));
+    let hidden_dropped = (hidden_count.saturating_sub(HIDDEN_SOURCES_IN_SUMMARY)) as u64;
+    hidden.truncate(HIDDEN_SOURCES_IN_SUMMARY);
+
+    outcome.hidden_count = hidden_count;
+    outcome.hidden_bytes = hidden_total;
+
+    // Coverage is measured the same way as the stats path: bytes of assets that a
+    // map accounts for, over bytes of assets. An asset with no map keeps the
+    // dimension honest by holding it below the threshold.
+    let total_bytes: u64 = graph.assets.iter().map(|a| a.sizes.effective()).sum();
+    let covered: u64 = graph
+        .assets
+        .iter()
+        .filter(|asset| {
+            maps.iter().any(|(name, _)| {
+                let stem = name.strip_suffix(".map").unwrap_or(name);
+                stem == asset.name
+            })
+        })
+        .map(|a| a.sizes.effective())
+        .sum();
+    outcome.coverage = if total_bytes == 0 { 0.0 } else { covered as f64 / total_bytes as f64 };
+    outcome.covered_assets = maps.len();
+
+    graph.totals.size_dimension = if total_bytes > 0 && outcome.coverage >= COVERAGE_THRESHOLD {
+        SizeDimension::Attributed
+    } else {
+        SizeDimension::Parsed
+    };
+
+    graph.diagnostics.push(crate::folder::no_declared_graph_diagnostic());
+    graph.fusion = Some(crate::model::FusionSummary {
+        ghost_modules: Vec::new(),
+        ghost_modules_truncated: 0,
+        hidden_sources: hidden,
+        hidden_sources_truncated: hidden_dropped,
+        total_attribution_delta: 0,
+        significant_corrections: 0,
+    });
+
+    recompute_totals(graph);
+    outcome
+}
+
 /// What the fusion pass learned, for the summary line and the tests.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct FusionOutcome {
+    /// False when there is no declared module graph, which means a `ghost_count`
+    /// of zero reads as "cannot be detected" rather than "none found". The CLI
+    /// has to say which one it is: reporting zero would be inventing a clean bill
+    /// of health from an absence of evidence.
+    pub ghosts_detectable: bool,
     pub mapped_bytes: u64,
     pub attributed_modules: usize,
     pub attributed_bytes: u64,

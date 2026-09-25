@@ -155,22 +155,35 @@ fn run(cli: &Cli) -> Result<ExitCode> {
         Input::Folder(dir) => {
             // Prefer the richest artifact in the folder, per cli-surface §4.
             let candidates = ["stats.json", "stats.stats.json", "metafile.json"];
-            let picked =
-                candidates.iter().map(|n| dir.join(n)).find(|p| p.is_file()).ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "no recognised artifact in {}. Looked for {}",
-                        dir.display(),
-                        candidates.join(", ")
+            let picked = candidates.iter().map(|n| dir.join(n)).find(|p| p.is_file());
+
+            let from_metadata = picked.is_some();
+            let mut graph = match picked {
+                Some(path) => {
+                    stats::ingest_file(&path, sniff_tool(&read_head(&path, 512 * 1024)?))?
+                }
+                // No bundler metadata: this is what vite, rollup, parcel and tsup
+                // hand you by default. The output and its source maps are enough
+                // for measured sizes and per-source attribution; ghost code needs
+                // a declared graph and is reported as undetectable rather than as
+                // a clean bill of health.
+                None => omnibundle_core::folder::ingest(dir).with_context(|| {
+                    format!(
+                        "no stats.json or metafile.json in {}, and it holds no build output either",
+                        dir.display()
                     )
-                })?;
-            let mut graph =
-                stats::ingest_file(&picked, sniff_tool(&read_head(&picked, 512 * 1024)?))?;
+                })?,
+            };
             sizes::attribute_from_disk(&mut graph, dir)?;
 
             // Fusion: any *.map next to the assets joins the graph (PRD 3.2).
             let maps = omnibundle_core::fusion::maps_in_dir(dir);
             if !maps.is_empty() {
-                let outcome = omnibundle_core::fusion::analyse(&mut graph, &maps);
+                let outcome = if from_metadata {
+                    omnibundle_core::fusion::analyse(&mut graph, &maps)
+                } else {
+                    omnibundle_core::fusion::analyse_sources_only(&mut graph, &maps)
+                };
                 fusion = Some((outcome, maps.len()));
             }
             graph
@@ -303,13 +316,23 @@ fn run(cli: &Cli) -> Result<ExitCode> {
                 used,
             );
             if let Some((outcome, maps)) = fusion {
+                // Ghost code is defined against a declared module graph. Without
+                // one, "0 ghost" would be an absence of evidence dressed as a
+                // clean bill of health, so it says what it can and cannot see.
+                let ghost = if outcome.ghosts_detectable {
+                    format!(
+                        "{} ghost ({} of declared)",
+                        outcome.ghost_count,
+                        human_bytes(outcome.ghost_bytes)
+                    )
+                } else {
+                    "ghost code needs a stats.json to detect".to_string()
+                };
                 println!(
-                    "fusion: {maps} map(s) · coverage {:.0}% · {}/{} modules attributed · {} ghost ({} of declared) · {} hidden source(s) ({})",
+                    "fusion: {maps} map(s) · coverage {:.0}% · {}/{} modules attributed · {ghost} · {} hidden source(s) ({})",
                     outcome.coverage * 100.0,
                     outcome.attributed_modules,
                     graph.totals.module_count,
-                    outcome.ghost_count,
-                    human_bytes(outcome.ghost_bytes),
                     outcome.hidden_count,
                     human_bytes(outcome.hidden_bytes),
                 );

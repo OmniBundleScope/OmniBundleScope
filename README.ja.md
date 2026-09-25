@@ -29,6 +29,18 @@
 
 ---
 
+## サポートするバンドラー
+
+| バンドラー | OmniBundle が読むもの | `dist/` + `*.map` が要る? | ゴーストコード検出 |
+|---|---|---|---|
+| **webpack** 4 / 5 | `stats.json` | 不要 | あり |
+| **rspack** | `stats.json`（同じスキーマ） | 不要 | あり |
+| **esbuild** | `metafile.json`、または出力フォルダのみ | `--metafile` なら不要 | `--metafile` があればあり |
+| **Vite** | 出力フォルダとソースマップ | 必要 | `--stats` 出力を有効にする必要あり |
+| **Rollup** | 出力フォルダとソースマップ | 必要 | `stats.json` が必要 |
+| **Parcel** | 出力フォルダとソースマップ | 必要 | `stats.json` が必要 |
+| **tsup / esbuild ラッパー** | 出力フォルダとソースマップ | 必要 | `stats.json` が必要 |
+| **Angular / Next.js / Nuxt / SvelteKit** | それらが出力するもの（webpack か vite のビルド） | 場合による | 場合による'
 ## 問題
 
 バンドル解析ツールをビルドに向けて差し出すと、メモリが足りないか、1 分かかり、
@@ -229,6 +241,36 @@ omnibundle ./dist/map.js.map --bench-map            # 帰属のみ計測
 `webpack-bundle-analyzer` との整合性比較、4 言語ドキュメント検査です。
 [行動規範](CODE_OF_CONDUCT.md) · [セキュリティ方針](SECURITY.md)
 
+## もう一度、サポートするバンドラー
+
+最初の疑問であり、「すべてのバンドラーをサポート」とだけ書いて、具体的に何を指すのかを示さない
+プロジェクトには、読む価値がありません:
+
+**webpack**（4 と 5、`stats.json` 経由）· **rspack**（`stats.json` 経由）·
+**esbuild**（`metafile.json` 経由）· **Vite** · **Rollup** · **Parcel** · **tsup**、
+およびそれらを基盤とするあらゆるビルドの出力——**Angular**、**Next.js**、
+**Nuxt**、**SvelteKit**、**React Server Components**。
+
+入力は 2 つの形:
+
+```bash
+omnibundle ./dist/stats.json   # バンドラーのグラフ: webpack, rspack, esbuild --metafile
+omnibundle ./dist              # 出力フォルダのみ: vite, rollup, parcel, tsup
+```
+
+後者は設定不要です。`dist/` を指せば、バンドラーがすでに書いているソースマップが
+十分です。前者は **ゴーストコード**検出を有効にします。あの問いには宣言された
+モジュールグラフが必要だからです。
+
+| バンドラー | グラフ | 帰属 | ゴーストコード |
+|---|---|---|---|
+| webpack、rspack | `stats.json` | ソースマップ | あり |
+| esbuild | `metafile.json` | ソースマップ | metafile があればあり |
+| vite、rollup、parcel、tsup | 既定ではない | ソースマップ | `stats.json` があればあり |
+
+---
+
+## プロジェクト
 ## ライセンス
 
 MIT（[LICENSE-MIT](LICENSE-MIT)）または Apache-2.0（[LICENSE-APACHE](LICENSE-APACHE)）、お好きな方を。

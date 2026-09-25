@@ -28,6 +28,27 @@ esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张�
 
 ---
 
+## 支持的打包器
+
+| 打包器 | OmniBundle 读什么 | 需要 `dist/` + `*.map`？ | 幽灵代码检测 |
+|---|---|---|---|
+| **webpack** 4 / 5 | `stats.json` | 不需要 | 支持 |
+| **rspack** | `stats.json`（同一套 schema） | 不需要 | 支持 |
+| **esbuild** | `metafile.json`，或直接读产物目录 | 用 `--metafile` 就不需要 | 用 `--metafile` 时支持 |
+| **Vite** | 产物目录和它的 source map | 需要 | 需要开启 `--stats` 输出 |
+| **Rollup** | 产物目录和它的 source map | 需要 | 需要 `stats.json` |
+| **Parcel** | 产物目录和它的 source map | 需要 | 需要 `stats.json` |
+| **tsup / esbuild 封装** | 产物目录和它的 source map | 需要 | 需要 `stats.json` |
+| **Angular / Next.js / Nuxt / SvelteKit** | 它们产出的东西，也就是 webpack 或 vite 的产物 | 视情况 | 视情况 |
+
+两种输入形态，区别很重要：
+
+- **打包器图**（`stats.json`、`metafile.json`）给出依赖结构**和**声明的体积。
+  只有这一种形态能做**幽灵代码**检测——因为"幽灵"的定义就是"打包器声明并输出、
+  但没有任何 source map 解释得了的模块"。
+- **只有产物**（一个带 `*.map` 的 `dist/` 目录）给出实测文件体积和按 source 的归因，
+  这已经是 vite、rollup、parcel、tsup 默认给你的全部信息。这里的尺寸是精确的，
+  因为是量出来的而不是估算的。幽灵检测会明说自己不可用，而不是报一个 0：
 ## 问题
 
 你把体积分析工具指向一次构建，它要么内存爆掉，要么要跑一分钟，最后给你一张你根本没法行动的图片。
@@ -219,6 +240,35 @@ omnibundle ./dist/map.js.map --bench-map            # 只跑归因，并计时
 `cargo fmt`、70% 覆盖率下限、与 `webpack-bundle-analyzer` 的一致性比对，以及四语文档检查。
 [行为准则](CODE_OF_CONDUCT.md) · [安全策略](SECURITY.md)
 
+## 再说一次支持的打包器
+
+因为这是第一个问题，而且一个只说"支持所有打包器"却不说是哪些的项目，这句话就没有
+值得一读的分量：
+
+**webpack**（4 和 5，走 `stats.json`）· **rspack**（走 `stats.json`）·
+**esbuild**（走 `metafile.json`）· **Vite** · **Rollup** · **Parcel** ·
+**tsup**，以及所有基于它们构建的东西的产物——**Angular**、**Next.js**、
+**Nuxt**、**SvelteKit**、**React Server Components**。
+
+两种输入形态：
+
+```bash
+omnibundle ./dist/stats.json   # 打包器图：webpack、rspack、esbuild --metafile
+omnibundle ./dist              # 只有产物目录：vite、rollup、parcel、tsup
+```
+
+第二种不需要任何配置——指到 `dist/`，你的打包器本来就会写的 source map 就够了。
+第一种额外开启**幽灵代码**检测，因为那个问题需要一个声明出来的模块图。
+
+| 打包器 | 模块图 | 字节归因 | 幽灵代码 |
+|---|---|---|---|
+| webpack、rspack | `stats.json` | source map | 支持 |
+| esbuild | `metafile.json` | source map | 有 metafile 时支持 |
+| vite、rollup、parcel、tsup | 默认没有 | source map | 有 `stats.json` 时支持 |
+
+---
+
+## 项目
 ## 许可证
 
 MIT（[LICENSE-MIT](LICENSE-MIT)）或 Apache-2.0（[LICENSE-APACHE](LICENSE-APACHE)），由你选择。

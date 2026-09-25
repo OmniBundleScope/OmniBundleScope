@@ -38,6 +38,10 @@ pub enum InputArtifact {
     EsbuildMetafile,
     /// rollup-plugin-visualizer style JSON
     VisualizerStats { tool: String },
+    /// A build directory with no bundler metadata: sizes are measured from disk,
+    /// and the source maps are the only attribution available. This is what
+    /// vite, rollup, parcel and tsup hand you unless you configure otherwise.
+    DistFolder,
 }
 
 impl InputArtifact {

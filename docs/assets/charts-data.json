@@ -9,6 +9,56 @@
     "sme": "bench/results/ws-s-sme-baseline-2026-09-03.json. The 1k row is the real preact build (median of 3); 10k is a median of 3; 50k is a single 9.4-minute run, because three runs would have taken half an hour",
     "targets": "docs/en/04-benchmark-plan.md - B3 <= 5 s / <= 200 MB, B4 <= 15 s / <= 400 MB, B5 <= 1 s, B8 < 500 MB"
   },
+  "figures": {
+    "pipeline": {
+      "light": {
+        "figure_width_pt": 685.2,
+        "labels": 20,
+        "font_pt_min": 9.0,
+        "font_pt_max": 13.0,
+        "smallest_px_at_880px_wide": 11.56
+      },
+      "dark": {
+        "figure_width_pt": 685.2,
+        "labels": 20,
+        "font_pt_min": 9.0,
+        "font_pt_max": 13.0,
+        "smallest_px_at_880px_wide": 11.56
+      }
+    },
+    "source-maps": {
+      "light": {
+        "figure_width_pt": 685.5,
+        "labels": 30,
+        "font_pt_min": 9.0,
+        "font_pt_max": 13.0,
+        "smallest_px_at_880px_wide": 11.55
+      },
+      "dark": {
+        "figure_width_pt": 685.5,
+        "labels": 30,
+        "font_pt_min": 9.0,
+        "font_pt_max": 13.0,
+        "smallest_px_at_880px_wide": 11.55
+      }
+    },
+    "memory-budget": {
+      "light": {
+        "figure_width_pt": 588.2,
+        "labels": 20,
+        "font_pt_min": 7.0,
+        "font_pt_max": 12.5,
+        "smallest_px_at_880px_wide": 10.47
+      },
+      "dark": {
+        "figure_width_pt": 588.2,
+        "labels": 20,
+        "font_pt_min": 7.0,
+        "font_pt_max": 12.5,
+        "smallest_px_at_880px_wide": 10.47
+      }
+    }
+  },
   "stats_pipeline": {
     "363 MB stats, 154,379 modules": {
       "ob_s": 1.869,

@@ -30,6 +30,18 @@ Speichers.
 
 ---
 
+## Unterstützte Bundler
+
+| Bundler | Was OmniBundle liest | Braucht `dist/` + `*.map`? | Ghost-Code-Erkennung |
+|---|---|---|---|
+| **webpack** 4 / 5 | `stats.json` | nein | ja |
+| **rspack** | `stats.json` (gleiches Schema) | nein | ja |
+| **esbuild** | `metafile.json` oder nur den Ausgabeordner | mit `--metafile` nein | mit `--metafile` ja |
+| **Vite** | Ausgabeordner und seine Source Maps | ja | erfordert `--stats`-Ausgabe |
+| **Rollup** | Ausgabeordner und seine Source Maps | ja | erfordert `stats.json` |
+| **Parcel** | Ausgabeordner und seine Source Maps | ja | erfordert `stats.json` |
+| **tsup / esbuild-Wrapper** | Ausgabeordner und seine Source Maps | ja | erfordert `stats.json` |
+| **Angular / Next.js / Nuxt / SvelteKit** | was sie erzeugen, also webpack- oder vite-Ausgabe | je nach Fall | je nach Fall'
 ## Das Problem
 
 Man lässt einen Bundle-Analyzer auf einen Build los, und er läuft in den
@@ -239,6 +251,37 @@ Siehe [CONTRIBUTING.md](CONTRIBUTING.md); die Gates sind `cargo test`,
 70 %, Parität gegen `webpack-bundle-analyzer` und eine Vier-Sprachen-Dokumentprüfung.
 [Verhaltenskodex](CODE_OF_CONDUCT.md) · [Sicherheitsrichtlinie](SECURITY.md)
 
+## Noch einmal: unterstützte Bundler
+
+Weil es die erste Frage ist — und weil ein Projekt, das "alle Bundler" sagt, ohne
+zu sagen welche, keine lesenswerte Behauptung aufstellt:
+
+**webpack** (4 und 5, über `stats.json`) · **rspack** (über `stats.json`) ·
+**esbuild** (über `metafile.json`) · **Vite** · **Rollup** · **Parcel** ·
+**tsup** — sowie die Ausgabe von allem, was darauf aufbaut: **Angular**,
+**Next.js**, **Nuxt**, **SvelteKit**, **React Server Components**.
+
+Zwei Eingabeformen:
+
+```bash
+omnibundle ./dist/stats.json   # ein Bundler-Graph: webpack, rspack, esbuild --metafile
+omnibundle ./dist              # nur der Ausgabeordner: vite, rollup, parcel, tsup
+```
+
+Die zweite braucht keine Konfiguration — auf `dist/` zeigen, und die Source Maps,
+die der Bundler ohnehin schreibt, genügen. Die erste schaltet zusätzlich die
+**Ghost-Code**-Erkennung frei, denn diese Frage braucht einen deklarierten
+Modulgraphen.
+
+| Bundler | Graph | Zuordnung | Ghost-Code |
+|---|---|---|---|
+| webpack, rspack | `stats.json` | Source Maps | ja |
+| esbuild | `metafile.json` | Source Maps | mit Metafile |
+| vite, rollup, parcel, tsup | nicht standardmäßig | Source Maps | mit `stats.json` |
+
+---
+
+## Projekt
 ## Lizenz
 
 MIT ([LICENSE-MIT](LICENSE-MIT)) oder Apache-2.0

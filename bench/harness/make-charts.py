@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 
 import matplotlib
@@ -72,8 +73,13 @@ MAP_POINTS = [
     (50_000, 0.209, 562.269, 67.0, 642.0),
 ]
 
-PROVENANCE = {
-    "omni_stats": "bench/results/b3-full-pipeline-2026-09-16.json (median of 3) and b4-full-pipeline-2026-09-16.json (median of 3)",
+# Layout facts per figure, recorded into the sidecar so a checker can assert them
+# without re-rendering. The shipped SVGs hold glyphs as paths and therefore
+# contain no text at all: measured against them, a checker finds nothing and
+# reports success, which is worse than not checking.
+figure_stats: dict = {}
+
+PROVENANCE = {    "omni_stats": "bench/results/b3-full-pipeline-2026-09-16.json (median of 3) and b4-full-pipeline-2026-09-16.json (median of 3)",
     "omni_map": "bench/results/ws3-sourcemap-ingest-2026-09-21.json (median of 3 for 10k and 50k)",
     "wba_363mb": "docs/en/01-evidence.md §2, 63.617 s / 2,295 MB",
     "wba_1gb": "docs/en/01-evidence.md §2, 176.3 s / 1,437 MB - baseline session, same reference machine, not the same run as the 363 MB row",
@@ -193,132 +199,101 @@ def check_formatters() -> None:
 
 
 def chart_pipeline(name: str, theme: dict) -> pathlib.Path:
-    """Time and memory against webpack-bundle-analyzer, one row per input."""
+    """Time and memory against webpack-bundle-analyzer, one row per input.
+
+    Two panels sharing one set of row labels. The earlier version printed the
+    category label on both panels, put four value labels plus a ratio on every
+    row, and let the log axis choose its own ticks; on screen that is seven
+    pieces of text per row and it reads as clutter. Here: the row label appears
+    once, the ticks are chosen, and the only words on a row are its two numbers.
+    """
     fig, (ax_time, ax_mem) = plt.subplots(
-        1, 2, figsize=(11.2, 3.5), dpi=200, constrained_layout=True
+        1,
+        2,
+        figsize=(9.4, 3.1),
+        dpi=200,
+        constrained_layout=True,
+        sharey=True,
     )
     fig.patch.set_facecolor(theme["bg"])
 
     rows = list(STATS.items())
+    # Short, and identical in both panels: the module count belongs in the
+    # caption, not repeated on every row of every panel.
+    short = {label: label.split(",")[0] for label in STATS}
     ys = list(range(len(rows)))[::-1]
-    height = 0.34
+    height = 0.3
 
     for y, (label, data) in zip(ys, rows):
         mem = STATS_MEM[label]
-        # reference tool first (upper bar), OmniBundle second (lower bar)
         ax_time.barh(y + height / 2, data["ref_s"], height=height, color=theme["ref"], zorder=3)
         ax_time.barh(y - height / 2, data["ob_s"], height=height, color=theme["accent"], zorder=3)
         ax_mem.barh(y + height / 2, mem["ref_mb"], height=height, color=theme["ref"], zorder=3)
         ax_mem.barh(y - height / 2, mem["ob_mb"], height=height, color=theme["accent"], zorder=3)
 
-        ax_time.text(
-            data["ref_s"] * 1.12,
-            y + height / 2,
-            human_time(data["ref_s"]),
-            va="center",
-            color=theme["ref_ink"],
-            fontsize=9.5,
-        )
-        ax_time.text(
-            data["ob_s"] * 1.12,
-            y - height / 2,
-            human_time(data["ob_s"]),
-            va="center",
-            color=theme["accent"],
-            fontsize=9.5,
-            fontweight="bold",
-        )
-        ax_mem.text(
-            mem["ref_mb"] * 1.08,
-            y + height / 2,
-            human_mb(mem["ref_mb"]),
-            va="center",
-            color=theme["ref_ink"],
-            fontsize=9.5,
-        )
-        ax_mem.text(
-            mem["ob_mb"] * 1.08,
-            y - height / 2,
-            human_mb(mem["ob_mb"]),
-            va="center",
-            color=theme["accent"],
-            fontsize=9.5,
-            fontweight="bold",
-        )
+        # Value labels sit in a column past the longest bar rather than at the end
+        # of each bar, so the two numbers on a row line up and the eye compares
+        # them instead of hunting.
+        ax_time.text(430, y + height / 2, human_time(data["ref_s"]), va="center",
+                     ha="right", color=theme["ref_ink"], fontsize=9.5)
+        ax_time.text(430, y - height / 2, human_time(data["ob_s"]), va="center",
+                     ha="right", color=theme["accent"], fontsize=9.5, fontweight="bold")
+        ax_mem.text(7200, y + height / 2, human_mb(mem["ref_mb"]), va="center",
+                    ha="right", color=theme["ref_ink"], fontsize=9.5)
+        ax_mem.text(7200, y - height / 2, human_mb(mem["ob_mb"]), va="center",
+                    ha="right", color=theme["accent"], fontsize=9.5, fontweight="bold")
 
-    for ax, xmax, formatter in (
-        (ax_time, 400.0, human_time),
-        (ax_mem, 6000.0, human_mb),
+    for ax, xmax, ticks, formatter in (
+        (ax_time, 400.0, [1, 10, 100], human_time),
+        (ax_mem, 6000.0, [100, 1000, 4000], human_mb),
     ):
         style_axes(ax, theme)
         ax.set_xscale("log")
-        ax.set_xlim(0.9, xmax)
+        ax.set_xlim(0.7, xmax)
+        ax.set_xticks(ticks)
+        ax.set_xticklabels([formatter(t) for t in ticks])
         ax.set_yticks(ys)
-        ax.set_yticklabels([label for label, _ in rows], fontsize=9.5, color=theme["ink"])
-        ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: "" if v in (0.9, xmax) else formatter(v)))
-        ax.set_ylim(-0.7, len(rows) - 0.3)
+        ax.set_yticklabels([short[label] for label, _ in rows], fontsize=10, color=theme["ink"])
+        ax.set_ylim(-0.62, len(rows) - 0.38)
+        ax.tick_params(axis="x", labelsize=9)
 
-    ax_time.set_title(
-        "wall clock", loc="left", fontsize=11, color=theme["ink"], fontweight="bold", pad=12
-    )
-    ax_mem.set_title(
-        "peak memory", loc="left", fontsize=11, color=theme["ink"], fontweight="bold", pad=12
-    )
+    # Shared row labels, once.
+    ax_time.tick_params(axis="y", labelleft=True)
+    ax_mem.tick_params(axis="y", labelleft=False)
 
-    # The ratio sits at the far right of the row, in the space past the longest
-    # bar. Placing it near the bars puts it on top of them, which is the one
-    # thing a log axis makes easy to do by accident.
-    for y, (label, data) in zip(ys, rows):
-        mem = STATS_MEM[label]
-        ax_time.text(
-            0.995,
-            y,
-            f"{ratio(data['ob_s'], data['ref_s'])} faster",
-            transform=ax_time.get_yaxis_transform(),
-            va="center",
-            ha="right",
-            color=theme["accent"],
-            fontsize=9.5,
-            fontweight="bold",
-        )
-        ax_mem.text(
-            0.995,
-            y,
-            f"{ratio(mem['ref_mb'], mem['ob_mb'])} less",
-            transform=ax_mem.get_yaxis_transform(),
-            va="center",
-            ha="right",
-            color=theme["accent"],
-            fontsize=9.5,
-            fontweight="bold",
-        )
+    ax_time.set_title("wall clock", loc="left", fontsize=10.5, color=theme["muted"], pad=14)
+    ax_mem.set_title("peak memory", loc="left", fontsize=10.5, color=theme["muted"], pad=14)
 
     fig.suptitle(
         "One pass: parse stats, measure every asset, fuse the source maps, render the report",
-        x=0.008,
+        x=0.006,
         ha="left",
-        fontsize=12.5,
+        fontsize=13,
         color=theme["ink"],
         fontweight="bold",
     )
     fig.text(
-        0.008,
-        -0.035,
-        "synthetic fixtures, median of 3 runs on the reference machine · "
-        "the 1 GB reference row is from the baseline session · "
-        "grey is webpack-bundle-analyzer 4.10.2",
+        0.006,
+        -0.02,
+        "synthetic fixtures, median of 3 runs on the reference machine  ·  "
+        "grey is webpack-bundle-analyzer 4.10.2  ·  log axes",
         ha="left",
-        fontsize=8.5,
+        fontsize=9,
         color=theme["muted"],
     )
-
     return save(fig, name, theme)
 
 
 def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
-    """Attribution time and memory against source-map-explorer, by source count."""
+    """Attribution time and memory against source-map-explorer, by source count.
+
+    Two log-log panels, no legend and no per-point numbers: each series is
+    labelled once at its right-hand end, and only the last point - the one the
+    claim is about - carries a value. A log-log chart with a legend, three labels
+    per series and two callouts is how a finding gets buried.
+    """
     fig, (ax_time, ax_mem) = plt.subplots(
-        1, 2, figsize=(11.2, 3.5), dpi=200, constrained_layout=True
+        1, 2, figsize=(9.4, 3.5), dpi=200, constrained_layout=True
     )
     fig.patch.set_facecolor(theme["bg"])
 
@@ -328,124 +303,113 @@ def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
     ob_mb = [p[3] for p in MAP_POINTS]
     sme_mb = [p[4] for p in MAP_POINTS]
 
-    for ax, ours, theirs, ours_mb, theirs_mb, formatter in (
-        (ax_time, ob_s, sme_s, None, None, human_time),
-        (ax_mem, ob_mb, sme_mb, None, None, human_mb),
+    for ax, ours, theirs, formatter in (
+        (ax_time, ob_s, sme_s, human_time),
+        (ax_mem, ob_mb, sme_mb, human_mb),
     ):
-        ax.plot(sources, theirs, color=theme["ref"], linewidth=2.4, marker="o",
-                markersize=5, zorder=3, label="source-map-explorer 2.5.3")
-        ax.plot(sources, ours, color=theme["accent"], linewidth=2.4, marker="o",
-                markersize=5, zorder=4, label="OmniBundle")
+        ax.plot(sources, theirs, color=theme["ref"], linewidth=2.2, marker="o",
+                markersize=5, zorder=3)
+        ax.plot(sources, ours, color=theme["accent"], linewidth=2.2, marker="o",
+                markersize=5, zorder=4)
         style_axes(ax, theme, xgrid=False)
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_xticks(sources)
-        ax.set_xticklabels([f"{s // 1000}k" if s >= 1000 else str(s) for s in sources])
-        ax.set_xlabel("sources in the map", fontsize=9, color=theme["muted"])
+        ax.set_xticklabels(["1k", "10k", "50k"])
+        ax.set_xlim(700, 190_000)  # headroom on the right for the series labels
+        ax.set_xlabel("sources in the map", fontsize=9, color=theme["muted"], labelpad=6)
         ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: formatter(v)))
-        for spine in ("bottom",):
-            ax.spines[spine].set_color(theme["grid"])
+        ax.tick_params(axis="both", labelsize=9)
+        ax.spines["bottom"].set_color(theme["grid"])
 
-    for x, ours, theirs in zip(sources, ob_s, sme_s):
-        ax_time.annotate(
-            human_time(ours),
-            (x, ours),
+    # One label per series, at the end of its line, and only the final point is
+    # annotated. Everything else is the reader's eye to follow.
+    for ax, ours, theirs, formatter in (
+        (ax_time, ob_s, sme_s, human_time),
+        (ax_mem, ob_mb, sme_mb, human_mb),
+    ):
+        ax.annotate(
+            "OmniBundle",
+            xy=(sources[-1], ours[-1]),
+            xytext=(9, 4),
             textcoords="offset points",
-            xytext=(0, -16),
-            ha="center",
             color=theme["accent"],
-            fontsize=9,
+            fontsize=10,
+            fontweight="bold",
+            ha="left",
+            va="center",
+        )
+        ax.annotate(
+            "source-map-explorer",
+            xy=(sources[-1], theirs[-1]),
+            xytext=(9, -4),
+            textcoords="offset points",
+            color=theme["ref_ink"],
+            fontsize=10,
+            ha="left",
+            va="center",
+        )
+        # The number the claim rests on, on the last point of each series only.
+        ax.annotate(
+            formatter(ours[-1]),
+            xy=(sources[-1], ours[-1]),
+            xytext=(-6, -13),
+            textcoords="offset points",
+            ha="right",
+            color=theme["accent"],
+            fontsize=10,
             fontweight="bold",
         )
-        ax_time.annotate(
-            human_time(theirs),
-            (x, theirs),
+        ax.annotate(
+            formatter(theirs[-1]),
+            xy=(sources[-1], theirs[-1]),
+            xytext=(-6, 10),
             textcoords="offset points",
-            xytext=(0, 9),
-            ha="center",
+            ha="right",
             color=theme["ref_ink"],
-            fontsize=9,
-        )
-    for x, ours, theirs in zip(sources, ob_mb, sme_mb):
-        ax_mem.annotate(
-            human_mb(ours),
-            (x, ours),
-            textcoords="offset points",
-            xytext=(0, -16),
-            ha="center",
-            color=theme["accent"],
-            fontsize=9,
-            fontweight="bold",
-        )
-        ax_mem.annotate(
-            human_mb(theirs),
-            (x, theirs),
-            textcoords="offset points",
-            xytext=(0, 9),
-            ha="center",
-            color=theme["ref_ink"],
-            fontsize=9,
+            fontsize=10,
         )
 
-    ax_time.set_title("attribution time", loc="left", fontsize=11, color=theme["ink"],
-                      fontweight="bold", pad=12)
-    ax_mem.set_title("peak memory", loc="left", fontsize=11, color=theme["ink"],
-                     fontweight="bold", pad=12)
+    ax_time.set_ylim(0.002, 3000)
+    ax_mem.set_ylim(20, 1400)
 
-    ax_time.legend(
-        loc="upper left",
-        frameon=False,
-        fontsize=9,
-        labelcolor=theme["muted"],
-        handlelength=1.6,
-    )
+    ax_time.set_title("attribution time", loc="left", fontsize=10.5, color=theme["muted"], pad=14)
+    ax_mem.set_title("peak memory", loc="left", fontsize=10.5, color=theme["muted"], pad=14)
 
-    # The finding, stated in words: 5x the sources costs SME 30x the time.
+    # One callout, in genuinely empty space, saying the finding in words.
     ax_time.annotate(
         "5x the sources,\n30x the time",
-        xy=(50_000, 562.269),
-        xytext=(3_300, 120),
+        xy=(10_000, 18.38),
+        xytext=(1_250, 240),
         color=theme["ref_ink"],
-        fontsize=9.5,
-        style="italic",
+        fontsize=10,
         ha="center",
         arrowprops=dict(arrowstyle="-", color=theme["ref"], linewidth=1),
-    )
-    ax_time.annotate(
-        f"{ratio(MAP_POINTS[-1][1], MAP_POINTS[-1][2])} faster at 50k",
-        xy=(50_000, 0.209),
-        xytext=(11_000, 1.05),
-        color=theme["accent"],
-        fontsize=9.5,
-        fontweight="bold",
-        ha="center",
-        arrowprops=dict(arrowstyle="-", color=theme["accent"], linewidth=1),
     )
 
     fig.suptitle(
         "Source map attribution, by the number of sources",
-        x=0.008,
+        x=0.006,
         ha="left",
-        fontsize=12.5,
+        fontsize=13,
         color=theme["ink"],
         fontweight="bold",
     )
     fig.text(
-        0.008,
-        -0.035,
-        "1k is the real preact build; 10k and 50k are synthetic · median of 3 except 50k, "
-        "which is a single 9.4-minute run · log-log axes",
+        0.006,
+        -0.02,
+        "1k is the real preact build; 10k and 50k are synthetic  ·  "
+        "median of 3 except 50k, a single 9.4-minute run  ·  log-log axes",
         ha="left",
-        fontsize=8.5,
+        fontsize=9,
         color=theme["muted"],
     )
-
     return save(fig, name, theme)
 
 
 def chart_budget(name: str, theme: dict) -> pathlib.Path:
     """Peak memory against input size, with the published ceiling drawn in."""
-    fig, ax = plt.subplots(figsize=(7.4, 3.6), dpi=200, constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(6.6, 3.3), dpi=200, constrained_layout=True)
     fig.patch.set_facecolor(theme["bg"])
 
     points = [
@@ -515,23 +479,163 @@ def theme_name(theme: dict) -> str:
     return "light" if theme["bg"] == THEMES["light"]["bg"] else "dark"
 
 
-def save(fig, name: str, theme: dict) -> tuple[pathlib.Path, pathlib.Path]:
-    """Write the SVG (for GitHub) and a PNG, and refuse to write a clipped one.
+def assert_readable(svg: str, name: str, display_width_px: int = 880) -> None:
+    """The smallest label must survive being shown at README width.
 
-    A chart nobody can regenerate is a stale claim, and a chart whose labels are
-    clipped is worse than no chart. There is no way to *look* at a figure from
-    here, so the check is mechanical: matplotlib lays out inside the figure box,
-    and anything that overflows shows up as ink in the outermost pixel ring. If
-    that ring is not uniformly background, something was cut off.
+    A chart is authored at some physical size and then displayed at whatever
+    width the page gives it, so a 9 pt label on an 11.6-inch figure arrives at
+    about 9 px - technically present, practically squinting. This converts the
+    font size through the figure's own width into the size a reader actually
+    gets, which is the only number that says whether the chart is comfortable or
+    merely correct.
+    """
+    width_match = re.search(r'<svg[^>]*\bwidth="([\d.]+)(pt|px)"', svg)
+    if not width_match:
+        raise SystemExit(f"{name}: cannot read the figure width from the SVG")
+    width_value = float(width_match.group(1))
+
+    sizes = [float(m) for m in re.findall(r"font-size:\s*([\d.]+)px", svg)]
+    if not sizes:
+        sizes = [float(m) for m in re.findall(r'font-size="([\d.]+)"', svg)]
+    if not sizes:
+        raise SystemExit(f"{name}: the layout probe contains no font sizes")
+
+    # Font sizes are in points and the figure width is in points, so the 96/72
+    # factor that turns each into CSS pixels cancels out: what the reader
+    # actually gets is `font_pt x (displayed width / figure width)`. Getting
+    # that wrong by 1.333 is exactly how a comfortable chart reads as cramped.
+    smallest = min(sizes) * (display_width_px / width_value)
+    if smallest < 9.0:
+        raise SystemExit(
+            f"{name}: the smallest label renders at {smallest:.1f} px at README width "
+            f"({min(sizes):.1f} pt on a {width_value:.0f} pt wide figure) - under the 9 px floor.\n"
+            "  Make the figure narrower or the type larger; do not shrink the font."
+        )
+
+
+def save(fig, name: str, theme: dict) -> tuple[pathlib.Path, pathlib.Path]:
+    """Write the SVG (for GitHub) and a PNG, and refuse to write a bad one.
+
+    Two defects are invisible to a script that only writes files, and both are
+    what makes a chart look amateur:
+
+    - **clipped ink.** matplotlib lays out inside the figure box, so anything
+      that overflows simply disappears at the edge.
+    - **colliding text.** Two labels on top of each other, or a label over a
+      data point, reads as clutter even when every number is correct.
+
+    The first is checked on the rendered PNG: the outermost pixel ring must be
+    pure background. The second is checked on a *second* render with
+    `svg.fonttype = 'none'`, which keeps text as real `<text>` elements with
+    their coordinates - the shipped SVG uses glyph outlines so it renders
+    identically on every machine, which also means its text cannot be read back
+    to find a collision. Two renders of the same figure, same layout, one of them
+    measurable.
     """
     svg_path = OUT / f"chart-{name}-{theme_name(theme)}.svg"
     png_path = OUT / f"chart-{name}-{theme_name(theme)}.png"
+
+    # The measurable render first: it shares every layout decision with the
+    # shipped one and only differs in how the glyphs are serialised.
+    with matplotlib.rc_context({"svg.fonttype": "none"}):
+        measure_path = OUT / ".layout-probe.svg"
+        fig.savefig(measure_path, format="svg", facecolor=theme["bg"], bbox_inches="tight")
+        probe = measure_path.read_text(encoding="utf-8")
+        measure_path.unlink(missing_ok=True)
+
+    collisions = find_text_collisions(probe)
+    assert_readable(probe, f"{name}-{theme_name(theme)}")
+    figure_stats.setdefault(name, {})[theme_name(theme)] = measure_probe(probe)
+
     fig.savefig(svg_path, format="svg", facecolor=theme["bg"], bbox_inches="tight")
     fig.savefig(png_path, format="png", facecolor=theme["bg"], bbox_inches="tight", dpi=200)
     plt.close(fig)
 
     assert_not_clipped(png_path, theme)
+    if collisions:
+        listed = "\n".join(f"    {c}" for c in collisions[:8])
+        raise SystemExit(
+            f"{name}-{theme_name(theme)}: {len(collisions)} overlapping text label(s):\n"
+            f"{listed}\n"
+            "  Fix the layout, not the font size."
+        )
     return svg_path, png_path
+
+
+def measure_probe(probe: str) -> dict:
+    """Layout facts about a figure, recorded so they can be asserted later.
+
+    These live in the sidecar rather than being re-derived from the shipped SVG
+    because that file stores glyphs as paths and therefore contains no text at
+    all: a checker pointed at it finds nothing, reports success, and proves
+    nothing.
+    """
+    width = re.search(r'<svg[^>]*width="([\d.]+)(pt|px)"', probe)
+    if not width:
+        raise SystemExit("the layout probe has no width; the figure was not written")
+    width_pt = float(width.group(1))
+    sizes = [float(m.group(1)) for m in re.finditer(r"font-size:\s*([\d.]+)px", probe)]
+    labels = [m.group(1).strip() for m in re.finditer(r">([^<>]{2,})</text>", probe)]
+    if not sizes or not labels:
+        raise SystemExit(
+            f"the layout probe found {len(sizes)} font sizes and {len(labels)} labels; "
+            "svg.fonttype is not 'none', so nothing can be measured"
+        )
+    return {
+        "figure_width_pt": round(width_pt, 1),
+        "labels": len(labels),
+        "font_pt_min": round(min(sizes), 2),
+        "font_pt_max": round(max(sizes), 2),
+        # Points against points: the pt-to-px conversion cancels.
+        "smallest_px_at_880px_wide": round(min(sizes) * (880 / width_pt), 2),
+    }
+
+
+def find_text_collisions(svg: str) -> list[str]:
+    """Text labels whose estimated bounding boxes overlap.
+
+    Width is estimated from the font size and the character count rather than
+    measured, because a glyph-accurate measurement is a lot of machinery for a
+    check whose job is to catch the obvious case. Over-estimating is the right
+    direction: it makes the check stricter than a reader's eye, not laxer.
+    """
+    pattern = re.compile(
+        r'<text[^>]*\bx="([\d.-]+)"[^>]*\by="([\d.-]+)"[^>]*font-size:?\s*([\d.]+)'
+        r'[^>]*>([^<]*)</text>',
+        re.IGNORECASE,
+    )
+    # A second pattern for the attribute order matplotlib sometimes emits.
+    pattern_size_first = re.compile(
+        r'<text[^>]*font-size:?\s*([\d.]+)[^>]*\bx="([\d.-]+)"[^>]*\by="([\d.-]+)"[^>]*>([^<]*)</text>',
+        re.IGNORECASE,
+    )
+
+    boxes = []
+    for match in pattern.finditer(svg):
+        x, y, size, text = float(match[1]), float(match[2]), float(match[3]), match[4]
+        boxes.append((x, y, size, text))
+    for match in pattern_size_first.finditer(svg):
+        size, x, y, text = float(match[1]), float(match[2]), float(match[3]), match[4]
+        boxes.append((x, y, size, text))
+
+    # 0.62 em is a generous average advance width for a UI sans face; the
+    # leading is not in the box because vertical collisions between text on
+    # different rows are expected.
+    def box(item):
+        x, y, size, text = item
+        width = len(text) * size * 0.62
+        return (x, y - size * 0.8, x + width, y + size * 0.25)
+
+    collisions = []
+    for i, a in enumerate(boxes):
+        for b in boxes[i + 1 :]:
+            ax0, ay0, ax1, ay1 = box(a)
+            bx0, by0, bx1, by1 = box(b)
+            overlap_x = min(ax1, bx1) - max(ax0, bx0)
+            overlap_y = min(ay1, by1) - max(ay0, by0)
+            if overlap_x > 1.0 and overlap_y > 1.0:
+                collisions.append(f"{a[3]!r} overlaps {b[3]!r}")
+    return collisions
 
 
 def assert_not_clipped(png_path: pathlib.Path, theme: dict) -> None:
@@ -586,6 +690,7 @@ def main() -> int:
         "file so a reader can check the figure against the records instead of "
         "trusting the picture.",
         "provenance": PROVENANCE,
+        "figures": figure_stats,
         "stats_pipeline": {
             label: {**data, **STATS_MEM[label]} for label, data in STATS.items()
         },

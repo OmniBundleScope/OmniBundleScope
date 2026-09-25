@@ -31,6 +31,7 @@
 
 pub mod bom;
 pub mod error;
+pub mod folder;
 pub mod fusion;
 pub mod model;
 pub mod report;
