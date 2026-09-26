@@ -51,27 +51,27 @@ pub fn package_of(path: &str) -> Option<(String, String)> {
 }
 
 /// Build a graph from a directory's contents alone.
+///
+/// Walks the whole tree, because the interesting files are rarely at the top:
+/// vite writes `dist/assets/index-a1b2c3.js`, parcel writes
+/// `dist/index.<hash>.js` next to a `dist/*.map`, and a Next.js build nests
+/// everything under `dist/static/chunks/`. Reading only the first level finds
+/// `index.html` and nothing else, which is a report with one asset in it.
 pub fn ingest(dir: &Path) -> Result<UnifiedBundleGraph> {
     let mut graph = UnifiedBundleGraph::new();
     graph.inputs.push(InputArtifact::DistFolder);
 
-    let entries = std::fs::read_dir(dir).map_err(|e| {
-        Error::Io(std::io::Error::new(e.kind(), format!("reading {}: {e}", dir.display())))
-    })?;
-
-    for entry in entries {
-        let Ok(entry) = entry else { continue };
-        let path = entry.path();
-        if !is_asset(&path) {
-            continue;
-        }
-        // Source maps are the *input* to attribution, not a build output in their
-        // own right: counting them as assets would double every byte in the
-        // build, which is the kind of error a treemap hides beautifully.
-        if path.extension().and_then(|e| e.to_str()) == Some("map") {
-            continue;
-        }
-        let Ok(size) = entry.metadata().map(|m| m.len()) else {
+    let mut paths = Vec::new();
+    collect_assets(dir, dir, &mut paths, 0);
+    if paths.is_empty() {
+        return Err(Error::Malformed(format!(
+            "no build output found in {} (looked for .js, .mjs, .cjs, .css and .html)",
+            dir.display()
+        )));
+    }
+    paths.sort();
+    for path in paths {
+        let Ok(size) = std::fs::metadata(&path).map(|m| m.len()) else {
             continue;
         };
         if size == 0 {
@@ -88,15 +88,47 @@ pub fn ingest(dir: &Path) -> Result<UnifiedBundleGraph> {
         });
     }
 
-    if graph.assets.is_empty() {
-        return Err(Error::Malformed(format!(
-            "no build output found in {} (looked for .js, .mjs, .cjs, .css and .html)",
-            dir.display()
-        )));
-    }
     graph.assets.sort_by(|a, b| a.name.cmp(&b.name));
     graph.totals.size_dimension = SizeDimension::Parsed;
     Ok(graph)
+}
+
+/// How deep to walk. A build output is shallow, but `node_modules` can be
+/// inside `dist/` for some tools, and an unbounded walk of a self-referential
+/// symlink loop is a hang rather than an error.
+const MAX_DEPTH: usize = 12;
+
+/// Collect asset paths under `dir`, depth-first, skipping source maps.
+///
+/// Source maps are the *input* to attribution, not a build output in their own
+/// right: counting them as assets would double every byte in the build, which
+/// is the kind of error a treemap hides beautifully.
+fn collect_assets(dir: &Path, root: &Path, out: &mut Vec<std::path::PathBuf>, depth: usize) {
+    if depth > MAX_DEPTH {
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let mut dirs = Vec::new();
+    for entry in entries.filter_map(std::result::Result::ok) {
+        let path = entry.path();
+        if path.is_dir() {
+            dirs.push(path);
+            continue;
+        }
+        if !is_asset(&path) {
+            continue;
+        }
+        if path.extension().and_then(|e| e.to_str()) == Some("map") {
+            continue;
+        }
+        if path == root {
+            continue;
+        }
+        out.push(path);
+    }
+    for dir in dirs {
+        collect_assets(&dir, root, out, depth + 1);
+    }
 }
 
 /// The package a source path belongs to, as a shared reference.
@@ -147,6 +179,34 @@ mod tests {
         assert_eq!(names, vec!["index.css", "index.js"]);
         assert_eq!(graph.totals.size_dimension, SizeDimension::Parsed);
         assert!(graph.assets.iter().all(|a| a.sizes.stat == 0));
+    }
+
+    #[test]
+    fn the_whole_tree_is_walked_because_vite_nests_its_output() {
+        // The shape vite actually emits. A test that only writes files at the top
+        // level passes while the tool reports one asset for a real build, because
+        // everything vite emits lives under dist/assets/.
+        let dir = temp_dir("vite");
+        fs::create_dir_all(dir.join("assets")).unwrap();
+        fs::create_dir_all(dir.join("static/chunks")).unwrap();
+        fs::write(dir.join("index.html"), b"<!doctype html>").unwrap();
+        fs::write(dir.join("assets/index-a1b2c3.js"), b"console.log(1)").unwrap();
+        fs::write(dir.join("assets/index-a1b2c3.js.map"), b"{}").unwrap();
+        fs::write(dir.join("assets/index-d4e5.css"), b"body{}").unwrap();
+        fs::write(dir.join("static/chunks/main.e6f7.js"), b"console.log(2)").unwrap();
+
+        let graph = ingest(&dir).expect("a vite build ingests");
+        let names: Vec<&str> = graph.assets.iter().map(|a| a.name.as_str()).collect();
+        assert_eq!(
+            names,
+            vec![
+                "assets/index-a1b2c3.js",
+                "assets/index-d4e5.css",
+                "index.html",
+                "static/chunks/main.e6f7.js",
+            ],
+            "the map is an input to attribution, not an asset; the rest are all outputs"
+        );
     }
 
     #[test]

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::btree_map::Entry;
 use std::path::Path;
 
 use rayon::prelude::*;
@@ -282,21 +283,38 @@ pub fn analyse_sources_only(
 
         for (path, bytes) in table {
             let id = format!("source:{path}");
-            graph.modules.entry(id.clone()).or_insert_with(|| Module {
-                id,
-                name: path.clone(),
-                issuer: None,
-                reasons: Vec::new(),
-                package: crate::folder::package_ref(&path),
-                chunks: Vec::new(),
-                sizes: SizeSet { stat: 0, ..SizeSet::default() },
-                attribution_delta: 0,
-                sources: vec![SourceRef { file: path.clone(), bytes, line: None }],
-            });
-            if let Some(module) = graph.modules.get_mut(&format!("source:{path}")) {
-                module.sizes.attributed = Some(bytes);
+            match graph.modules.entry(id) {
+                Entry::Occupied(mut occupied) => {
+                    // Sum, do not overwrite: one source file is routinely compiled
+                    // into more than one chunk, and `vendor.js` and `index.js`
+                    // share `src/util.ts`. Overwriting made a module's size depend
+                    // on which map happened to be read last, and made the summary
+                    // read "2/1 modules attributed" - two attributions, one module.
+                    let module = occupied.get_mut();
+                    let total = module.sizes.attributed.unwrap_or(0) + bytes;
+                    module.sizes.attributed = Some(total);
+                    for source in &mut module.sources {
+                        if source.file == path {
+                            source.bytes = total;
+                            break;
+                        }
+                    }
+                }
+                Entry::Vacant(vacant) => {
+                    outcome.attributed_modules += 1;
+                    vacant.insert(Module {
+                        id: format!("source:{path}"),
+                        name: path.clone(),
+                        issuer: None,
+                        reasons: Vec::new(),
+                        package: crate::folder::package_ref(&path),
+                        chunks: Vec::new(),
+                        sizes: SizeSet { stat: 0, attributed: Some(bytes), ..SizeSet::default() },
+                        attribution_delta: 0,
+                        sources: vec![SourceRef { file: path.clone(), bytes, line: None }],
+                    });
+                }
             }
-            outcome.attributed_modules += 1;
             outcome.attributed_bytes += bytes;
         }
 
@@ -585,24 +603,76 @@ fn generated_len_for(graph: &UnifiedBundleGraph, map_name: &str, map: &ParsedSou
 /// Fraction of the build's bytes that the maps must account for before the
 /// report may claim the ttributed dimension.
 pub const COVERAGE_THRESHOLD: f64 = 0.99;
-/// Read every `*.map` next to a bundle directory, in a stable order.
+/// Read every `*.map` under a bundle directory, in a stable order.
+///
+/// Recursive, because the maps sit where the bundles do and that is not the top
+/// level: vite writes `dist/assets/index-a1b2c3.js.map`, Next.js writes
+/// `dist/static/chunks/*.js.map`. Names are returned relative to `dir`
+/// (`assets/index-a1b2c3.js.map`) so that they match the asset names the folder
+/// ingest produced; a bare file name would match nothing.
 pub fn maps_in_dir(dir: &Path) -> Vec<(String, ParsedSourceMap)> {
-    let Ok(entries) = std::fs::read_dir(dir) else { return Vec::new() };
-    let mut paths: Vec<std::path::PathBuf> = entries
-        .filter_map(std::result::Result::ok)
-        .map(|e| e.path())
-        .filter(|p| p.extension().is_some_and(|e| e == "map"))
-        .collect();
-    paths.sort();
+    maps_in_dir_detailed(dir).0
+}
 
-    paths
-        .into_iter()
-        .filter_map(|p| {
-            let file = std::fs::File::open(&p).ok()?;
-            let map = crate::sourcemap::parse_reader(file).ok()?;
-            Some((p.file_name()?.to_string_lossy().to_string(), map))
-        })
-        .collect()
+/// [`maps_in_dir`], plus the maps that could not be read, with the reason.
+///
+/// Discarding an unreadable map quietly is how a report ends up attributing
+/// nothing while looking like a build that shipped no source maps: coverage
+/// drops, nothing says why, and the reader concludes the wrong thing. The names
+/// and the parse errors come back so the caller can say it out loud.
+pub fn maps_in_dir_detailed(dir: &Path) -> (Vec<(String, ParsedSourceMap)>, Vec<String>) {
+    let mut paths = Vec::new();
+    collect_maps(dir, dir, &mut paths, 0);
+    paths.sort_by(|a, b| a.0.cmp(&b.0));
+
+    let mut maps = Vec::new();
+    let mut unreadable = Vec::new();
+    for (name, path) in paths {
+        let parsed = std::fs::File::open(&path)
+            .map_err(|e| e.to_string())
+            .and_then(|file| crate::sourcemap::parse_reader(file).map_err(|e| e.to_string()));
+        match parsed {
+            Ok(map) => maps.push((name, map)),
+            Err(why) => unreadable.push(format!("{name}: {why}")),
+        }
+    }
+    (maps, unreadable)
+}
+
+/// How deep [`maps_in_dir`] will walk. Matches the folder ingest's limit; the
+/// only reason it exists is a symlink loop, which a `while let Some(dir)` loop
+/// turns into a hang.
+const MAX_MAP_DEPTH: usize = 12;
+
+fn collect_maps(
+    root: &Path,
+    dir: &Path,
+    out: &mut Vec<(String, std::path::PathBuf)>,
+    depth: usize,
+) {
+    if depth > MAX_MAP_DEPTH {
+        return;
+    }
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let mut dirs = Vec::new();
+    for entry in entries.filter_map(std::result::Result::ok) {
+        let path = entry.path();
+        if path.is_dir() {
+            dirs.push(path);
+            continue;
+        }
+        if path.extension().is_none_or(|e| e != "map") {
+            continue;
+        }
+        let name = path.strip_prefix(root).map_or_else(
+            |_| path.file_name().unwrap_or_default().to_string_lossy().into_owned(),
+            |p| p.to_string_lossy().replace('\\', "/"),
+        );
+        out.push((name, path));
+    }
+    for dir in dirs {
+        collect_maps(root, &dir, out, depth + 1);
+    }
 }
 
 #[cfg(test)]
@@ -908,5 +978,39 @@ mod tests {
             let indexed = matching_sources_indexed(&m, &index);
             assert_eq!(scanned, indexed, "index and scan disagree for {name}");
         }
+    }
+
+    #[test]
+    fn maps_are_found_where_the_bundles_are_and_named_relatively() {
+        // vite writes dist/assets/index-a1b2c3.js.map. A bare file name here would
+        // be "index-a1b2c3.js.map", which matches no asset, so the map would be
+        // parsed and then attributed to nothing.
+        let dir = std::env::temp_dir().join("omnibundle-fusion-nested-maps");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join("assets")).unwrap();
+        let map = br#"{"version":3,"file":"index-a1b2c3.js","sources":["../src/main.ts"],
+            "names":[],"mappings":"AAAA","sourcesContent":["// main"]}"#;
+        std::fs::write(dir.join("assets/index-a1b2c3.js.map"), map).unwrap();
+        std::fs::write(dir.join("assets/index-a1b2c3.js"), b"console.log(1)").unwrap();
+        std::fs::write(dir.join("top.js.map"), map).unwrap();
+
+        let found = super::maps_in_dir(&dir);
+        let names: Vec<&str> = found.iter().map(|(n, _)| n.as_str()).collect();
+        assert_eq!(
+            names,
+            vec!["assets/index-a1b2c3.js.map", "top.js.map"],
+            "sorted, relative to the folder root"
+        );
+
+        // The relative name is what makes the join work at all.
+        let mut graph = UnifiedBundleGraph::new();
+        graph.assets.push(crate::model::Asset {
+            name: "assets/index-a1b2c3.js".into(),
+            size: 14,
+            chunks: Vec::new(),
+            sizes: crate::model::SizeSet { stat: 0, parsed: 14, gzip: 0, attributed: None },
+        });
+        let joined = super::asset_for_map(&graph, &found[0].0);
+        assert_eq!(joined, "assets/index-a1b2c3.js");
     }
 }

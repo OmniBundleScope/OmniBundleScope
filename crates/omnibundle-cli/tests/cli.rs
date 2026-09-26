@@ -80,15 +80,20 @@ fn run(dir: &Path) -> (String, String, i32) {
 }
 
 #[test]
-fn a_dist_folder_without_bundler_metadata_is_analysed() {
+fn a_vite_dist_folder_without_bundler_metadata_is_analysed() {
     let dir = temp_dir("no-metadata");
-    // A vite-shaped asset: hashed name, and a source map beside it.
+    // Vite's actual layout: hashed files, and the source maps, under
+    // dist/assets/. A flat fixture passes while the tool finds nothing, because
+    // that is the only place vite puts them.
+    fs::create_dir_all(dir.join("assets")).expect("create assets dir");
+    fs::write(dir.join("index.html"), b"<!doctype html>").expect("write html");
     let map = two_source_map(2_048);
-    fs::write(dir.join("index-DiwrgTda.js"), vec![b'x'; 4_096]).expect("write bundle");
-    fs::write(dir.join("index-DiwrgTda.js.map"), map.as_bytes()).expect("write map");
+    fs::write(dir.join("assets/index-DiwrgTda.js"), vec![b'x'; 4_096]).expect("write bundle");
+    fs::write(dir.join("assets/index-DiwrgTda.js.map"), map.as_bytes()).expect("write map");
 
     let (stdout, stderr, code) = run(&dir);
     assert_eq!(code, 0, "stderr: {stderr}");
+    assert!(stdout.contains("2 assets"), "the nested bundle and the html both count: {stdout}");
     assert!(stdout.contains("modules attributed"), "no fusion line in: {stdout}");
     assert!(
         stdout.contains("2/2 modules attributed"),
@@ -112,6 +117,24 @@ fn no_declared_graph_means_no_ghost_claim() {
     assert!(
         !stdout.contains("0 ghost"),
         "'0 ghost' would be an absence of evidence dressed as a clean bill of health: {stdout}"
+    );
+}
+
+#[test]
+fn a_map_that_cannot_be_read_is_said_out_loud() {
+    // A truncated map. Before, it was dropped without a word: the report showed
+    // 0 modules and no explanation, which reads as "this build shipped no source
+    // maps" rather than "one map is broken".
+    let dir = temp_dir("unreadable-map");
+    fs::write(dir.join("index.js"), vec![b'x'; 4_096]).expect("write bundle");
+    fs::write(dir.join("index.js.map"), br#"{"version":3,"sources":["a.ts"],"mapp"#)
+        .expect("write truncated map");
+
+    let (stdout, _, code) = run(&dir);
+    assert_eq!(code, 0, "one broken map is not a broken build");
+    assert!(
+        stdout.contains("could not read") && stdout.contains("index.js.map"),
+        "an unreadable map must be named: {stdout}"
     );
 }
 

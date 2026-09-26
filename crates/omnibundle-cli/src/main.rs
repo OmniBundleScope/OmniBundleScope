@@ -177,7 +177,13 @@ fn run(cli: &Cli) -> Result<ExitCode> {
             sizes::attribute_from_disk(&mut graph, dir)?;
 
             // Fusion: any *.map next to the assets joins the graph (PRD 3.2).
-            let maps = omnibundle_core::fusion::maps_in_dir(dir);
+            let (maps, unreadable) = omnibundle_core::fusion::maps_in_dir_detailed(dir);
+            for why in &unreadable {
+                // Not a warning about quality: a map we cannot read is a map
+                // whose bytes nothing gets attributed to, and silence here reads
+                // as "this build shipped no source maps".
+                println!("could not read {why}");
+            }
             if !maps.is_empty() {
                 let outcome = if from_metadata {
                     omnibundle_core::fusion::analyse(&mut graph, &maps)

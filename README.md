@@ -49,9 +49,16 @@ Two input shapes, and the difference matters:
 
 ```
 $ omnibundle ./dist
-assets  ·  400 modules  ·  1 assets  ·  0 packages  ·  ingest 3 ms  ·  total 5 ms  ·  dimension attributed
-fusion: 1 map(s) · coverage 100% · 400/400 modules attributed · ghost code needs a stats.json to detect · 0 hidden source(s)
+dist  ·  9 modules  ·  4 assets  ·  3 packages  ·  ingest 8 ms  ·  total 10 ms  ·  dimension parsed
+fusion: 2 map(s) · coverage 97% · 9/9 modules attributed · ghost code needs a stats.json to detect · 0 hidden source(s) (0 KB)
+wrote omnibundle-report.html (0.0 MB), detail inlined
 ```
+
+Nothing is configured, and `dist/` is read recursively, because that is where
+vite puts everything: `dist/assets/index-BqP1xK.js`,
+`dist/assets/vendor-Dk9mZ2.js`, their maps, the CSS and `index.html`. A map that
+cannot be read is named on stdout, because a silently dropped map turns into a
+coverage number that looks like a build without source maps.
 
 If your bundler can emit a graph, turn it on and you get everything:
 
@@ -121,9 +128,9 @@ whatever does not reconcile becomes a diagnostic instead of a rounding error:
 
 ```
 $ omnibundle ./dist
-fused-app  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 4721 ms  ·  total 4864 ms  ·  dimension attributed
-fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · 0 ghost · 0 hidden source(s)
-wrote dist/report.html (0.4 MB), detail in a companion script (loaded on demand)
+dist  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 2143 ms  ·  total 2845 ms  ·  dimension attributed
+fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · ghost code needs a stats.json to detect · 0 hidden source(s) (0 KB)
+wrote dist/report.html (0.1 MB), detail in a companion script (loaded on demand)
 ```
 
 and when it does not add up, it says which way. A build where one of two assets
@@ -131,8 +138,8 @@ ships without a source map:
 
 ```
 $ omnibundle ./dist
-ob-partial  ·  11 modules  ·  2 assets  ·  0 packages  ·  ingest 4 ms  ·  total 5 ms  ·  dimension parsed
-fusion: 1 map(s) · coverage 50% · 0/11 modules attributed · 11 ghost (226 KB of declared) · 11 hidden source(s) (45 KB)
+dist  ·  22 modules  ·  2 assets  ·  11 packages  ·  ingest 4 ms  ·  total 6 ms  ·  dimension parsed
+fusion: 1 map(s) · coverage 47% · 0/22 modules attributed · 22 ghost (83 KB of declared) · 3 hidden source(s) (39 KB)
 ```
 
 Note `dimension parsed`, not `attributed`: half the build is unmapped, so the
@@ -226,7 +233,7 @@ Pre-1.0, and this is the honest table. Anything unmeasured says so.
 | report first paint / 30 fps | **unverified** — CI has no browser; measured instead as 1.56 MB and 1.27 s at 154,379 modules |
 | WASM build, WebGL renderer | not started |
 | Windows / macOS / Linux | tested in CI on all three |
-| 57 Rust tests, 4 npm tests, 1,018 generated layout cases | green |
+| 66 Rust tests, 4 npm tests, 1,018 generated layout cases | green |
 
 The one miss is stated with its cause in the [changelog](CHANGELOG.md): it is
 `serde_json`'s DOM cursor over a 445,602-element module array.
@@ -317,7 +324,7 @@ code** detection, because that question needs a declared module graph.
 
 | | |
 |---|---|
-| 64 Rust tests, 4 npm tests, 1,018 generated layout cases | green on Linux, Windows and macOS |
+| 66 Rust tests, 4 npm tests, 1,018 generated layout cases | green on Linux, Windows and macOS |
 | coverage floor | 70%, enforced in CI |
 | benchmark targets | 9 of 10 met; the miss is named in the [changelog](CHANGELOG.md) |
 | parity vs `webpack-bundle-analyzer` | 0 ppm on assets and modules, real webpack builds |

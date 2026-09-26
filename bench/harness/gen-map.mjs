@@ -11,9 +11,12 @@
 //   node gen-map.mjs 10000 /tmp/map-10k-sources.json 8000000
 
 import fs from 'node:fs';
+import path from 'node:path';
+
+const HERE = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+fs.mkdirSync(path.join(HERE, '..', 'fixtures', 'artifacts'), { recursive: true });
 
 const N_SOURCES = Number(process.argv[2] || 10_000);
-const out = process.argv[3] || 'map-synthetic.json';
 const GENERATED_BYTES = Number(process.argv[4] || 8_000_000);
 
 // Base64 VLQ, the encoding the spec requires for `mappings`.
@@ -82,6 +85,11 @@ const map = {
   names: [],
   mappings,
 };
+
+// Default into bench/fixtures/artifacts/, which .gitignore already covers. A
+// harness that writes a 28 MB fixture into the working tree is how a 28 MB
+// fixture ends up in a commit.
+const out = process.argv[3] || path.join(HERE, '..', 'fixtures', 'artifacts', 'map-synthetic.json');
 
 fs.writeFileSync(out, JSON.stringify(map));
 const bytes = fs.statSync(out).size;

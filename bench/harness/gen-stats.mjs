@@ -14,9 +14,14 @@
 // would require more memory than the parser.
 
 import fs from 'node:fs';
+import path from 'node:path';
+
+const HERE = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+fs.mkdirSync(path.join(HERE, '..', 'fixtures', 'artifacts'), { recursive: true });
 
 const target = Number(process.argv[2] || 381_000_000);
-const out = process.argv[3] || 'stats-synthetic.json';
+// Absolute, because this harness gets called from bench/ scripts that do not share a working directory. Never the repo root: a generated 300 MB stats fixture committed by accident is a bad afternoon.
+const out = process.argv[3] || path.join(HERE, '..', 'fixtures', 'artifacts', 'stats-synthetic.json');
 
 // Asset shape is configurable because the fusion benchmarks need a build that a
 // single source map can actually *cover*: with 1,500 assets, one map covers 0.1%

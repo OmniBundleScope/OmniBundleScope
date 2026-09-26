@@ -100,17 +100,17 @@ OmniBundle 把每个 source 的字节份额折算回产生它的模块，剩下�
 
 ```
 $ omnibundle ./dist
-fused-app  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 4721 ms  ·  total 4864 ms  ·  dimension attributed
-fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · 0 ghost · 0 hidden source(s)
-wrote dist/report.html (0.4 MB), detail in a companion script (loaded on demand)
+dist  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 2143 ms  ·  total 2845 ms  ·  dimension attributed
+fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · ghost code needs a stats.json to detect · 0 hidden source(s) (0 KB)
+wrote dist/report.html (0.1 MB), detail in a companion script (loaded on demand)
 ```
 
 而当它确实对不上账，它会说明是哪个方向不对。下面是两个 asset 里只有一个带 map 的构建：
 
 ```
 $ omnibundle ./dist
-ob-partial  ·  11 modules  ·  2 assets  ·  0 packages  ·  ingest 4 ms  ·  total 5 ms  ·  dimension parsed
-fusion: 1 map(s) · coverage 50% · 0/11 modules attributed · 11 ghost (226 KB of declared) · 11 hidden source(s) (45 KB)
+dist  ·  22 modules  ·  2 assets  ·  11 packages  ·  ingest 4 ms  ·  total 6 ms  ·  dimension parsed
+fusion: 1 map(s) · coverage 47% · 0/22 modules attributed · 22 ghost (83 KB of declared) · 3 hidden source(s) (39 KB)
 ```
 
 注意是 `dimension parsed`，不是 `attributed`：一半构建没有 map，于是 ground truth 维度被撤回，

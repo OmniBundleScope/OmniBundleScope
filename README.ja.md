@@ -95,9 +95,9 @@ OmniBundle は各ソースのバイト配分をそれを生み出したモジュ
 
 ```
 $ omnibundle ./dist
-fused-app  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 4721 ms  ·  total 4864 ms  ·  dimension attributed
-fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · 0 ghost · 0 hidden source(s)
-wrote dist/report.html (0.4 MB), detail in a companion script (loaded on demand)
+dist  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 2143 ms  ·  total 2845 ms  ·  dimension attributed
+fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · ghost code needs a stats.json to detect · 0 hidden source(s) (0 KB)
+wrote dist/report.html (0.1 MB), detail in a companion script (loaded on demand)
 ```
 
 そして合わなかったときは、どちらの方向にズレたかを明示します。2 アセットのうち 1 つだけ
@@ -105,8 +105,8 @@ map を持つビルドの場合:
 
 ```
 $ omnibundle ./dist
-ob-partial  ·  11 modules  ·  2 assets  ·  0 packages  ·  ingest 4 ms  ·  total 5 ms  ·  dimension parsed
-fusion: 1 map(s) · coverage 50% · 0/11 modules attributed · 11 ghost (226 KB of declared) · 11 hidden source(s) (45 KB)
+dist  ·  22 modules  ·  2 assets  ·  11 packages  ·  ingest 4 ms  ·  total 6 ms  ·  dimension parsed
+fusion: 1 map(s) · coverage 47% · 0/22 modules attributed · 22 ghost (83 KB of declared) · 3 hidden source(s) (39 KB)
 ```
 
 `dimension attributed` ではなく `dimension parsed` です。半分のビルドに map が無いので、

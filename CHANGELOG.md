@@ -77,6 +77,22 @@ modules).
 
 Bugs found by the benchmarks, each with a regression test:
 
+- Folder ingest read only the top level of `dist/`. Vite puts every file under
+  `dist/assets/`, so the tool reported one asset for a real vite build. Both the
+  asset walk and the source map discovery now recurse, and a map's name is its
+  path relative to the folder, so `assets/index-a1b2c3.js.map` joins the asset
+  it describes instead of matching nothing.
+- A source map that failed to parse was dropped in silence. The report then
+  showed a lower coverage figure with no explanation, which reads as a build
+  that shipped no source maps rather than a broken map. Unreadable maps are now
+  named on stdout with the parse error.
+- A source file compiled into two chunks was counted twice in the attribution
+  count and its bytes were overwritten rather than summed, so its size depended
+  on which map was read last. The summary could read `2/1 modules attributed`.
+- Chart regeneration was not reproducible: `<dc:date>` recorded the run time and
+  matplotlib's element ids are random, so regenerating always produced a diff
+  and the CI gate that depends on it could never pass.
+
 - `detail_payload` built a `serde_json::Value` per module before serialising —
   550 MB of heap for 154,379 modules. B3 went from 3,052 ms / 670 MB to
   1,753 ms / 156 MB.
