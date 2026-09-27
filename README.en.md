@@ -192,7 +192,7 @@ Pre-1.0, and this is the honest table. Anything unmeasured says so.
 | report first paint / 30 fps | **unverified** — CI has no browser; measured instead as 1.56 MB and 1.27 s at 154,379 modules |
 | WASM build, WebGL renderer | not started |
 | Windows / macOS / Linux | tested in CI on all three |
-| 66 Rust tests, 4 npm tests, 1,018 generated layout cases | green |
+| 67 Rust tests, 4 npm tests, 1,018 generated layout cases | green |
 
 The one miss is stated with its cause in the [changelog](CHANGELOG.md): it is
 `serde_json`'s DOM cursor over a 445,602-element module array.
