@@ -87,6 +87,8 @@ Every degradation is a `Diagnostic` with a stable `code`:
 | `OB0030` | gzip level differs from the contract level 6 |
 | `OB0040` | budget breached (paired with exit code 1) |
 | `OB0042` | size invariant violated (paired with a non-zero exit code) |
+| `OB0050` | the requested size dimension is not measurable, so another one is reported instead (the code says which, and which direction the change goes) |
+| `OB0051` | a folder input carried no bundler metadata: sizes are measured and sources are attributed from the maps, and ghost code is reported as undetectable rather than as zero |
 
 ## 6. Determinism
 
