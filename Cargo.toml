@@ -7,10 +7,10 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.90"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/omnibundle/omnibundle"
+repository = "{{REPO_URL}}"
 authors = ["OmniBundle contributors"]
-homepage = "https://github.com/omnibundle/omnibundle"
-documentation = "https://omnibundle.github.io/omnibundle/"
+homepage = "{{REPO_URL}}"
+documentation = "{{DOCS_URL}}/"
 keywords = ["webpack", "bundler", "bundle-analyzer", "source-map", "tree-shaking"]
 categories = ["development-tools::build-utils", "command-line-utilities"]
 

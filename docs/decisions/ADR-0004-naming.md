@@ -14,7 +14,7 @@ Status: **accepted** (2026-09-02) · Owner: WS-0 · Affects: WS-6, WS-8, WS-9
 | report file default | `omnibundle-report.html` |
 | config file | `omnibundle.config.json` |
 | cache dir | `.omnibundle-cache/` |
-| schema URLs | `https://omnibundle.dev/schemas/…` |
+| schema URLs | `{{DOCS_URL}}/schemas/…` |
 
 Availability was checked before deciding: `omnibundle` returned 404 on both the
 npm registry and crates.io on 2026-09-02, i.e. unclaimed in both. It must be

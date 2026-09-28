@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://omnibundle.dev/schemas/report-v1.json",
+  "$id": "{{DOCS_URL}}/schemas/report-v1.json",
   "title": "OmniBundle unified graph / report payload",
   "description": "Single payload emitted by the CLI (--mode json, report.html) and by the WASM surface. Every other schema in the project is a projection of this one. Changes require a new ADR and a schema_version bump.",
   "type": "object",

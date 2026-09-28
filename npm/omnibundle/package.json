@@ -17,13 +17,13 @@
     "size-budget",
     "rust"
   ],
-  "homepage": "https://github.com/omnibundle/omnibundle#readme",
+  "homepage": "{{REPO_URL}}#readme",
   "bugs": {
-    "url": "https://github.com/omnibundle/omnibundle/issues"
+    "url": "{{REPO_URL}}/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/omnibundle/omnibundle.git"
+    "url": "git+{{REPO_URL}}.git"
   },
   "license": "MIT OR Apache-2.0",
   "author": "OmniBundle contributors",

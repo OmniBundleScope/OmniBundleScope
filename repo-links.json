@@ -1,0 +1,58 @@
+{
+  "comment": [
+    "Every URL this project does not control yet, in one place.",
+    "",
+    "Why: a README full of plausible-looking URLs for a repository that does not",
+    "exist is worse than a README with obvious holes in it. github.com/omnibundle",
+    "resolves to nothing today, so every badge on the front page is broken and every",
+    "'report an issue' link goes nowhere - and nothing in the repository says so,",
+    "because broken external links are not build failures.",
+    "",
+    "How to fill them in:",
+    "  1. put the real value in `value` below, for one link or for all of them;",
+    "  2. run `node bench/harness/links.mjs --apply`;",
+    "  3. commit. CI runs `links.mjs` on every build and the release workflow runs",
+    "     it with --deny, so a release cannot go out with a placeholder still in it.",
+    "",
+    "The tokens are substituted textually, so a URL that is a repository path keeps",
+    "its suffix readable: {{REPO_URL}}/issues, {{REPO_URL}}.git. That way the files",
+    "still read as URLs and still diff sensibly once filled in."
+  ],
+  "links": {
+    "REPO_URL": {
+      "value": "",
+      "example": "https://github.com/your-name/omnibundle",
+      "note": "The GitHub repository. Everything that is a path inside it - issues, discussions, releases, the CI badge URL, blob/main links - is this token plus a suffix."
+    },
+    "REPO_SLUG": {
+      "value": "",
+      "example": "your-name/omnibundle",
+      "note": "The same repository as owner/name, for the shields.io release badge, which cannot take a full URL. No scheme, no .git."
+    },
+    "NPM_PACKAGE": {
+      "value": "",
+      "example": "omnibundle",
+      "note": "The npm package name. Must match npm/omnibundle/package.json; links.mjs checks that it does."
+    },
+    "NPM_URL": {
+      "value": "",
+      "example": "https://www.npmjs.com/package/omnibundle",
+      "note": "The npm package page, for the install instructions and the npm badge target."
+    },
+    "CRATES_CORE_PACKAGE": {
+      "value": "",
+      "example": "omnibundle-core",
+      "note": "The crates.io name of the core crate. Must match crates/omnibundle-core/Cargo.toml; links.mjs checks that it does."
+    },
+    "CRATES_CORE_URL": {
+      "value": "",
+      "example": "https://crates.io/crates/omnibundle-core",
+      "note": "The crates.io page for the core crate."
+    },
+    "DOCS_URL": {
+      "value": "",
+      "example": "https://your-name.github.io/omnibundle",
+      "note": "The mdBook site that CI publishes, and the host for the JSON schemas that declare their $id. No trailing slash. If you get a custom domain later, this is the one value to change - and only this one."
+    }
+  }
+}

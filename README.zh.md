@@ -5,10 +5,10 @@
 **一个工具，分析所有打包器。** 依赖图来自 `stats.json`，真实字节归因来自 source map，
 esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张图，内存占用只占对方的一小部分。
 
-[![CI](https://github.com/omnibundle/omnibundle/actions/workflows/ci.yml/badge.svg)](https://github.com/omnibundle/omnibundle/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/omnibundle-core.svg)](https://crates.io/crates/omnibundle-core)
-[![npm](https://img.shields.io/npm/v/omnibundle.svg)](https://www.npmjs.com/package/omnibundle)
-[![release](https://img.shields.io/github/v/release/omnibundle/omnibundle?include_prereles&sort=semver)](https://github.com/omnibundle/omnibundle/releases/latest)
+[![CI]({{REPO_URL}}/actions/workflows/ci.yml/badge.svg)]({{REPO_URL}}/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/{{CRATES_CORE_PACKAGE}}.svg)]({{CRATES_CORE_URL}})
+[![npm](https://img.shields.io/npm/v/{{NPM_PACKAGE}}.svg)]({{NPM_URL}})
+[![release](https://img.shields.io/github/v/release/{{REPO_SLUG}}?include_prereleases&sort=semver)]({{REPO_URL}}/releases/latest)
 [![docs](https://img.shields.io/badge/docs-mdbook-informational)](docs/SUMMARY.md)
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
@@ -142,7 +142,7 @@ npx omnibundle ./dist
 cargo install omnibundle-cli
 
 # 或直接下载 release 二进制：linux x64/arm64、macOS x64/arm64、windows x64
-# https://github.com/omnibundle/omnibundle/releases
+# {{REPO_URL}}/releases
 ```
 
 npm 包会在写入或执行任何东西之前校验 `checksums.txt`，哈希不匹配就拒绝安装。
@@ -278,7 +278,7 @@ MIT（[LICENSE-MIT](LICENSE-MIT)）或 Apache-2.0（[LICENSE-APACHE](LICENSE-APA
 <div align="center">
   <sub>
     公开构建中。欢迎在
-    <a href="https://github.com/omnibundle/omnibundle/issues">issues</a>
+    <a href="{{REPO_URL}}/issues">issues</a>
     里对数字提出质疑——这是让一个基准测试保持意义的唯一办法。
   </sub>
 </div>

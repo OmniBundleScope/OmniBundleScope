@@ -128,5 +128,5 @@ Bugs found by the benchmarks, each with a regression test:
 - The report renders text to Canvas and never to `innerHTML`; the shell escapes
   `</script` in its data island.
 
-[Unreleased]: https://github.com/omnibundle/omnibundle/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/omnibundle/omnibundle/releases/tag/v0.1.0
+[Unreleased]: {{REPO_URL}}/compare/v0.1.0...HEAD
+[0.1.0]: {{REPO_URL}}/releases/tag/v0.1.0

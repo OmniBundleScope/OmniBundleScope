@@ -52,7 +52,7 @@ whole promise; see ADR-0002), no GUI, no plugin system.
 
 ```jsonc
 {
-  "$schema": "https://omnibundle.dev/schemas/budget-v1.json",
+  "$schema": "{{DOCS_URL}}/schemas/budget-v1.json",
   "limits": [
     { "scope": "total",    "max": 750000 },              // bytes, gzip dimension
     { "scope": "chunk",    "match": "framework", "max": 300000 },

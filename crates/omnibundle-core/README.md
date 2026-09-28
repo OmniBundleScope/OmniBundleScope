@@ -6,10 +6,10 @@ the portable engine: streaming stats ingest, size attribution, source map parsin
 
 The full documentation is one click away and is not duplicated here:
 
-- [Documentation index](https://github.com/omnibundle/omnibundle/blob/main/docs/SUMMARY.md)
-- [Evidence log](https://github.com/omnibundle/omnibundle/blob/main/docs/en/01-evidence.md) - every number, and where it came from
-- [Contracts](https://github.com/omnibundle/omnibundle/tree/main/docs/contracts)
-- [Benchmarks and targets](https://github.com/omnibundle/omnibundle/blob/main/docs/en/04-benchmark-plan.md)
+- [Documentation index]({{REPO_URL}}/blob/main/docs/SUMMARY.md)
+- [Evidence log]({{REPO_URL}}/blob/main/docs/en/01-evidence.md) - every number, and where it came from
+- [Contracts]({{REPO_URL}}/tree/main/docs/contracts)
+- [Benchmarks and targets]({{REPO_URL}}/blob/main/docs/en/04-benchmark-plan.md)
 
 ## Licence
 

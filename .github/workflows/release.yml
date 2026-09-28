@@ -49,6 +49,12 @@ jobs:
       - name: the npm shim's own tests
         working-directory: npm/omnibundle
         run: npm test
+      # --deny, unlike CI's report. Publishing a release whose README links to a
+      # repository that does not exist puts a broken page in front of every reader
+      # of npm and crates.io, and it cannot be fixed after the fact without
+      # publishing a new version.
+      - name: no placeholder URLs in a release
+        run: node bench/harness/links.mjs --deny
 
   binaries:
     name: ${{ matrix.target }}

@@ -59,6 +59,10 @@ for (const file of markdownFiles(repoRoot)) {
   for (const raw of targets) {
     if (!raw) continue;
     if (/^(https?:|mailto:|#)/.test(raw)) continue;
+    // A double-brace token is an unfilled URL from repo-links.json, not a path in
+    // this repository. bench/harness/links.mjs is the gate that owns those, and it
+    // reports them per token instead of 17 identical "does not exist" lines.
+    if (raw.includes('{{')) continue;
     const target = raw.split('#')[0];
     if (!target) continue;
     checked++;

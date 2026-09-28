@@ -7,10 +7,10 @@ echte Byte-Zuordnung aus Source Maps, esbuild-Metafiles oder einfach einem
 `dist/`-Ordner — zu einem Graphen zusammengeführt, mit einem Bruchteil des
 Speichers.
 
-[![CI](https://github.com/omnibundle/omnibundle/actions/workflows/ci.yml/badge.svg)](https://github.com/omnibundle/omnibundle/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/omnibundle-core.svg)](https://crates.io/crates/omnibundle-core)
-[![npm](https://img.shields.io/npm/v/omnibundle.svg)](https://www.npmjs.com/package/omnibundle)
-[![release](https://img.shields.io/github/v/release/omnibundle/omnibundle?include_prereleases&sort=semver)](https://github.com/omnibundle/omnibundle/releases/latest)
+[![CI]({{REPO_URL}}/actions/workflows/ci.yml/badge.svg)]({{REPO_URL}}/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/{{CRATES_CORE_PACKAGE}}.svg)]({{CRATES_CORE_URL}})
+[![npm](https://img.shields.io/npm/v/{{NPM_PACKAGE}}.svg)]({{NPM_URL}})
+[![release](https://img.shields.io/github/v/release/{{REPO_SLUG}}?include_prereleases&sort=semver)]({{REPO_URL}}/releases/latest)
 [![docs](https://img.shields.io/badge/docs-mdbook-informational)](docs/SUMMARY.md)
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
@@ -150,7 +150,7 @@ npx omnibundle ./dist
 cargo install omnibundle-cli
 
 # oder Binärdatei aus dem Release: linux x64/arm64, macOS x64/arm64, windows x64
-# https://github.com/omnibundle/omnibundle/releases
+# {{REPO_URL}}/releases
 ```
 
 Das npm-Paket prüft `checksums.txt`, bevor es irgendetwas schreibt oder ausführt, und
@@ -292,7 +292,7 @@ MIT ([LICENSE-MIT](LICENSE-MIT)) oder Apache-2.0
 <div align="center">
   <sub>
     öffentlich gebaut. Einwände zu den Zahlen sind willkommen in den
-    <a href="https://github.com/omnibundle/omnibundle/issues">Issues</a> — sie sind das
+    <a href="{{REPO_URL}}/issues">Issues</a> — sie sind das
     Einzige, was einen Benchmark bedeutsam hält.
   </sub>
 </div>

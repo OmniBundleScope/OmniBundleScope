@@ -20,11 +20,21 @@ const vendorDir = resolve(here, 'vendor', `${process.platform}-${process.arch}`)
 const exe = process.platform === 'win32' ? 'omnibundle.exe' : 'omnibundle';
 const target = join(vendorDir, exe);
 
-const version =
-  process.env.OMNIBUNDLE_VERSION ??
-  JSON.parse(readFileSync(resolve(here, 'package.json'), 'utf8')).version;
-const repo = process.env.OMNIBUNDLE_REPO ?? 'omnibundle/omnibundle';
+const manifest = JSON.parse(readFileSync(resolve(here, 'package.json'), 'utf8'));
+const version = process.env.OMNIBUNDLE_VERSION ?? manifest.version;
+
+// The download host is read out of package.json's own repository field rather than
+// kept as a second copy of the slug, so filling in repo-links.json is enough and
+// there is nothing here to forget.
+const slugFromManifest = String(manifest.repository?.url ?? '')
+  .replace(/^git\+/, '')
+  .replace(/\.git$/, '')
+  .replace(/^https?:\/\/github\.com\//, '');
+const repo = process.env.OMNIBUNDLE_REPO ?? slugFromManifest;
 const base = `https://github.com/${repo}/releases/download/v${version}`;
+
+/** True while the repository URL is still an unfilled placeholder token. */
+const unfilled = () => /\{\{[A-Z_]+\}\}/.test(repo);
 
 const alreadyUsable = () => {
   if (process.env.OMNIBUNDLE_BIN && existsSync(process.env.OMNIBUNDLE_BIN)) return true;
@@ -62,6 +72,15 @@ function fetch(url, redirectsLeft = 5) {
 }
 
 async function main() {
+  if (unfilled()) {
+    // Fail with the reason rather than requesting a URL containing an unfilled
+    // placeholder, which comes back as a confusing 404 from an address that never
+    // existed. Named in terms of the table, because that is what has to be filled in.
+    throw new Error(
+      'no repository to download from: the repository URL in package.json is still a placeholder.\n' +
+        'Fill it in via repo-links.json, or set OMNIBUNDLE_REPO=owner/name.',
+    );
+  }
   try {
     process.stdout.write(`omnibundle: fetching ${assetName}\n`);
     const payload = await fetch(`${base}/${assetName}`);

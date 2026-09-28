@@ -13,7 +13,7 @@ measurement or gets an argument in the PR for why it obviously cannot.
 ## Setup
 
 ```bash
-git clone https://github.com/omnibundle/omnibundle
+git clone {{REPO_URL}}
 cd omnibundle
 cargo build --release
 cargo test --workspace
@@ -41,6 +41,35 @@ cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all
 cd bench && npm ci && node fixtures/build/build-webpack.mjs marked && node harness/parity.mjs --stats fixtures/artifacts/webpack/marked/stats.json --bundle fixtures/artifacts/webpack/marked
 ```
+
+## Filling in the URLs
+
+The URLs this project does not control yet - the repository, the npm page, the
+crates.io pages, the docs site - are declared once, in [`repo-links.json`](repo-links.json),
+and appear in the files as double-brace tokens. Nothing anywhere hardcodes them.
+
+```bash
+node bench/harness/links.mjs            # what is still empty, and where each token appears
+# edit repo-links.json: fill in `value`
+node bench/harness/links.mjs --apply    # substitute into every tracked file
+```
+
+To apply without ending up with `https://github.com/github.com`, fill in the
+values before applying rather than editing the 16 files by hand.
+
+Two things are checked on top of the substitution:
+
+- `NPM_PACKAGE` and `CRATES_CORE_PACKAGE` must match what the manifests actually
+  declare, so the badge cannot point at a package that does not exist under that name.
+- While anything is still empty, the checker fails if a URL for the
+  `omnibundle/omnibundle` repository has been hardcoded anywhere. Once the table
+  is filled, that check switches off: those strings can legitimately be correct
+  once someone owns that org or domain, and a gate that objects to a deliberate
+  choice is worse than no gate.
+
+CI prints the outstanding placeholders on every build but does not fail on them.
+The release workflow runs the same script with `--deny`, because a release
+publishes a README that cannot be fixed afterwards without a new version.
 
 ## Where things live
 
