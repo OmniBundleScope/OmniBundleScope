@@ -113,5 +113,24 @@ for (const lang of langs) {
   }
 }
 
+// README.md and README.en.md are the same document: README.md is what GitHub
+// renders, README.en.md is the copy people download. Two copies of an English file
+// with nothing comparing them is not a translation workflow, it is a trap - and it
+// had already drifted, by exactly the three sections that matter most.
+const english = readFileSync(join(repoRoot, 'README.md'), 'utf8');
+const englishCopy = readFileSync(join(repoRoot, 'README.en.md'), 'utf8');
+if (english === englishCopy) {
+  console.log('\n  ok       README.en.md is identical to README.md');
+} else {
+  const sections = (t) => (t.match(/^## .+$/gm) ?? []).length;
+  console.log(
+    `\n  FAIL     README.en.md has drifted from README.md ` +
+      `(${sections(englishCopy)} sections vs ${sections(english)})\n` +
+      '           Fix it by copying README.md over README.en.md. There is no second\n' +
+      '           English document to reconcile; the translations are the ones that diverge.',
+  );
+  failures++;
+}
+
 console.log(`\n${failures} failure(s), ${pending} pending`);
 process.exitCode = failures > 0 ? 1 : 0;

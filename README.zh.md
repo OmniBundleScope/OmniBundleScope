@@ -9,7 +9,7 @@ esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张�
 [![crates.io](https://img.shields.io/crates/v/{{CRATES_CORE_PACKAGE}}.svg)]({{CRATES_CORE_URL}})
 [![npm](https://img.shields.io/npm/v/{{NPM_PACKAGE}}.svg)]({{NPM_URL}})
 [![release](https://img.shields.io/github/v/release/{{REPO_SLUG}}?include_prereleases&sort=semver)]({{REPO_URL}}/releases/latest)
-[![docs](https://img.shields.io/badge/docs-mdbook-informational)](docs/SUMMARY.md)
+[![docs](https://img.shields.io/badge/docs-mdbook-informational)]({{DOCS_URL}})
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 

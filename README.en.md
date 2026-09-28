@@ -2,23 +2,24 @@
 
 # OmniBundle
 
-**One tool for every bundler.** A dependency graph from `stats.json`, real byte
-attribution from source maps, esbuild metafiles, or a plain `dist/` folder —
-merged into one graph, in a fraction of the memory.
+**One tool for every bundler.** Read webpack and rspack `stats.json`, esbuild
+`metafile.json`, or nothing but the output folder itself — and get one size
+graph, with real byte attribution, in a fraction of the memory.
 
 [![CI]({{REPO_URL}}/actions/workflows/ci.yml/badge.svg)]({{REPO_URL}}/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/{{CRATES_CORE_PACKAGE}}.svg)]({{CRATES_CORE_URL}})
 [![npm](https://img.shields.io/npm/v/{{NPM_PACKAGE}}.svg)]({{NPM_URL}})
 [![release](https://img.shields.io/github/v/release/{{REPO_SLUG}}?include_prereleases&sort=semver)]({{REPO_URL}}/releases/latest)
-[![docs](https://img.shields.io/badge/docs-mdbook-informational)](docs/SUMMARY.md)
+[![docs](https://img.shields.io/badge/docs-mdbook-informational)]({{DOCS_URL}})
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
-[English](README.en.md) · [中文](README.zh.md) · [日本語](README.ja.md) · [Deutsch](README.de.md)
+**[English](README.en.md) · [中文](README.zh.md) · [日本語](README.ja.md) · [Deutsch](README.de.md)**
 
 </div>
 
 <p align="center">
+  <a href="#supported-bundlers">supported bundlers</a> ·
   <a href="#the-problem">the problem</a> ·
   <a href="#the-measurements">the measurements</a> ·
   <a href="#ghost-code-and-hidden-code">ghost &amp; hidden code</a> ·
@@ -28,6 +29,54 @@ merged into one graph, in a fraction of the memory.
 </p>
 
 ---
+
+## Supported bundlers
+
+| bundler | what OmniBundle reads | needs `dist/` + `*.map`? | ghost code detection |
+|---|---|---|---|
+| **webpack** 4 / 5 | `stats.json` | no | yes |
+| **rspack** | `stats.json` (same schema) | no | yes |
+| **esbuild** | `metafile.json`, or the output folder | with `--metafile`, no | with `--metafile`, yes |
+| **Vite** | the output folder and its source maps | yes | needs `--stats` output to enable |
+| **Rollup** | the output folder and its source maps | yes | needs a `stats.json` |
+| **Parcel** | the output folder and its source maps | yes | needs a `stats.json` |
+| **tsup / esbuild wrappers** | the output folder and its source maps | yes | needs a `stats.json` |
+| **Angular / Next.js / Nuxt / SvelteKit** | whatever they emit, which is webpack or vite output | depends | depends |
+
+Two input shapes, and the difference matters:
+
+- **A bundler graph** — `stats.json`, `metafile.json` — gives the dependency
+  structure *and* the declared sizes. This is the only shape where **ghost code**
+  can be detected, because a ghost is defined as a module the bundler declared
+  and shipped that no source map accounts for.
+- **Just the output** — a `dist/` folder with `*.map` beside it — gives measured
+  file sizes and per-source attribution, which is all of vite, rollup, parcel and
+  tsup give you by default. Sizes here are exact, because they are measured
+  rather than estimated. Ghost detection reports itself as unavailable instead of
+  claiming zero:
+
+```
+$ omnibundle ./dist
+dist  ·  9 modules  ·  4 assets  ·  3 packages  ·  ingest 8 ms  ·  total 10 ms  ·  dimension parsed
+fusion: 2 map(s) · coverage 97% · 9/9 modules attributed · ghost code needs a stats.json to detect · 0 hidden source(s) (0 KB)
+wrote omnibundle-report.html (0.0 MB), detail inlined
+```
+
+Nothing is configured, and `dist/` is read recursively, because that is where
+vite puts everything: `dist/assets/index-BqP1xK.js`,
+`dist/assets/vendor-Dk9mZ2.js`, their maps, the CSS and `index.html`. A map that
+cannot be read is named on stdout, because a silently dropped map turns into a
+coverage number that looks like a build without source maps.
+
+If your bundler can emit a graph, turn it on and you get everything:
+
+```bash
+# vite
+vite build --mode analyze     # writes dist/stats.json
+
+# webpack
+webpack --profile --json > dist/stats.json
+```
 
 ## The problem
 
@@ -238,6 +287,48 @@ against `webpack-bundle-analyzer`, and a four-language docs check.
 
 MIT ([LICENSE-MIT](LICENSE-MIT)) or Apache-2.0
 ([LICENSE-APACHE](LICENSE-APACHE)), at your option.
+
+---
+
+## Supported bundlers, again
+
+Because it is the first question, and because a tool that says "every bundler"
+without saying which ones is not making a claim worth reading:
+
+**webpack** (4 and 5, via `stats.json`) · **rspack** (via `stats.json`) ·
+**esbuild** (via `metafile.json`) · **Vite** · **Rollup** · **Parcel** ·
+**tsup** · and the output of anything built on them — **Angular**, **Next.js**,
+**Nuxt**, **SvelteKit**, **React Server Components** builds.
+
+Two input shapes:
+
+```bash
+omnibundle ./dist/stats.json   # a bundler graph: webpack, rspack, esbuild --metafile
+omnibundle ./dist              # just the output folder: vite, rollup, parcel, tsup
+```
+
+The second needs nothing configured — point it at `dist/` and the source maps
+your bundler already writes are enough. The first additionally enables **ghost
+code** detection, because that question needs a declared module graph.
+
+| bundler | graph | attribution | ghost code |
+|---|---|---|---|
+| webpack, rspack | `stats.json` | source maps | yes |
+| esbuild | `metafile.json` | source maps | with the metafile |
+| vite, rollup, parcel, tsup | not by default | source maps | with a `stats.json` |
+
+---
+
+## Project
+
+
+| | |
+|---|---|
+| 67 Rust tests, 4 npm tests, 1,018 generated layout cases | green on Linux, Windows and macOS |
+| coverage floor | 70%, enforced in CI |
+| benchmark targets | 9 of 10 met; the miss is named in the [changelog](CHANGELOG.md) |
+| parity vs `webpack-bundle-analyzer` | 0 ppm on assets and modules, real webpack builds |
+| languages | English (normative), 中文, 日本語, Deutsch |
 
 ---
 

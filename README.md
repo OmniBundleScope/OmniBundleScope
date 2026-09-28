@@ -6,6 +6,14 @@
 `metafile.json`, or nothing but the output folder itself — and get one size
 graph, with real byte attribution, in a fraction of the memory.
 
+[![CI]({{REPO_URL}}/actions/workflows/ci.yml/badge.svg)]({{REPO_URL}}/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/{{CRATES_CORE_PACKAGE}}.svg)]({{CRATES_CORE_URL}})
+[![npm](https://img.shields.io/npm/v/{{NPM_PACKAGE}}.svg)]({{NPM_URL}})
+[![release](https://img.shields.io/github/v/release/{{REPO_SLUG}}?include_prereleases&sort=semver)]({{REPO_URL}}/releases/latest)
+[![docs](https://img.shields.io/badge/docs-mdbook-informational)]({{DOCS_URL}})
+[![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
+[![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
+
 **[English](README.en.md) · [中文](README.zh.md) · [日本語](README.ja.md) · [Deutsch](README.de.md)**
 
 </div>
@@ -313,14 +321,6 @@ code** detection, because that question needs a declared module graph.
 
 ## Project
 
-[![CI]({{REPO_URL}}/actions/workflows/ci.yml/badge.svg)]({{REPO_URL}}/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/{{CRATES_CORE_PACKAGE}}.svg)]({{CRATES_CORE_URL}})
-[![npm](https://img.shields.io/npm/v/{{NPM_PACKAGE}}.svg)]({{NPM_URL}})
-[![release](https://img.shields.io/github/v/release/{{REPO_SLUG}}?include_prereleases&sort=semver)]({{REPO_URL}}/releases/latest)
-[![docs](https://img.shields.io/badge/docs-mdbook-informational)](docs/SUMMARY.md)
-[![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
-[![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
-[![Rust](https://img.shields.io/badge/rust-stable%20with%20pedantic%20clippy-informational)](https://doc.rust-lang.org/stable/notes.html)
 
 | | |
 |---|---|
