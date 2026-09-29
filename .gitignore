@@ -8,7 +8,7 @@
 *.stats.json
 *.js.map
 
-# ench/results/ is deliberately NOT ignored. Those files are the evidence
+# bench/results/ is deliberately NOT ignored. Those files are the evidence
 # trail: every number in the docs cites one, and a measurement nobody can
 # inspect is a claim. They are a few KB each because the raw fixtures are not
 # committed - the results record the fixture's parameters, not its bytes.
@@ -16,8 +16,10 @@
 # local caches
 .omnibundle-cache/
 node_modules/
+__pycache__/
 dist/
 report*.html
+*-report.html
 
 # mdbook output. The site is built in CI from docs/, never committed:
 # committing a generated site means two copies and a merge conflict on every doc change.

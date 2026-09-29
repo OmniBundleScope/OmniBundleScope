@@ -49,7 +49,11 @@ const commands = {
       '-m',
       'static',
       '-r',
-      'bench-wba-report.html',
+      // Absolute, and inside the directory .gitignore already excludes. WBA
+      // writes a static report that is hundreds of megabytes for a large stats
+      // file, and a relative path here means running the harness from `bench/`
+      // leaves that file sitting in the repository.
+      join(benchRoot, 'fixtures', 'artifacts', 'wba-report.html'),
       '-O',
     ],
     version: 'webpack-bundle-analyzer',
