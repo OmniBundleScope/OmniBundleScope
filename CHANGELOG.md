@@ -11,6 +11,10 @@ says so and gives the number.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.1.0] - 2026-09-30
+
 First public release. The ingest, fusion, report, budget and CI workstreams are
 implemented and measured; WASM and the WebGL renderer are not.
 
