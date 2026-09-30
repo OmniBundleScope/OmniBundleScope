@@ -65,11 +65,19 @@ STATS_MEM = {
     "1 GB stats, 445,602 modules": {"ob_mb": 375.9, "ref_mb": 1437.0},
 }
 
-# source map attribution, by number of sources
+# Source map attribution, by number of sources.
+#
+# The first point is the real preact build, which has twelve sources - not the
+# "1,000" this used to claim. There is no 1,000-source input anywhere in the
+# records: the synthetic fixtures start at 10k, and the real ones are 11-12
+# sources. The old row put the preact fixture at x=1,000, took its time from a
+# value that matched no record (4.6 ms when WS-3 says 7 ms) and its memory from
+# the *minified* preact run while taking the time from the readable one. Every
+# number below is now a value with a record behind it.
 MAP_POINTS = [
     # sources, omnibundle seconds, sme seconds, omnibundle MB, sme MB
-    (1_000, 0.0046, 0.252, 30.0, 49.0),
-    (10_000, 0.046, 18.380, 31.0, 277.0),
+    (12, 0.007, 0.252, 4.7, 31.0),
+    (10_000, 0.046, 18.380, 6.0, 277.0),
     (50_000, 0.209, 562.269, 67.0, 642.0),
 ]
 
@@ -80,10 +88,10 @@ MAP_POINTS = [
 figure_stats: dict = {}
 
 PROVENANCE = {    "omni_stats": "bench/results/b3-full-pipeline-2026-09-16.json (median of 3) and b4-full-pipeline-2026-09-16.json (median of 3)",
-    "omni_map": "bench/results/ws3-sourcemap-ingest-2026-09-21.json (median of 3 for 10k and 50k)",
-    "wba_363mb": "docs/en/01-evidence.md §2, 63.617 s / 2,295 MB",
-    "wba_1gb": "docs/en/01-evidence.md §2, 176.3 s / 1,437 MB - baseline session, same reference machine, not the same run as the 363 MB row",
-    "sme": "bench/results/ws-s-sme-baseline-2026-09-03.json. The 1k row is the real preact build (median of 3); 10k is a median of 3; 50k is a single 9.4-minute run, because three runs would have taken half an hour",
+    "omni_map": "bench/results/ws3-sourcemap-ingest-2026-09-21.json (time, median of 3 for 10k and 50k; memory for 50k) and bench/results/ws3b-sourcemap-memory-2026-09-30.json (memory for the 12-source and 10k points)",
+    "wba_363mb": "bench/results/ws1-stats-ingest-2026-09-03.json, 63,617 ms / 2,295 MB on the corrected 363 MB fixture - also quoted in docs/en/01-evidence.md \u00a72b",
+    "wba_1gb": "docs/en/01-evidence.md \u00a72, 176.3 s / 1,437 MB - baseline session, same reference machine, not the same run as the 363 MB row",
+    "sme": "bench/results/ws-s-sme-baseline-2026-09-03.json. The 12-source row is the real preact build (252 ms / 31 MB, median of 3); 10k is a median of 3; 50k is a single 9.4-minute run, because three runs would have taken half an hour",
     "targets": "docs/en/04-benchmark-plan.md - B3 <= 5 s / <= 200 MB, B4 <= 15 s / <= 400 MB, B5 <= 1 s, B8 < 500 MB",
 }
 
@@ -134,9 +142,10 @@ def human_time(seconds: float) -> str:
         return f"{seconds / 60:.1f} min" if seconds < 600 else f"{seconds / 60:.0f} min"
     if seconds >= 1:
         return f"{seconds:.2f} s".replace(".00 ", " ")
-    # One decimal below ten milliseconds: rounding 4.6 ms to "5 ms" is a 9 %
-    # error on the label of the fastest measurement in the whole set, which is
-    # exactly the number a reader is most likely to quote back at you.
+    # One decimal below ten milliseconds: rounding 7.0 ms to "7 ms" is fine, but
+    # the same rule has to hold for whatever the fastest measurement becomes, and
+    # a value like 4.6 ms would print as a 9 % error without it - on the number a
+    # reader is most likely to quote back at you.
     if seconds >= 0.01:
         return f"{seconds * 1000:.0f} ms"
     return f"{seconds * 1000:.1f} ms"
@@ -145,6 +154,11 @@ def human_time(seconds: float) -> str:
 def human_mb(mb: float) -> str:
     if mb >= 1024:
         return f"{mb / 1024:.2f} GB"
+    # One decimal below ten megabytes for the same reason human_time keeps one
+    # below ten milliseconds: the smallest value in the set is the one a reader
+    # quotes back, and rounding 4.7 MB to "5 MB" is a 6 % error on it.
+    if mb < 10:
+        return f"{mb:.1f} MB"
     return f"{mb:.0f} MB"
 
 
@@ -164,9 +178,10 @@ def check_formatters() -> None:
     fails rather than the chart quietly saying "0.0 s" for a 46 ms measurement.
     """
     cases_time = [
-        (0.0046, "4.6 ms"),
+        (0.007, "7.0 ms"),
         (0.046, "46 ms"),
         (0.209, "209 ms"),
+        (0.252, "252 ms"),
         (1.869, "1.87 s"),
         (6.140, "6.14 s"),
         (18.380, "18.38 s"),
@@ -175,7 +190,9 @@ def check_formatters() -> None:
         (562.269, "9.4 min"),
     ]
     cases_mb = [
-        (30.0, "30 MB"),
+        (4.7, "4.7 MB"),
+        (6.0, "6.0 MB"),
+        (31.0, "31 MB"),
         (67.0, "67 MB"),
         (126.8, "127 MB"),
         (375.9, "376 MB"),
@@ -315,10 +332,14 @@ def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
         ax.set_xscale("log")
         ax.set_yscale("log")
         ax.set_xticks(sources)
-        ax.set_xticklabels(["1k", "10k", "50k"])
-        ax.set_xlim(700, 190_000)  # headroom on the right for the series labels
+        ax.set_xticklabels(["12", "10k", "50k"])
+        ax.set_xlim(7, 190_000)  # headroom on the right for the series labels
         ax.set_xlabel("sources in the map", fontsize=9, color=theme["muted"], labelpad=6)
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: formatter(v)))
+        # `formatter` is bound as a default argument on purpose. A lambda written
+        # inside the loop closes over the loop variable, so both panels ended up
+        # formatted with the *last* one - which is how the time panel shipped
+        # with "1000 MB" on its y-axis while plotting seconds.
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _, f=formatter: f(v)))
         ax.tick_params(axis="both", labelsize=9)
         ax.spines["bottom"].set_color(theme["grid"])
 
@@ -370,8 +391,8 @@ def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
             fontsize=10,
         )
 
-    ax_time.set_ylim(0.002, 3000)
-    ax_mem.set_ylim(20, 1400)
+    ax_time.set_ylim(0.003, 3000)
+    ax_mem.set_ylim(3, 1400)
 
     ax_time.set_title("attribution time", loc="left", fontsize=10.5, color=theme["muted"], pad=14)
     ax_mem.set_title("peak memory", loc="left", fontsize=10.5, color=theme["muted"], pad=14)
@@ -398,8 +419,8 @@ def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
     fig.text(
         0.006,
         -0.02,
-        "1k is the real preact build; 10k and 50k are synthetic  ·  "
-        "median of 3 except 50k, a single 9.4-minute run  ·  log-log axes",
+        "the 12-source point is the real preact build; 10k and 50k are synthetic  ·  "
+        "median of 3 except the 9.4-minute reference run  ·  log-log axes",
         ha="left",
         fontsize=9,
         color=theme["muted"],

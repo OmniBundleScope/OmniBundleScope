@@ -72,7 +72,7 @@ Source map の帰属を、map に含まれる source 数で見たもの。これ
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-source-maps-dark.svg">
-  <img alt="source 数に対する source map 帰属の時間とメモリの両対数グラフ。source-map-explorer は 1,000 source の 0.25 s から 50,000 source の 562 s へ。OmniBundle は 4.6 ms から 209 ms へ。50,000 source でのメモリは 642 MB 対 67 MB。" src="docs/assets/chart-source-maps-light.svg" width="100%">
+  <img alt="source 数に対する source map 帰属の時間とメモリの両対数グラフ。source-map-explorer は実ビルドの preact（12 source）の 0.25 s から 50,000 source の 562 s へ。OmniBundle は 7 ms から 209 ms へ。50,000 source でのメモリは 642 MB 対 67 MB。" src="docs/assets/chart-source-maps-light.svg" width="100%">
 </picture>
 
 ここにある数値はすべて `bench/` のハーネスで再現でき、原材料の記録もコミットされています:

@@ -78,7 +78,7 @@ Fünffache an Daten kostet das Dreißigfache an Zeit**, während ours linear ble
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-source-maps-dark.svg">
-  <img alt="Log-log-Diagramme für Zeit und Speicher der Source-Map-Zuordnung über der Anzahl der Quellen. source-map-explorer steigt von 0,25 s bei 1.000 Quellen auf 562 s bei 50.000; OmniBundle von 4,6 ms auf 209 ms. Speicher bei 50.000 Quellen: 642 MB gegenüber 67 MB." src="docs/assets/chart-source-maps-light.svg" width="100%">
+  <img alt="Log-log-Diagramme für Zeit und Speicher der Source-Map-Zuordnung über der Anzahl der Quellen. source-map-explorer steigt von 0,25 s beim realen preact-Build (12 Quellen) auf 562 s bei 50.000; OmniBundle von 7 ms auf 209 ms. Speicher bei 50.000 Quellen: 642 MB gegenüber 67 MB." src="docs/assets/chart-source-maps-light.svg" width="100%">
 </picture>
 
 Jede Zahl hier ist mit der Harness in `bench/` reproduzierbar, und die Rohdaten sind

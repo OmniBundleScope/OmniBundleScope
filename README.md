@@ -111,7 +111,7 @@ the sources costs it thirty times the time**, while ours stays linear.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-source-maps-dark.svg">
-  <img alt="Log-log line charts of source map attribution time and memory against the number of sources. source-map-explorer rises from 0.25 s at 1,000 sources to 562 s at 50,000; OmniBundle from 4.6 ms to 209 ms. Memory: 642 MB against 67 MB at 50,000 sources." src="docs/assets/chart-source-maps-light.svg" width="100%">
+  <img alt="Log-log line charts of source map attribution time and memory against the number of sources. source-map-explorer rises from 0.25 s on a real 12-source bundle to 562 s at 50,000 sources; OmniBundle from 7 ms to 209 ms. Memory: 642 MB against 67 MB at 50,000 sources." src="docs/assets/chart-source-maps-light.svg" width="100%">
 </picture>
 
 Every number here is reproducible with the harness in `bench/`, and the raw

@@ -79,7 +79,7 @@ source map 归因，横轴是 map 里的 source 数量。这正是让大 map 在
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-source-maps-dark.svg">
-  <img alt="双对数折线图，纵轴为 source map 归因的时间与内存，横轴为 source 数量。source-map-explorer 从 1,000 个 source 的 0.25 s 涨到 50,000 个时的 562 s；OmniBundle 从 4.6 ms 到 209 ms。50,000 个 source 时内存 642 MB 对 67 MB。" src="docs/assets/chart-source-maps-light.svg" width="100%">
+  <img alt="双对数折线图，纵轴为 source map 归因的时间与内存，横轴为 source 数量。source-map-explorer 从真实 preact 构建（12 个 source）的 0.25 s 涨到 50,000 个时的 562 s；OmniBundle 从 7 ms 到 209 ms。50,000 个 source 时内存 642 MB 对 67 MB。" src="docs/assets/chart-source-maps-light.svg" width="100%">
 </picture>
 
 这里每个数字都能用 `bench/` 里的 harness 复现，原始记录已入库：

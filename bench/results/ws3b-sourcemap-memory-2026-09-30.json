@@ -1,0 +1,41 @@
+{
+  "measurement": "WS-3b source map attribution, peak memory for the two inputs where WS-3 recorded time but not memory",
+  "date": "2026-09-30",
+  "machine": "windows, rustc 1.97.1, release profile",
+  "protocol": "bench-spec.md §2; peak RSS sampled every 25 ms by harness/measure.ps1, median of the run maxima reported",
+  "why": "The README plots attribution memory against the number of sources. WS-3 recorded our peak RSS only for the 50k run (67 MB) and only the reference tool's for the other two, so two points on that axis had no record behind them. Rather than interpolate them, they were measured.",
+  "caveat": "At 12 sources and 43 ms, and at 10k sources and 43-99 ms, a 25 ms sampler sees the process for one to four ticks and can miss the true high-water mark. These are the same kind of numbers as the rest of the file - sampled maxima, not kernel high-water marks - but they lean optimistic for short runs, and the 50k point is the only one where the sampler had time to converge.",
+  "runs": [
+    {
+      "fixture": "preact@10.29.8 bundle.js.map",
+      "fixture_class": "real",
+      "sources": 12,
+      "command": "omnibundle <map> --bench-map",
+      "wall_ms": [70, 38, 43, 44, 43],
+      "wall_ms_median": 43,
+      "peak_rss_mb": [4.3, 4.7, 5.4, 4.7, 4.7],
+      "peak_rss_median_mb": 4.7,
+      "peak_private_mb": [0.7, 1.1, 1.8, 1.1, 1.0],
+      "peak_private_median_mb": 1.1,
+      "recorded_wall_ms_median": 7,
+      "note": "the time in the chart is the WS-3 record (7 ms, median of 3); the wall clock here is 43 ms median of 5, which is this machine on this day, not the same session - it is recorded so the discrepancy is visible rather than hidden"
+    },
+    {
+      "fixture": "synthetic 10k sources (7.1 MB map)",
+      "fixture_class": "synthetic",
+      "sources": 10000,
+      "mappings": 400000,
+      "command": "omnibundle <map> --bench-map",
+      "wall_ms": [55, 99, 43],
+      "wall_ms_median": 55,
+      "peak_rss_mb": [6.6, 6.0, 6.0],
+      "peak_rss_median_mb": 6.0,
+      "peak_private_mb": [3.1, 2.3, 2.3],
+      "peak_private_median_mb": 2.3,
+      "note": "the map is 7.1 MB and the peak working set is 6.0 MB: the reader streams, so the file size is not a memory floor for it"
+    }
+  ],
+  "targets": {
+    "B5": "<= 1 s for a 50 MB / 10k-source map: still met, 6.0 MB and 55 ms"
+  }
+}
