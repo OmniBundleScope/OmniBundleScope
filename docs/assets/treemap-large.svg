@@ -1,47 +1,124 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="880" height="440" viewBox="0 0 880 440" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
 <rect width="880" height="440" fill="#0e1116"/>
-<rect x="1.0" y="1.0" width="3.3" height="9.0" fill="#4c8dff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="12.0" width="3.3" height="9.0" fill="#0bb6a8" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="23.0" width="3.3" height="9.0" fill="#f3ab4e" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="34.0" width="3.3" height="9.0" fill="#cf7fff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="45.0" width="3.3" height="9.0" fill="#ff8686" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="56.0" width="3.3" height="9.0" fill="#7fdbb5" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="67.1" width="3.3" height="9.0" fill="#ffdd8f" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="78.1" width="3.3" height="9.0" fill="#a4bfff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="89.1" width="3.3" height="9.0" fill="#ebabeb" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="100.1" width="3.3" height="9.0" fill="#bcdff0" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="111.1" width="3.3" height="9.0" fill="#9dc0ff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="122.1" width="3.3" height="9.0" fill="#7ed9d1" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="133.1" width="3.3" height="9.0" fill="#f9d5a5" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="144.1" width="3.3" height="9.0" fill="#e6bcff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="155.1" width="3.3" height="9.0" fill="#ffbcbc" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="166.1" width="3.3" height="9.0" fill="#b5ead4" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="177.1" width="3.3" height="9.0" fill="#ffeaba" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="188.1" width="3.3" height="9.0" fill="#c3d5ff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="199.1" width="3.3" height="9.0" fill="#f1c4f1" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="210.1" width="3.3" height="9.0" fill="#cce7f4" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="221.1" width="3.3" height="9.0" fill="#aeccff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="232.1" width="3.3" height="9.0" fill="#8cddd6" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="243.1" width="3.3" height="9.0" fill="#f9d6a7" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="254.1" width="3.3" height="9.0" fill="#e6bcff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="265.1" width="3.3" height="9.0" fill="#ffbcbc" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="276.1" width="3.3" height="9.0" fill="#b5ead4" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="287.1" width="3.3" height="9.0" fill="#ffeaba" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="298.1" width="3.3" height="9.0" fill="#c3d5ff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="309.1" width="3.3" height="9.0" fill="#f1c4f1" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="320.1" width="3.3" height="9.0" fill="#cce7f4" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="331.1" width="3.3" height="9.0" fill="#aeccff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="342.1" width="3.3" height="9.0" fill="#8cddd6" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="353.1" width="3.3" height="9.0" fill="#f9d6a7" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="364.1" width="3.3" height="9.0" fill="#e6bcff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="375.1" width="3.3" height="9.0" fill="#ffbcbc" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="386.0" width="3.3" height="9.0" fill="#b5ead4" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="397.0" width="3.3" height="9.0" fill="#ffeaba" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="408.0" width="3.3" height="9.0" fill="#c3d5ff" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="419.0" width="3.3" height="9.0" fill="#f1c4f1" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="1.0" y="430.0" width="3.3" height="9.0" fill="#cce7f4" fill-opacity="0.92"><title>[object Object]: 3 KB</title></rect>
-<rect x="6.3" y="1.0" width="872.7" height="438.0" fill="#aeccff" fill-opacity="0.92"><title>(+7981 more): 16.3 MB</title></rect>
-<text x="12.3" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">(+7981 more)</text>
-<text x="12.3" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">16.3 MB</text>
-<text x="12" y="428" fill="#8b98a9" font-size="11">synthetic fixture: 1,500 assets, 8,021 modules, 400 packages 路 package 路 stats.json 路 8021 modules 路 dimension parsed</text>
+<rect x="0.0" y="0.0" width="88.7" height="110.1" fill="#4c8dff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg41: 44 KB</title></rect>
+<text x="7.0" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">pkg41</text>
+<text x="7.0" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="0.0" y="110.1" width="88.7" height="110.0" fill="#0bb6a8" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg40: 44 KB</title></rect>
+<text x="7.0" y="127.1" fill="#0b0e13" font-size="12" font-weight="600">pkg40</text>
+<text x="7.0" y="141.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="0.0" y="220.1" width="88.7" height="110.0" fill="#f3ab4e" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg39: 44 KB</title></rect>
+<text x="7.0" y="237.1" fill="#0b0e13" font-size="12" font-weight="600">pkg39</text>
+<text x="7.0" y="251.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="0.0" y="330.1" width="88.7" height="109.9" fill="#cf7fff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg38: 44 KB</title></rect>
+<text x="7.0" y="347.1" fill="#0b0e13" font-size="12" font-weight="600">pkg38</text>
+<text x="7.0" y="361.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="88.7" y="0.0" width="88.6" height="110.1" fill="#ff8686" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg37: 44 KB</title></rect>
+<text x="95.7" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">pkg37</text>
+<text x="95.7" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="88.7" y="110.1" width="88.6" height="110.0" fill="#7fdbb5" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg36: 44 KB</title></rect>
+<text x="95.7" y="127.1" fill="#0b0e13" font-size="12" font-weight="600">pkg36</text>
+<text x="95.7" y="141.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="88.7" y="220.1" width="88.6" height="110.0" fill="#ffdd8f" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg35: 44 KB</title></rect>
+<text x="95.7" y="237.1" fill="#0b0e13" font-size="12" font-weight="600">pkg35</text>
+<text x="95.7" y="251.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="88.7" y="330.1" width="88.6" height="109.9" fill="#a4bfff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg34: 44 KB</title></rect>
+<text x="95.7" y="347.1" fill="#0b0e13" font-size="12" font-weight="600">pkg34</text>
+<text x="95.7" y="361.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="177.3" y="0.0" width="88.4" height="110.1" fill="#ebabeb" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg33: 44 KB</title></rect>
+<text x="184.3" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">pkg33</text>
+<text x="184.3" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="177.3" y="110.1" width="88.4" height="110.0" fill="#bcdff0" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg32: 44 KB</title></rect>
+<text x="184.3" y="127.1" fill="#0b0e13" font-size="12" font-weight="600">pkg32</text>
+<text x="184.3" y="141.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="177.3" y="220.1" width="88.4" height="110.0" fill="#9dc0ff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg31: 44 KB</title></rect>
+<text x="184.3" y="237.1" fill="#0b0e13" font-size="12" font-weight="600">pkg31</text>
+<text x="184.3" y="251.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="177.3" y="330.1" width="88.4" height="109.9" fill="#7ed9d1" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg30: 44 KB</title></rect>
+<text x="184.3" y="347.1" fill="#0b0e13" font-size="12" font-weight="600">pkg30</text>
+<text x="184.3" y="361.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="265.7" y="0.0" width="88.2" height="110.1" fill="#f9d5a5" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg29: 44 KB</title></rect>
+<text x="272.7" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">pkg29</text>
+<text x="272.7" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="265.7" y="110.1" width="88.2" height="110.0" fill="#e6bcff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg28: 44 KB</title></rect>
+<text x="272.7" y="127.1" fill="#0b0e13" font-size="12" font-weight="600">pkg28</text>
+<text x="272.7" y="141.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="265.7" y="220.1" width="88.2" height="110.0" fill="#ffbcbc" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg27: 44 KB</title></rect>
+<text x="272.7" y="237.1" fill="#0b0e13" font-size="12" font-weight="600">pkg27</text>
+<text x="272.7" y="251.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="265.7" y="330.1" width="88.2" height="109.9" fill="#b5ead4" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg26: 44 KB</title></rect>
+<text x="272.7" y="347.1" fill="#0b0e13" font-size="12" font-weight="600">pkg26</text>
+<text x="272.7" y="361.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="354.0" y="0.0" width="88.1" height="110.1" fill="#ffeaba" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg25: 44 KB</title></rect>
+<text x="361.0" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">pkg25</text>
+<text x="361.0" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="354.0" y="110.1" width="88.1" height="110.0" fill="#c3d5ff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg24: 44 KB</title></rect>
+<text x="361.0" y="127.1" fill="#0b0e13" font-size="12" font-weight="600">pkg24</text>
+<text x="361.0" y="141.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="354.0" y="220.1" width="88.1" height="110.0" fill="#f1c4f1" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg23: 44 KB</title></rect>
+<text x="361.0" y="237.1" fill="#0b0e13" font-size="12" font-weight="600">pkg23</text>
+<text x="361.0" y="251.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="354.0" y="330.1" width="88.1" height="109.9" fill="#cce7f4" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg22: 44 KB</title></rect>
+<text x="361.0" y="347.1" fill="#0b0e13" font-size="12" font-weight="600">pkg22</text>
+<text x="361.0" y="361.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">44 KB</text>
+<rect x="442.1" y="0.0" width="109.6" height="88.3" fill="#aeccff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg21: 43 KB</title></rect>
+<text x="449.1" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">pkg21</text>
+<text x="449.1" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="551.6" y="0.0" width="109.5" height="88.3" fill="#8cddd6" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg20: 43 KB</title></rect>
+<text x="558.6" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">pkg20</text>
+<text x="558.6" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="661.1" y="0.0" width="109.5" height="88.3" fill="#f9d6a7" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg19: 43 KB</title></rect>
+<text x="668.1" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">pkg19</text>
+<text x="668.1" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="770.6" y="0.0" width="109.4" height="88.3" fill="#e6bcff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg18: 43 KB</title></rect>
+<text x="777.6" y="17.0" fill="#0b0e13" font-size="12" font-weight="600">pkg18</text>
+<text x="777.6" y="31.0" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="442.1" y="88.3" width="109.8" height="88.0" fill="#ffbcbc" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg17: 43 KB</title></rect>
+<text x="449.1" y="105.3" fill="#0b0e13" font-size="12" font-weight="600">pkg17</text>
+<text x="449.1" y="119.3" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="442.1" y="176.3" width="109.8" height="87.9" fill="#b5ead4" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg16: 43 KB</title></rect>
+<text x="449.1" y="193.3" fill="#0b0e13" font-size="12" font-weight="600">pkg16</text>
+<text x="449.1" y="207.3" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="442.1" y="264.2" width="109.8" height="87.9" fill="#ffeaba" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg15: 43 KB</title></rect>
+<text x="449.1" y="281.2" fill="#0b0e13" font-size="12" font-weight="600">pkg15</text>
+<text x="449.1" y="295.2" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="442.1" y="352.1" width="109.8" height="87.9" fill="#c3d5ff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg14: 43 KB</title></rect>
+<text x="449.1" y="369.1" fill="#0b0e13" font-size="12" font-weight="600">pkg14</text>
+<text x="449.1" y="383.1" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="551.9" y="88.3" width="109.4" height="88.1" fill="#f1c4f1" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg13: 43 KB</title></rect>
+<text x="558.9" y="105.3" fill="#0b0e13" font-size="12" font-weight="600">pkg13</text>
+<text x="558.9" y="119.3" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="661.3" y="88.3" width="109.4" height="88.1" fill="#cce7f4" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg12: 43 KB</title></rect>
+<text x="668.3" y="105.3" fill="#0b0e13" font-size="12" font-weight="600">pkg12</text>
+<text x="668.3" y="119.3" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="770.7" y="88.3" width="109.3" height="88.1" fill="#aeccff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg11: 43 KB</title></rect>
+<text x="777.7" y="105.3" fill="#0b0e13" font-size="12" font-weight="600">pkg11</text>
+<text x="777.7" y="119.3" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="551.9" y="176.4" width="109.5" height="87.9" fill="#8cddd6" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg10: 43 KB</title></rect>
+<text x="558.9" y="193.4" fill="#0b0e13" font-size="12" font-weight="600">pkg10</text>
+<text x="558.9" y="207.4" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="551.9" y="264.3" width="109.5" height="87.9" fill="#f9d6a7" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg9: 43 KB</title></rect>
+<text x="558.9" y="281.3" fill="#0b0e13" font-size="12" font-weight="600">pkg9</text>
+<text x="558.9" y="295.3" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="551.9" y="352.2" width="109.5" height="87.8" fill="#e6bcff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg8: 43 KB</title></rect>
+<text x="558.9" y="369.2" fill="#0b0e13" font-size="12" font-weight="600">pkg8</text>
+<text x="558.9" y="383.2" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="661.4" y="176.4" width="109.3" height="87.9" fill="#ffbcbc" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg7: 43 KB</title></rect>
+<text x="668.4" y="193.4" fill="#0b0e13" font-size="12" font-weight="600">pkg7</text>
+<text x="668.4" y="207.4" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="770.7" y="176.4" width="109.3" height="87.9" fill="#b5ead4" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg6: 43 KB</title></rect>
+<text x="777.7" y="193.4" fill="#0b0e13" font-size="12" font-weight="600">pkg6</text>
+<text x="777.7" y="207.4" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="661.4" y="264.4" width="109.3" height="87.8" fill="#ffeaba" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg5: 43 KB</title></rect>
+<text x="668.4" y="281.4" fill="#0b0e13" font-size="12" font-weight="600">pkg5</text>
+<text x="668.4" y="295.4" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="661.4" y="352.2" width="109.3" height="87.8" fill="#c3d5ff" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg4: 43 KB</title></rect>
+<text x="668.4" y="369.2" fill="#0b0e13" font-size="12" font-weight="600">pkg4</text>
+<text x="668.4" y="383.2" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="770.7" y="264.4" width="109.3" height="87.8" fill="#f1c4f1" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg399: 43 KB</title></rect>
+<text x="777.7" y="281.4" fill="#0b0e13" font-size="12" font-weight="600">pkg399</text>
+<text x="777.7" y="295.4" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<rect x="770.7" y="352.2" width="109.3" height="87.8" fill="#cce7f4" fill-opacity="0.92" stroke="#0e1116" stroke-width="2"><title>pkg3: 43 KB</title></rect>
+<text x="777.7" y="369.2" fill="#0b0e13" font-size="12" font-weight="600">pkg3</text>
+<text x="777.7" y="383.2" fill="#0b0e13" font-size="11" fill-opacity="0.75">43 KB</text>
+<text x="12" y="428" fill="#8b98a9" font-size="11">synthetic monorepo fixture · package · 1500 assets · 8041 modules · 400 groups · dimension stat</text>
 </svg>

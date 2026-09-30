@@ -124,13 +124,13 @@ fusion: 1 map(s) · coverage 47% · 0/22 modules attributed · 22 ghost (83 KB o
 ## 报告
 
 <p align="center">
-  <img alt="OmniBundle 的 HTML 报告：按 package 分组的 squarified treemap，附可搜索的模块列表、三种分组维度和明暗主题。" src="docs/assets/treemap-large.svg" width="100%">
+  <img alt="OmniBundle 的 HTML 报告：按 package 分组的 squarified treemap，展示 400 个 package 中最大的 40 个，附可搜索的模块列表、三种分组维度和明暗主题。" src="docs/assets/treemap-large.svg" width="100%">
 </p>
 
-<sub>按 package 分组，跨 1,500 个 asset 汇总——合成 fixture，8,021 个模块，400 个 package，
-这正是大型 monorepo 构建的形状。图片由 `bench/harness/render-treemap-svg.mjs` 用真实
-fixture 数据生成，不是截图，标签是工具自己的输出。HTML 报告另外还有搜索、三种分组维度、
-按模块下钻、明暗主题，并且不发起任何网络请求。</sub>
+<sub>合成 fixture 中 400 个 package 里最大的 40 个：1,500 个 asset、8,041 个模块，
+尺寸为 bundler 声明的值。图片由 `bench/harness/render-treemap.py` 从工具自己的 graph
+payload 绘制，不是截图，因此标签就是工具的输出；CI 会重新生成，并在出现差异时失败。
+HTML 报告另外还有搜索、三种分组维度、按模块下钻、明暗主题，并且不发起任何网络请求。</sub>
 
 ## 安装
 

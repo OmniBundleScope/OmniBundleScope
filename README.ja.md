@@ -121,14 +121,15 @@ ground truth の次元は取り消され、レポートの 1 行目にそう書�
 ## レポート
 
 <p align="center">
-  <img alt="OmniBundle の HTML レポート: パッケージ別の squarified treemap、検索可能なモジュール一覧、3 つのグルーピング軸、ライトとダークのテーマ。" src="docs/assets/treemap-large.svg" width="100%">
+  <img alt="OmniBundle の HTML レポート: パッケージ別の squarified treemap で 400 パッケージ中最大の 40 を表示、検索可能なモジュール一覧、3 つのグルーピング軸、ライトとダークのテーマ。" src="docs/assets/treemap-large.svg" width="100%">
 </p>
 
-<sub>パッケージ別、1,500 アセットを横断して集計。合成 fixture、8,021 モジュール、
-400 パッケージ — 大規模モノレポビルドの形状です。実際の fixture データから
-`bench/harness/render-treemap-svg.mjs` が生成しており、スクリーンショットではありません。
-ラベルの意味はツール自身の出力です。HTML レポートにはさらに検索、3 つのグルーピング軸、
-モジュール単位の内訳、ライト/ダーク、そしてネットワーク通信ゼロが含まれます。</sub>
+<sub>合成 fixture の 400 パッケージのうち最大の 40 パッケージ：1,500 アセット、
+8,041 モジュール、サイズはバンドラーが宣言した値です。ツール自身の graph payload から
+`bench/harness/render-treemap.py` が描画しており、スクリーンショットではありません。
+そのためラベルはツールの出力そのものです。CI が再生成し、差分があれば失敗します。
+HTML レポートにはさらに検索、3 つのグルーピング軸、モジュール単位の内訳、
+ライト/ダーク、そしてネットワーク通信ゼロが含まれます。</sub>
 
 ## インストール
 

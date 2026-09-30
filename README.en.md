@@ -166,14 +166,15 @@ be worse than no report.
 ## The report
 
 <p align="center">
-  <img alt="OmniBundle HTML report: a squarified treemap of a build grouped by package, with a searchable module list, three grouping dimensions and light/dark themes." src="docs/assets/treemap-large.svg" width="100%">
+  <img alt="OmniBundle HTML report: a squarified treemap of a build grouped by package, showing the 40 largest of 400, with a searchable module list, three grouping dimensions and light/dark themes." src="docs/assets/treemap-large.svg" width="100%">
 </p>
 
-<sub>Grouped by package, summed across 1,500 assets — synthetic fixture, 8,021
-modules, 400 packages, the shape a large monorepo build has. Generated from real
-fixture data by `bench/harness/render-treemap-svg.mjs`, not a screenshot; the
-labels are the tool's own output. The HTML report adds search, three grouping
-dimensions, a per-module drill-down, light/dark, and no network requests.</sub>
+<sub>The 40 largest packages of a synthetic 400-package build: 1,500 assets and
+8,041 modules, in the sizes the bundler declared. Drawn from the tool's own
+graph payload by `bench/harness/render-treemap.py`, not a screenshot, so the
+labels are the tool's output; CI regenerates the image and fails on a diff. The
+HTML report adds search, three grouping dimensions, a per-module drill-down,
+light/dark, and no network requests.</sub>
 
 ## Install
 

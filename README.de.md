@@ -130,15 +130,15 @@ Asset-Summe geprüft — bei Verstoß gibt `OB0042` laut Fehler, statt still zu 
 ## Der Report
 
 <p align="center">
-  <img alt="OmniBundle-HTML-Report: ein squarified Treemap eines Builds, nach Paket gruppiert, mit durchsuchbarer Modulliste, drei Gruppierungsdimensionen und hellem und dunklem Design." src="docs/assets/treemap-large.svg" width="100%">
+  <img alt="OmniBundle-HTML-Report: ein squarified Treemap eines Builds, nach Paket gruppiert, mit den 40 größten von 400 Paketen, durchsuchbarer Modulliste, drei Gruppierungsdimensionen und hellem und dunklem Design." src="docs/assets/treemap-large.svg" width="100%">
 </p>
 
-<sub>Nach Paket gruppiert, über 1.500 Assets hinweg aufsummiert — synthetisches Fixture,
-8.021 Module, 400 Pakete, die Form eines großen Monorepo-Builds. Aus echten
-Fixture-Daten erzeugt von `bench/harness/render-treemap-svg.mjs`, kein Screenshot; die
-Beschriftungen sind die Ausgabe des Werkzeugs. Der HTML-Report bietet zusätzlich Suche,
-drei Gruppierungsdimensionen, eine Detailansicht je Modul, Hell und Dunkel und keine
-Netzwerkanfragen.</sub>
+<sub>Die 40 größten Pakete eines synthetischen Builds mit 400 Paketen: 1.500 Assets und
+8.041 Module, in den vom Bundler deklarierten Größen. Gezeichnet aus dem graph-Payload
+des Werkzeugs von `bench/harness/render-treemap.py`, kein Screenshot, die Beschriftungen
+sind also die Ausgabe des Werkzeugs; die CI erzeugt das Bild neu und schlägt bei einer
+Abweichung fehl. Der HTML-Report bietet zusätzlich Suche, drei Gruppierungsdimensionen,
+eine Detailansicht je Modul, Hell und Dunkel und keine Netzwerkanfragen.</sub>
 
 ## Installation
 

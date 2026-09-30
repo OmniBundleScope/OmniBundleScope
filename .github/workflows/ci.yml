@@ -99,12 +99,36 @@ jobs:
       # 46 ms measurement being labelled "0.0 s".
       - name: the charts regenerate
         working-directory: bench
+        # `shell: bash` on purpose: this step is a POSIX script (`set -euo
+        # pipefail`, `||`), and the default shell on a Windows runner is pwsh,
+        # where `set -euo pipefail` is not a command.
+        shell: bash
         run: |
           set -euo pipefail
           python -m pip install --quiet matplotlib
           python harness/make-charts.py
           git diff --exit-code -- ../docs/assets \
             || { echo "::error::the committed charts differ from a fresh run; run bench/harness/make-charts.py and commit the result"; exit 1; }
+
+      # The treemap is generated too, and it is the figure that most needs the
+      # gate: the image that shipped before this was rendered by a Node script
+      # reading a field that does not exist, and every rectangle in the committed
+      # file was labelled "[object Object]: 3 KB" with 0.3 % of the canvas
+      # covered. Nothing compared the image to its generator, so nothing noticed.
+      # The input is generated rather than committed because the honest one is
+      # 20 MB of stats.json - so this step is hermetic and runs on every platform.
+      - name: the README treemap regenerates
+        working-directory: bench
+        shell: bash
+        run: |
+          set -euo pipefail
+          node harness/gen-stats.mjs 20050000 "$RUNNER_TEMP/treemap-stats.json"
+          python harness/render-treemap.py \
+            --stats "$RUNNER_TEMP/treemap-stats.json" --top 40 \
+            --label "synthetic monorepo fixture" \
+            --out ../docs/assets/treemap-large.svg --width 880 --height 440
+          git diff --exit-code -- ../docs/assets/treemap-large.svg \
+            || { echo "::error::the committed treemap differs from a fresh run; run bench/harness/render-treemap.py and commit the result"; exit 1; }
 
       # Every headline figure in every README must be the number the record says.
       - name: the READMEs quote the records

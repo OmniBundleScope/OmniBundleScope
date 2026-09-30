@@ -1,9 +1,11 @@
 // Squarified treemap layout: Bruls, Huizing & van Wijk (2000).
 //
-// One implementation, used by `render-treemap-svg.mjs` and by
-// `check-treemap-layout.mjs`. The report shell keeps its own copy because the
-// report has to remain a single file that opens from `file://`, which rules out
-// a module reference; `check-treemap-layout.mjs` asserts the two agree.
+// One implementation, used by `check-treemap-layout.mjs`. The report shell keeps
+// its own copy because the report has to remain a single file that opens from
+// `file://`, which rules out a module reference; `check-treemap-layout.mjs`
+// asserts the two agree. The README treemap is drawn by the Python renderer
+// (`render-treemap.py`), which ports this function line for line - JavaScript
+// cannot be shared with it, so the property check drives the shapes instead.
 //
 // Why it is worth a module at all: a treemap that lays out two rectangles on top
 // of each other still looks plausible in a thumbnail. The first version of the
