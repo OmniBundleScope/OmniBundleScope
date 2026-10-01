@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Measure one FastScope run: wall time and peak RSS, in the shape
+# Measure one OmniBundleScope run: wall time and peak RSS, in the shape
 # `docs/contracts/bench-spec.md` §5 requires.
 #
 #   ./harness-memory.sh <binary> <input> [flags…]

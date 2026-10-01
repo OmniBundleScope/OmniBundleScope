@@ -1,5 +1,5 @@
 {
-  "name": "fastscope-bench",
+  "name": "omnibundlescope-bench",
   "private": true,
   "type": "module",
   "description": "Benchmark harness: reference tools, fixture generation, result records",

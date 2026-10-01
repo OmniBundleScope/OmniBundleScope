@@ -1,6 +1,6 @@
-# ADR-0006: Renaming to `fastscope`
+# ADR-0006: Renaming to `omnibundlescope`
 
-Status: **accepted** (2026-10-01) · Owner: WS-0 · Supersedes: ADR-0004 (naming) · Affects: WS-6, WS-8, WS-9
+Status: **accepted** (2026-10-01) · Owner: maintainers · Supersedes: ADR-0004 (naming) · Affects: the CLI, distribution and CI, docs and translations
 
 ## Context
 
@@ -28,11 +28,11 @@ wrong one is the one people read.
 | `omnisize` | names the output, not the input; rejected by ADR-0004 for hiding what the tool consumes |
 | `bytescope` | **taken on npm** (a telecom utility, published 2026-02) |
 | `sourcemeter` | **taken on npm** (a dead Source-dedicated-server package) |
-| `fastscope` | **chosen.** Two words, so the name reads as a tool rather than as the artifact, which removes the "is it a bundler?" question entirely |
+| `omnibundlescope` | **chosen.** Two words, so the name reads as a tool rather than as the artifact, which removes the "is it a bundler?" question entirely |
 
-`bundlescope` was the recommendation and `fastscope` was the decision. Recorded
+`bundlescope` was the recommendation and `omnibundlescope` was the decision. Recorded
 here rather than quietly implemented, because the reason for the choice is not
-the one the recommendation argued for: `fastscope` sells speed, which is the
+the one the recommendation argued for: `omnibundlescope` sells speed, which is the
 least durable of the tool's three true claims, over byte attribution, which is
 the one neither reference tool does. Speed is at least defensible as a
 positioning - 36x faster than `webpack-bundle-analyzer` on the stats fixture and
@@ -44,21 +44,21 @@ durable one is not.
 
 | artefact | name |
 |---|---|
-| workspace | `fastscope` |
-| library crate | `fastscope-core` |
-| CLI crate / binary | `fastscope-cli` / **`fastscope`** |
-| WASM crate | `fastscope-wasm` |
-| npm package | `fastscope` |
-| report file default | `fastscope-report.html` |
-| config file | `fastscope.config.json` |
-| cache dir | `.fastscope-cache/` |
-| env vars | `FASTSCOPE_BIN`, `FASTSCOPE_VERSION`, `FASTSCOPE_REPO` |
+| workspace | `omnibundlescope` |
+| library crate | `omnibundlescope-core` |
+| CLI crate / binary | `omnibundlescope-cli` / **`omnibundlescope`** |
+| WASM crate | `omnibundlescope-wasm` |
+| npm package | `omnibundlescope` |
+| report file default | `omnibundlescope-report.html` |
+| config file | `omnibundlescope.config.json` |
+| cache dir | `.omnibundlescope-cache/` |
+| env vars | `OMNIBUNDLESCOPE_BIN`, `OMNIBUNDLESCOPE_VERSION`, `OMNIBUNDLESCOPE_REPO` |
 | diagnostic codes | `FS00xx` (was `OB00xx`) |
 | schema URLs | `{{DOCS_URL}}/schemas/…` |
 
 Everything else in ADR-0004 stands: publication order is unchanged (crates.io,
 then the static binary, then the npm wrapper), and the name must be re-checked
-on both registries immediately before publishing. `fastscope` was free on npm and
+on both registries immediately before publishing. `omnibundlescope` was free on npm and
 crates.io when this was written, which is a snapshot and not a reservation.
 
 ## Consequences
@@ -67,13 +67,13 @@ crates.io when this was written, which is a snapshot and not a reservation.
   contract in `docs/contracts/unified-graph.md`, so this is a breaking change
   for anything parsing them - which is nothing yet, since 0.1.0 has not shipped.
   Leaving `OB` behind would have been the cheaper option and the wrong one: a
-  project called fastscope that emits `OB0051` reads as a rename that stopped
+  project called omnibundlescope that emits `OB0051` reads as a rename that stopped
   halfway.
 - The git history before this commit says `OmniBundle`, and stays that way. It
   happened under that name; rewriting it would make the record less true, not
   more.
 - ADR-0004's fallback-name clause is superseded. The fallback is now
-  `fastscope-cli` for a squatted binary name, and it must be decided in the ADR
+  `omnibundlescope-cli` for a squatted binary name, and it must be decided in the ADR
   that is active at the time rather than quoted forward from a superseded one -
   the risk register had been quoting it from a document that never contained it.
 - The tagline is now "One analyzer for every bundler." The word *analyzer* is

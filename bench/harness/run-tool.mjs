@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Reference-baseline runner (WS-A / WS-S).
+// Reference-baseline runner (benchmarks / the source-map-explorer baseline).
 //
 // Runs a tool against a fixture and reports wall time, peak RSS and (where the
 // tool can tell us) a phase breakdown, in the JSON shape defined by

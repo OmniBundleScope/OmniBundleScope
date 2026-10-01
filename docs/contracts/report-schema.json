@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "{{DOCS_URL}}/schemas/report-v1.json",
-  "title": "FastScope unified graph / report payload",
+  "title": "OmniBundleScope unified graph / report payload",
   "description": "Single payload emitted by the CLI (--mode json, report.html) and by the WASM surface. Every other schema in the project is a projection of this one. Changes require a new ADR and a schema_version bump.",
   "type": "object",
   "required": ["schema_version", "inputs", "assets", "chunks", "modules", "totals", "diagnostics"],
@@ -162,7 +162,7 @@
         "required": ["severity", "code", "message"],
         "properties": {
           "severity": { "enum": ["info", "warning", "error"] },
-          "code": { "type": "string", "description": "stable, machine readable, e.g. FS0042" },
+          "code": { "type": "string", "description": "stable, machine readable, e.g. OBS0042" },
           "message": { "type": "string" },
           "subject": { "type": ["string", "null"] },
           "data": {}

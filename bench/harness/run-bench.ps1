@@ -3,7 +3,7 @@ param(
   [string[]]$CliArgs,
   [string]$Label = 'run'
 )
-# Peak-RSS sampling wrapper (WS-A). Node cannot read a child process's RSS
+# Peak-RSS sampling wrapper (benchmarks). Node cannot read a child process's RSS
 # cheaply, so the shell does it: sample WorkingSet64 every 100 ms until exit.
 $t0 = Get-Date
 $p = Start-Process $Exe -ArgumentList $CliArgs -PassThru -NoNewWindow `

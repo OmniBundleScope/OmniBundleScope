@@ -1,4 +1,4 @@
-/* FastScope report shell — WS-5.
+/* OmniBundleScope report shell — report.
  *
  * Squarified treemap (Bruls, Huizing & van Wijk) on a 2D canvas, drawn with
  * label culling so 10k nodes stay responsive: anything that cannot fit a legible
@@ -80,8 +80,8 @@
     });
   }
 
-  // Deterministic hue per group: a curated, desaturated set so a treemap reads
-  // as data rather than as a rainbow (the AI-slop failure mode).
+  // Deterministic hue per group: a curated, desaturated set, so that the same
+  // as data rather than as a rainbow, which is the usual way a treemap fails.
   var HUES = [16, 42, 96, 150, 186, 208, 258, 292, 320, 348];
 
   function colourFor(key, depth) {

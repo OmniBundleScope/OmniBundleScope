@@ -1,4 +1,4 @@
-# 用語集 — FastScope（JA）
+# 用語集 — OmniBundleScope（JA）
 
 規範リストは `docs/contracts/i18n-parity.md` §4 にあります。他の言語:
 [EN](../en/GLOSSARY.md) · [ZH](../zh/GLOSSARY.md) · [DE](../de/GLOSSARY.md)
@@ -15,11 +15,10 @@
 | hidden code | 隠しコード | どのモジュールにも属さない生成バイト |
 | tree shaking | ツリーシェイキング | 未使用の export の除去 |
 | treemap | ツリーマップ | squarified レイアウト。Phase 1 は Canvas 2D |
-| budget | サイズバジェット | CI ゲート。超過時は終了コード 1 と `FS0040` |
+| budget | サイズバジェット | CI ゲート。超過時は終了コード 1 と `OBS0040` |
 | baseline | ベースライン | 比較の基準となる数値 |
 | size dimension | サイズ軸 | `stat` / `parsed` / `gzip` / `attributed` |
 | phase | フェーズ | scan / parse / attribute / fuse / report |
-| lane / workstream | レーン / ワークストリーム | 排他的なパスをresponsible な作業単位（WS-0 … WS-9） |
 | fixture | フィクスチャ | テストやベンチマークに使う固定入力 |
 | real fixture | 実フィクスチャ | 実在のオープンソースプロジェクトから構築 |
 | synthetic fixture | 合成フィクスチャ | 実プロジェクトに無い規模を作るために生成 |
@@ -31,5 +30,5 @@
 ## 翻訳しないもの
 
 コード、識別子、ファイル名、CLI フラグ、JSON キー、診断コード
-（`FS0001` …）、crate 名、バージョン番号。これらを翻訳すると整合性チェックが
+（`OBS0001` …）、crate 名、バージョン番号。これらを翻訳すると整合性チェックが
 失敗します。

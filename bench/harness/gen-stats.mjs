@@ -1,7 +1,7 @@
-// Synthetic webpack stats.json generator (WS-A).
+// Synthetic webpack stats.json generator (benchmarks).
 //
 // Shape and field names match what `webpack-bundle-analyzer` consumes, and
-// what our WS-1 ingest must read: 1,500 assets, 200 chunks, N modules with an
+// what our stats ingest ingest must read: 1,500 assets, 200 chunks, N modules with an
 // embedded `source` string (that string is why real stats files get big).
 //
 // Usage:

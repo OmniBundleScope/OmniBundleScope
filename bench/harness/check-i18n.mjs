@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Documentation parity checker (WS-9), enforcing docs/contracts/i18n-parity.md.
+// Documentation parity checker (docs and translations), enforcing docs/contracts/i18n-parity.md.
 //
 //   node check-i18n.mjs            # all languages
 //   node check-i18n.mjs --lang zh  # one language

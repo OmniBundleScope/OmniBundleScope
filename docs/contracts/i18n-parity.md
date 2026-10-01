@@ -1,6 +1,6 @@
 # Contract: documentation parity across EN / ZH / JA / DE
 
-Status: **frozen**. Owner: WS-9. Checker: `bench/harness/check-i18n.mjs`.
+Status: **frozen**. Owner: maintainers. Checker: `bench/harness/check-i18n.mjs`.
 
 ## 1. Which documents are release-grade
 

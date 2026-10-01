@@ -47,7 +47,7 @@ OUT = REPO / "docs" / "assets"
 # came from. The sidecar written next to the SVGs repeats this provenance so the
 # figure can be audited without reading this script.
 
-# (label, FastScope seconds, reference tool seconds, reference name)
+# (label, OmniBundleScope seconds, reference tool seconds, reference name)
 STATS = {
     "363 MB stats, 154,379 modules": {
         "ob_s": 1.869,
@@ -71,11 +71,11 @@ STATS_MEM = {
 # "1,000" this used to claim. There is no 1,000-source input anywhere in the
 # records: the synthetic fixtures start at 10k, and the real ones are 11-12
 # sources. The old row put the preact fixture at x=1,000, took its time from a
-# value that matched no record (4.6 ms when WS-3 says 7 ms) and its memory from
+# value that matched no record (4.6 ms when source maps says 7 ms) and its memory from
 # the *minified* preact run while taking the time from the readable one. Every
 # number below is now a value with a record behind it.
 MAP_POINTS = [
-    # sources, fastscope seconds, sme seconds, fastscope MB, sme MB
+    # sources, omnibundlescope seconds, sme seconds, omnibundlescope MB, sme MB
     (12, 0.007, 0.252, 4.7, 31.0),
     (10_000, 0.046, 18.380, 6.0, 277.0),
     (50_000, 0.209, 562.269, 67.0, 642.0),
@@ -88,10 +88,10 @@ MAP_POINTS = [
 figure_stats: dict = {}
 
 PROVENANCE = {    "omni_stats": "bench/results/b3-full-pipeline-2026-09-16.json (median of 3) and b4-full-pipeline-2026-09-16.json (median of 3)",
-    "omni_map": "bench/results/ws3-sourcemap-ingest-2026-09-21.json (time, median of 3 for 10k and 50k; memory for 50k) and bench/results/ws3b-sourcemap-memory-2026-09-30.json (memory for the 12-source and 10k points)",
-    "wba_363mb": "bench/results/ws1-stats-ingest-2026-09-03.json, 63,617 ms / 2,295 MB on the corrected 363 MB fixture - also quoted in docs/en/01-evidence.md \u00a72b",
+    "omni_map": "bench/results/sourcemap-ingest-2026-09-21.json (time, median of 3 for 10k and 50k; memory for 50k) and bench/results/sourcemap-memory-2026-09-30.json (memory for the 12-source and 10k points)",
+    "wba_363mb": "bench/results/stats-ingest-2026-09-03.json, 63,617 ms / 2,295 MB on the corrected 363 MB fixture - also quoted in docs/en/01-evidence.md \u00a72b",
     "wba_1gb": "docs/en/01-evidence.md \u00a72, 176.3 s / 1,437 MB - baseline session, same reference machine, not the same run as the 363 MB row",
-    "sme": "bench/results/ws-s-sme-baseline-2026-09-03.json. The 12-source row is the real preact build (252 ms / 31 MB, median of 3); 10k is a median of 3; 50k is a single 9.4-minute run, because three runs would have taken half an hour",
+    "sme": "bench/results/sme-baseline-2026-09-03.json. The 12-source row is the real preact build (252 ms / 31 MB, median of 3); 10k is a median of 3; 50k is a single 9.4-minute run, because three runs would have taken half an hour",
     "targets": "docs/en/04-benchmark-plan.md - B3 <= 5 s / <= 200 MB, B4 <= 15 s / <= 400 MB, B5 <= 1 s, B8 < 500 MB",
 }
 
@@ -385,7 +385,7 @@ def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
         (ax_mem, ob_mb, sme_mb, human_mb),
     ):
         ax.annotate(
-            "FastScope",
+            "OmniBundleScope",
             xy=(sources[-1], ours[-1]),
             xytext=(9, 4),
             textcoords="offset points",
@@ -797,9 +797,9 @@ def main() -> int:
         "source_maps": [
             {
                 "sources": s,
-                "fastscope_seconds": ob,
+                "omnibundlescope_seconds": ob,
                 "source_map_explorer_seconds": sme,
-                "fastscope_mb": obmb,
+                "omnibundlescope_mb": obmb,
                 "source_map_explorer_mb": smemb,
             }
             for s, ob, sme, obmb, smemb in MAP_POINTS

@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const LICENCES = ['LICENSE-MIT', 'LICENSE-APACHE'];
-const CRATES = ['fastscope-core', 'fastscope-cli', 'fastscope-wasm'];
+const CRATES = ['omnibundlescope-core', 'omnibundlescope-cli', 'omnibundlescope-wasm'];
 
 let failures = 0;
 

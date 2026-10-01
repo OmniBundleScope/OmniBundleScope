@@ -1,27 +1,27 @@
 # ADR-0004: Naming and distribution shape
 
-Status: **superseded** (2026-10-01) by ADR-0006 · Owner: WS-0 · Affects: WS-6, WS-8, WS-9
+Status: **superseded** (2026-10-01) by ADR-0006 · Owner: maintainers · Affects: the CLI, distribution and CI, docs and translations
 
 > Superseded on the naming decision only. The distribution shape below - one binary,
 > three publication channels, and the order they go out in - is still current.
-> The name itself is `fastscope`; see [ADR-0006](ADR-0006-renaming.md) for why,
+> The name itself is `omnibundlescope`; see [ADR-0006](ADR-0006-renaming.md) for why,
 > including why this record defended the right word for the wrong question.
 
 ## Decision
 
 | artefact | name |
 |---|---|
-| workspace | `fastscope` |
-| library crate | `fastscope-core` |
-| CLI crate / binary | `fastscope-cli` / **`fastscope`** |
-| WASM crate | `fastscope-wasm` |
-| npm package | `fastscope` |
-| report file default | `fastscope-report.html` |
-| config file | `fastscope.config.json` |
-| cache dir | `.fastscope-cache/` |
+| workspace | `omnibundlescope` |
+| library crate | `omnibundlescope-core` |
+| CLI crate / binary | `omnibundlescope-cli` / **`omnibundlescope`** |
+| WASM crate | `omnibundlescope-wasm` |
+| npm package | `omnibundlescope` |
+| report file default | `omnibundlescope-report.html` |
+| config file | `omnibundlescope.config.json` |
+| cache dir | `.omnibundlescope-cache/` |
 | schema URLs | `{{DOCS_URL}}/schemas/…` |
 
-Availability was checked before deciding: `fastscope` returned 404 on both the
+Availability was checked before deciding: `omnibundlescope` returned 404 on both the
 npm registry and crates.io on 2026-09-02, i.e. unclaimed in both. It must be
 re-checked immediately before publishing, since a squatted name is only a
 discovery away.
@@ -36,7 +36,7 @@ discovery away.
   wrapper). The npm package is a thin wrapper: it downloads the platform
   binary and execs it, because shipping a native binary inside an npm tarball
   is how you end up with a 200 MB install.
-- `fastscope` is pronounceable in English, ZH, JA and DE without
+- `omnibundlescope` is pronounceable in English, ZH, JA and DE without
   transliteration games, which matters for the four-language documentation
   requirement.
 

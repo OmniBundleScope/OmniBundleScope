@@ -1,7 +1,7 @@
 # Contract: CLI surface
 
-Status: **frozen for Phase 1**. Owner: WS-6. The Rust types live in
-`crates/fastscope-cli/src/main.rs`; this file is the normative spec.
+Status: **frozen for Phase 1**. Owner: maintainers. The Rust types live in
+`crates/omnibundlescope-cli/src/main.rs`; this file is the normative spec.
 
 Design rule: the flags of the two tools we replace keep working, so migrating
 is a one-line change in a CI config.
@@ -9,7 +9,7 @@ is a one-line change in a CI config.
 ## 1. Invocation
 
 ```
-fastscope <PATH> [OPTIONS]
+omnibundlescope <PATH> [OPTIONS]
 
   <PATH>                 a dist folder, a stats.json, or a *.map file.
                          A folder is auto-scanned (see §4).
@@ -20,7 +20,7 @@ Exit codes:
 | code | meaning |
 |---|---|
 | `0` | success, no budget breach |
-| `1` | budget breached (`--budget`), or an `FS0042` invariant violation |
+| `1` | budget breached (`--budget`), or an `OBS0042` invariant violation |
 | `2` | usage error (clap) |
 | `3` | input unreadable / unsupported schema |
 
@@ -33,16 +33,16 @@ regression.
 | flag | values | default | wba / sme compatibility |
 |---|---|---|---|
 | `-m, --mode` | `static` \| `json` | `static` | `webpack-bundle-analyzer -m` |
-| `-r, --report` | path | `fastscope-report.html` | `webpack-bundle-analyzer -r` |
+| `-r, --report` | path | `omnibundlescope-report.html` | `webpack-bundle-analyzer -r` |
 | `-s, --default-sizes` | `stat` \| `parsed` \| `gzip` \| `attributed` | `parsed` | `webpack-bundle-analyzer -s` |
 | `-e, --exclude` | regex, repeatable | – | `webpack-bundle-analyzer -e` |
 | `-O, --no-open` | flag | off (static never opens a browser) | `webpack-bundle-analyzer -O` |
-| `--budget` | path to `fastscope.config.json` | – | new |
+| `--budget` | path to `omnibundlescope.config.json` | – | new |
 | `--json` | flag (shortcut for `--mode json` to stdout) | off | new |
 | `--dims` | `source` \| `package` \| `chunk` (repeatable) | all three | new (Phase 2 adds `deps`) |
 | `--include-sources` | flag | off | new: embed `sourcesContent` in the HTML for drill-down |
 | `--no-fusion` | flag | off | new: escape hatch, report the raw graph |
-| `--cache-dir` | path | `.fastscope-cache` | new |
+| `--cache-dir` | path | `.omnibundlescope-cache` | new |
 | `-l, --log-level` | `error` \| `warn` \| `info` \| `debug` | `warn` | `webpack-bundle-analyzer -l` |
 
 Deliberate non-goals for Phase 1: no `--serve` (a static single file is the
@@ -65,11 +65,11 @@ whole promise; see ADR-0002), no GUI, no plugin system.
   summary line so a breach is never ambiguous).
 - a `match` that matches nothing is an **error**, not a no-op: a typo in a
   budget rule must not silently pass CI.
-- breaches emit `FS0040` diagnostics and exit `1`.
+- breaches emit `OBS0040` diagnostics and exit `1`.
 
 ## 4. Auto-scan rules (zero-config promise)
 
-Given a directory, FastScope looks for, in this order:
+Given a directory, OmniBundleScope looks for, in this order:
 
 1. `stats.json` / `*.stats.json` (webpack, rspack) — enables the dependency graph
 2. `*.map` next to the emitted assets — enables ground-truth attribution
@@ -93,4 +93,4 @@ what it looked for.
 
 `--watch` (Phase 2), `--baseline <file>` (Phase 3, trend diffing) and
 `--format sarif` (Phase 3) are explicitly reserved names so plugins and CI
-configs written against FastScope 1.x keep parsing.
+configs written against OmniBundleScope 1.x keep parsing.

@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
-const binary = process.env.OB_BINARY ?? join(repoRoot, 'target', 'release', 'fastscope.exe');
+const binary = process.env.OB_BINARY ?? join(repoRoot, 'target', 'release', 'omnibundlescope.exe');
 const resultsDir = join(repoRoot, 'bench', 'results');
 
 const arg = (flag, fallback = null) => {
@@ -66,7 +66,7 @@ samples.sort((a, b) => a - b);
 const median = samples[Math.floor(samples.length / 2)];
 
 const out = {
-  measurement: 'WS-2 full pipeline',
+  measurement: 'sizes full pipeline',
   input: { stats, dir: dir ?? null, maps_fused: withMaps, bytes: statSync(stats).size },
   runs: samples,
   wall_ms_median: median,

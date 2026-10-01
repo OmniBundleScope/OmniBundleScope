@@ -1,10 +1,10 @@
 # 04 — Benchmark plan
 
-Owner: WS-A (protocol) · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 Normative protocol: `docs/contracts/bench-spec.md`. This file is the **status
 board**: every target, its current number or an explicit `unverified`, and the
-lane that owns it.
+area that owns it.
 
 Rules that are not negotiable:
 
@@ -17,16 +17,16 @@ Rules that are not negotiable:
 
 | id | scenario | fixture class | target | measured | owner |
 |----|----------|---------------|--------|----------|-------|
-| B1 | stats 363 MB / 154,379 modules, ingest | synthetic | ≤ 2 s, ≤ 200 MB | **1,392 ms / 157 MB** (ingest only) | WS-1 ✅ |
-| B2 | stats 1,049 MB / 445,602 modules, ingest | synthetic | ≤ 3 s, ≤ 400 MB | **4,402 ms / 350 MB** — memory passes, wall **misses by 1.4 s** | WS-1 ⚠️ |
-| B3 | 400 MB full pipeline (ingest + 1,500 assets + report) | synthetic | ≤ 5 s, ≤ 200 MB | **1,753 ms / 156 MB** (was 3,052 ms / 670 MB) | WS-2 ✅ |
-| B4 | 1 GB full pipeline | synthetic | ≤ 15 s, ≤ 400 MB | **5,172 ms / 376 MB** (was 8,080 ms / 962 MB) | WS-2 ✅ |
-| B5 | `.map` 50 MB / 10k sources, parse + attribute | real + synthetic | ≤ 1 s | **10k: 46 ms · 50k: 209 ms / 67 MB** (SME: 18,380 ms / 562,269 ms) | WS-3 ✅ |
-| B6 | `source-map-explorer` baseline on the same `.map` | real + synthetic | any number, must exist | **0.22-0.25 s (small real), 18.4 s median (10k sources), 562 s (50k sources); 31-642 MB** | **WS-S ✅** |
-| B7 | gzip 25,600 assets | synthetic | — | **2,177 ms → 342 ms (6.4x)** | WS-2 |
-| B8 | fusion memory, 1 GB stats + 36.5 MB map | synthetic | < 500 MB peak | **152 MB / 4,942 ms**, coverage 100%, 50,000/50,000 attributed (was 73,838 ms) | WS-4 ✅ |
-| B9 | parity diff vs WBA / SME | real | ≤ 0.1 %, ordering only | **0 ppm** on assets and modules for preact, marked, chalk (real webpack builds) | WS-7 ✅ |
-| B10 | report: 10k modules, first paint / interaction | real | < 2 s / > 30 fps | unverified — no browser in CI; measured instead as report bytes and generation time (1.6 MB, 1.27 s at 154k modules) | WS-5 ⚠️ |
+| B1 | stats 363 MB / 154,379 modules, ingest | synthetic | ≤ 2 s, ≤ 200 MB | **1,392 ms / 157 MB** (ingest only) | stats ingest ✅ |
+| B2 | stats 1,049 MB / 445,602 modules, ingest | synthetic | ≤ 3 s, ≤ 400 MB | **4,402 ms / 350 MB** — memory passes, wall **misses by 1.4 s** | stats ingest ⚠️ |
+| B3 | 400 MB full pipeline (ingest + 1,500 assets + report) | synthetic | ≤ 5 s, ≤ 200 MB | **1,753 ms / 156 MB** (was 3,052 ms / 670 MB) | sizes ✅ |
+| B4 | 1 GB full pipeline | synthetic | ≤ 15 s, ≤ 400 MB | **5,172 ms / 376 MB** (was 8,080 ms / 962 MB) | sizes ✅ |
+| B5 | `.map` 50 MB / 10k sources, parse + attribute | real + synthetic | ≤ 1 s | **10k: 46 ms · 50k: 209 ms / 67 MB** (SME: 18,380 ms / 562,269 ms) | source maps ✅ |
+| B6 | `source-map-explorer` baseline on the same `.map` | real + synthetic | any number, must exist | **0.22-0.25 s (small real), 18.4 s median (10k sources), 562 s (50k sources); 31-642 MB** | **the source-map-explorer baseline ✅** |
+| B7 | gzip 25,600 assets | synthetic | — | **2,177 ms → 342 ms (6.4x)** | sizes |
+| B8 | fusion memory, 1 GB stats + 36.5 MB map | synthetic | < 500 MB peak | **152 MB / 4,942 ms**, coverage 100%, 50,000/50,000 attributed (was 73,838 ms) | fusion ✅ |
+| B9 | parity diff vs WBA / SME | real | ≤ 0.1 %, ordering only | **0 ppm** on assets and modules for preact, marked, chalk (real webpack builds) | parity ✅ |
+| B10 | report: 10k modules, first paint / interaction | real | < 2 s / > 30 fps | unverified — no browser in CI; measured instead as report bytes and generation time (1.6 MB, 1.27 s at 154k modules) | report ⚠️ |
 
 Every number above is a median of 3 runs on the reference machine unless the row
 says otherwise, sampled by `bench/harness/measure.ps1`. Memory varies about 15 %
@@ -40,12 +40,12 @@ flattering one.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/chart-pipeline-dark.svg">
-  <img alt="Bar charts comparing FastScope with webpack-bundle-analyzer on wall clock and peak memory for a 363 MB and a 1 GB stats file." src="../assets/chart-pipeline-light.svg" width="100%">
+  <img alt="Bar charts comparing OmniBundleScope with webpack-bundle-analyzer on wall clock and peak memory for a 363 MB and a 1 GB stats file." src="../assets/chart-pipeline-light.svg" width="100%">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/chart-source-maps-dark.svg">
-  <img alt="Log-log charts of source map attribution time and memory against the number of sources, comparing FastScope with source-map-explorer." src="../assets/chart-source-maps-light.svg" width="100%">
+  <img alt="Log-log charts of source map attribution time and memory against the number of sources, comparing OmniBundleScope with source-map-explorer." src="../assets/chart-source-maps-light.svg" width="100%">
 </picture>
 
 <picture>
@@ -74,8 +74,8 @@ than buried:
 
 | tool | input | wall | peak RSS | fixture |
 |---|---|---|---|---|
-| **fastscope 0.1.0 (release)** | **stats 363 MB / 154,379 modules** | **1.33 s** | **126 MB** | synthetic |
-| **fastscope 0.1.0 (release)** | **stats 1,049 MB / 445,602 modules** | **3.63 s** | **346 MB** | synthetic |
+| **omnibundlescope 0.1.0 (release)** | **stats 363 MB / 154,379 modules** | **1.33 s** | **126 MB** | synthetic |
+| **omnibundlescope 0.1.0 (release)** | **stats 1,049 MB / 445,602 modules** | **3.63 s** | **346 MB** | synthetic |
 | webpack-bundle-analyzer 4.10.2 | stats 363 MB (same file) | 63.6 s | 2,295 MB | synthetic |
 | webpack-bundle-analyzer 4.10.2 | stats 1,049 MB | 176.3 s | 1,437 MB | synthetic |
 | node `readFileSync` + `JSON.parse` | stats 381 MB | 0.94 s | 919 MB | synthetic |
@@ -94,7 +94,7 @@ memory floor — 1 GB input became 6.4 GB resident and 480 s. The fix was to
 stream from a 1 MiB `BufReader` (`core::stats::ingest_file`) and to use a 512 KiB
 head read only for sniffing the artifact type. The memory story is a property of
 the IO path, not of the parser; a benchmark that measured only parse time would
-never have seen it. Details: `bench/results/ws1-stats-ingest-2026-09-03.json`.
+never have seen it. Details: `bench/results/stats-ingest-2026-09-03.json`.
 
 The 5x-data / 30.6x-time ratio between the two source-map rows is the other
 signal worth watching: SME's attribution is superlinear, while small projects
@@ -146,7 +146,7 @@ the fixture class, the tool version and the machine. If a number is not
 reproducible from the committed harness, it does not go in the table — including
 the ones we would like to be true.
 
-## 6. New finding: the payload is now the bottleneck (WS-2 / WS-5 input)
+## 6. New finding: the payload is now the bottleneck (sizes / report input)
 
 Running the shipped binary end to end on the 363 MB fixture:
 
@@ -169,11 +169,11 @@ architectural rather than a micro-optimisation:
   graphs, or the promise needs a documented size ceiling above which we emit
   `report.html` + `report.data.json` and say so in the summary line.
 
-WS-2 owns the measurement of the corrected approach; WS-5 owns the payload
+sizes owns the measurement of the corrected approach; report owns the payload
 shape. Until then `--bench` is the honest path for large inputs: it measures the
 part we have actually optimised.
 
-## 7. Closed: the payload bottleneck (WS-5, 2026-09-16)
+## 7. Closed: the payload bottleneck (report, 2026-09-16)
 
 The three fixes in §6 shipped, and the result is the B3/B4 row above.
 

@@ -1,8 +1,8 @@
 # 05 — Parity and testing
 
-Owner: WS-7 · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
-FastScope replaces tools people already trust. "Trust" here means one thing:
+OmniBundleScope replaces tools people already trust. "Trust" here means one thing:
 **the numbers must match**, or the tool is lying with a nicer UI.
 
 ## 1. The two gates
@@ -19,7 +19,7 @@ Everything else (layout, colours, interaction) is ours by design (ADR-0002).
 1. Build a fixture (real repos only — synthetic inputs are for scale).
 2. Run `webpack-bundle-analyzer` (or `source-map-explorer`) in `--mode json` /
    `json` output; collect the per-module and per-asset sizes.
-3. Run FastScope with `--json` on the same input; collect the same fields.
+3. Run OmniBundleScope with `--json` on the same input; collect the same fields.
 4. Diff on the **join key**, not on row order. Report:
    - `missing`: keys the reference has and we do not;
    - `extra`: keys we have and the reference does not;
@@ -35,7 +35,7 @@ Known and accepted differences, each declared in the test:
 | `gzip` level must be 6 | any other level changes every number; the test pins the level |
 | `attributed` sizes are ours alone | no reference tool computes them; parity applies to `stat`/`parsed`/`gzip` |
 | module keys for chunks without `identifier` | we use `"{chunk}:{name}"`; the reference uses its own internal key — we compare through a name+chunk projection |
-| `initial` flag on chunks | absent in some stats versions; we default to `true` and log `FS0002` when the field is missing |
+| `initial` flag on chunks | absent in some stats versions; we default to `true` and log `OBS0002` when the field is missing |
 
 ## 3. Correctness tests that are not parity
 
@@ -50,7 +50,7 @@ Known and accepted differences, each declared in the test:
 
 ## 4. Golden files
 
-`crates/fastscope-core/tests/golden/` holds one JSON per fixture. They are
+`crates/omnibundlescope-core/tests/golden/` holds one JSON per fixture. They are
 regenerated with `--update-goldens` and reviewed like code: a diff in a golden
 file is either a deliberate, explained change or a bug. No blanket re-record.
 

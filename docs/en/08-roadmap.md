@@ -1,6 +1,6 @@
 # 08 — Roadmap
 
-Owner: WS-0 · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 The PRD's calendar (M1-2, M3-4, …) is kept here for continuity with the vision,
 but the operative plan is `03-implementation-plan.md` (milestones, no dates).
@@ -17,7 +17,7 @@ tests · four-language documentation · multi-platform binaries.
 - B1, B2, B3, B4, B5, B8, B9, B10 measured and within target
 - parity ≤ 0.1 % against pinned WBA and SME on the real fixtures
 - ghost/hidden ≥ 95 % agreement with hand labels on three real projects
-- WS-S baseline recorded, and R1 either retired or the positioning rewritten
+- the source-map-explorer baseline baseline recorded, and R1 either retired or the positioning rewritten
 - release-grade documentation in EN/ZH/JA/DE
 
 **Deliberately not in Phase 1:** GUI, dev server, WebGL, browser-side analysis,
@@ -26,7 +26,7 @@ Those are Phase 2+ and the README must not imply otherwise.
 
 ## Phase 2 — Web UI and WASM
 
-- `fastscope-wasm` gets real bindings; the core is already IO-free so this is
+- `omnibundlescope-wasm` gets real bindings; the core is already IO-free so this is
   packaging plus a JS API.
 - WebGL treemap renderer behind the existing payload contract, keeping the
   Canvas 2D path as a fallback.

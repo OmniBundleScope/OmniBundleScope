@@ -1,10 +1,10 @@
 {
-  "measurement": "WS-3 source map ingest + WS-4 fusion, end to end on a real build",
+  "measurement": "source map ingest + fusion, end to end on a real build",
   "date": "2026-09-21",
   "machine": "windows, rustc 1.97.1, release profile",
   "real_build_run": {
     "fixture": "bench/fixtures/artifacts/preact (preact@10.29.8 bundled by our esbuild config)",
-    "command": "fastscope . --mode static --report report.html",
+    "command": "omnibundlescope . --mode static --report report.html",
     "input": "stats.json (12 modules, 1 asset 35 KB) + bundle.js.map + bundle.min.js.map",
     "output": {
       "ingest_ms": 5,
@@ -22,7 +22,7 @@
     }
   },
   "scale_bench": {
-    "command": "fastscope <map> --bench-map (3 runs, median)",
+    "command": "omnibundlescope <map> --bench-map (3 runs, median)",
     "rows": [
       { "fixture": "preact bundle.js.map", "class": "real", "sources": 12, "mappings": 4310, "wall_ms_median": 7, "reference_sme_ms": 252, "ratio": 36.0 },
       { "fixture": "marked bundle.js.map", "class": "real", "sources": 11, "mappings": 11057, "wall_ms_median": 9, "reference_sme_ms": 224, "ratio": 24.9 },
@@ -54,7 +54,7 @@
     {
       "what": "the summary printed the requested size dimension instead of the one used",
       "caught_by": "reading the output against the contract (unified-graph.md §3)",
-      "fix": "the report states the dimension it used, with FS0050 explaining an upgrade or downgrade"
+      "fix": "the report states the dimension it used, with OBS0050 explaining an upgrade or downgrade"
     }
   ]
 }

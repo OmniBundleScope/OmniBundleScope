@@ -1,4 +1,4 @@
-# Bench harness (WS-A)
+# Bench harness (benchmarks)
 
 Everything needed to reproduce every number in `docs/en/01-evidence.md`.
 

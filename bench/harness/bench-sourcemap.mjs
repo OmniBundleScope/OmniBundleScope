@@ -1,5 +1,5 @@
-// WS-3 source-map ingest benchmark (B5), run against the same fixtures as the
-// WS-S source-map-explorer baseline so the comparison is like for like.
+// source maps source-map ingest benchmark (B5), run against the same fixtures as the
+// the source-map-explorer baseline source-map-explorer baseline so the comparison is like for like.
 //
 //   node harness/bench-sourcemap.mjs <mapFile> [<mapFile> …]
 //
@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
 const binary =
-  process.env.OB_BINARY ?? join(repoRoot, 'target', 'release', 'fastscope.exe');
+  process.env.OB_BINARY ?? join(repoRoot, 'target', 'release', 'omnibundlescope.exe');
 const resultsDir = join(repoRoot, 'bench', 'results');
 
 const inputs = process.argv.slice(2);
@@ -61,7 +61,7 @@ for (const input of inputs) {
   rows.push({
     fixture: input.split(/[\\/]/).pop(),
     fixture_class: input.includes('artifacts') ? 'real' : 'synthetic',
-    tool: 'fastscope@0.1.0 --bench-map',
+    tool: 'omnibundlescope@0.1.0 --bench-map',
     input_bytes: size,
     sources,
     mappings: detail.mappings ?? null,
@@ -72,7 +72,7 @@ for (const input of inputs) {
 }
 
 const out = join(resultsDir, `ws3-sourcemap-${Date.now()}.json`);
-writeFileSync(out, `${JSON.stringify({ measurement: 'WS-3 source map ingest', rows }, null, 2)}\n`);
+writeFileSync(out, `${JSON.stringify({ measurement: 'source maps source map ingest', rows }, null, 2)}\n`);
 for (const r of rows) {
   console.log(
     `${r.fixture}: ${r.sources} sources, ${r.mappings} mappings, median ${r.wall_ms_median} ms`,

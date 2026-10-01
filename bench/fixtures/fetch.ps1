@@ -1,4 +1,4 @@
-# Fetch the real fixtures (WS-A). Pinned by commit, never committed themselves
+# Fetch the real fixtures (benchmarks). Pinned by commit, never committed themselves
 # (ADR-0005). Run from the bench/ directory:  .\fixtures\fetch.ps1
 #
 # Tag names are not consistent across projects (preact uses 10.29.8, marked uses
@@ -53,7 +53,7 @@ foreach ($f in $fixtures) {
         $commit = git rev-parse HEAD
         $short = git rev-parse --short HEAD
         Write-Output "   commit: $short ($commit)"
-        $commit | Out-File -FilePath (Join-Path $dest '.fastscope-commit') -Encoding utf8
+        $commit | Out-File -FilePath (Join-Path $dest '.omnibundlescope-commit') -Encoding utf8
     } finally {
         Pop-Location
     }

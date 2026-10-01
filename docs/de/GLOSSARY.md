@@ -1,4 +1,4 @@
-# Glossar — FastScope (DE)
+# Glossar — OmniBundleScope (DE)
 
 Die kanonische Liste steht in `docs/contracts/i18n-parity.md` §4. Andere
 Sprachen: [EN](../en/GLOSSARY.md) · [ZH](../zh/GLOSSARY.md) · [JA](../ja/GLOSSARY.md)
@@ -15,11 +15,10 @@ Sprachen: [EN](../en/GLOSSARY.md) · [ZH](../zh/GLOSSARY.md) · [JA](../ja/GLOSS
 | hidden code | versteckter Code | erzeugte Bytes, die zu keinem Modul gehören |
 | tree shaking | Tree Shaking | Entfernen ungenutzter Exporte |
 | treemap | Treemap | Squarified-Layout; in Phase 1 mit Canvas 2D |
-| budget | Größen-Budget | CI-Gate; Verletzung ⇒ Exit-Code 1 und `FS0040` |
+| budget | Größen-Budget | CI-Gate; Verletzung ⇒ Exit-Code 1 und `OBS0040` |
 | baseline | Ausgangswert | der Referenzwert, gegen den gemessen wird |
 | size dimension | Größendimension | `stat` / `parsed` / `gzip` / `attributed` |
 | phase | Phase | scan / parse / attribute / fuse / report |
-| lane / workstream | Arbeitsstrang | Einheit mit exklusiven Pfaden (WS-0 … WS-9) |
 | fixture | Fixture | feste Eingabe für Tests oder Benchmarks |
 | real fixture | echtes Fixture | aus einem echten Open-Source-Projekt gebaut |
 | synthetic fixture | synthetisches Fixture | erzeugt, um eine Größenordnung zu erreichen, die reale Projekte nicht haben |
@@ -31,5 +30,5 @@ Sprachen: [EN](../en/GLOSSARY.md) · [ZH](../zh/GLOSSARY.md) · [JA](../ja/GLOSS
 ## Nicht übersetzen
 
 Code, Bezeichner, Dateinamen, CLI-Flags, JSON-Schlüssel, Diagnosecodes
-(`FS0001` …), Crate-Namen, Versionsnummern. Wer eines davon übersetzt, bricht
+(`OBS0001` …), Crate-Namen, Versionsnummern. Wer eines davon übersetzt, bricht
 die Paritätsprüfung.

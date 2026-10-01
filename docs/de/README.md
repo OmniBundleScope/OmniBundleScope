@@ -23,7 +23,7 @@ Die englische Fassung ist die **normative Quelle**; dieses Verzeichnis enthält
 
 1. Warten, bis die englische Quelle als `frozen` markiert ist
 2. **Zahlen, Befehle, Pfade, Bezeichner und Exit-Codes bleiben wörtlich**
-   (z. B. `2.78 s`, `176.3 s`, `FS0040`, `--dims`, `check_size_invariant`)
+   (z. B. `2.78 s`, `176.3 s`, `OBS0040`, `--dims`, `check_size_invariant`)
 3. Kopfzeile ergänzen:
    `<!-- source: docs/en/<file> | version: <n> | status: translated -->`
 4. `node bench/harness/check-i18n.mjs --lang de` muss null Differenzen melden

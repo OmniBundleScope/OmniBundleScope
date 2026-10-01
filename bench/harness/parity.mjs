@@ -1,4 +1,4 @@
-// Parity harness (WS-7): compare our numbers with the reference tools on the
+// Parity harness (parity): compare our numbers with the reference tools on the
 // same fixture, per `docs/en/05-parity-and-testing.md`.
 //
 //   node parity.mjs --stats <stats.json> [--bundle <dir>]
@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
-const binary = process.env.OB_BINARY ?? join(repoRoot, 'target', 'release', 'fastscope.exe');
+const binary = process.env.OB_BINARY ?? join(repoRoot, 'target', 'release', 'omnibundlescope.exe');
 const resultsDir = join(repoRoot, 'bench', 'results');
 const TOLERANCE_PPM = 1_000;
 
@@ -177,7 +177,7 @@ if (mode === 'stats') {
   const moduleDiff = diffTables(ourModules, modules, (m) => m.name, (m) => m.stat);
 
   result = {
-    measurement: 'WS-7 parity: fastscope vs webpack-bundle-analyzer',
+    measurement: 'parity: omnibundlescope vs webpack-bundle-analyzer',
     fixture: { stats: statsPath, bundle_dir: bundleDir, class: 'real' },
     tolerance_ppm: TOLERANCE_PPM,
     assets: {
@@ -223,7 +223,7 @@ if (mode === 'stats') {
       : Math.round((Math.abs(ourTotal - theirTotalBytes) / theirTotalBytes) * 1_000_000);
 
   result = {
-    measurement: 'WS-7 parity: fastscope vs source-map-explorer',
+    measurement: 'parity: omnibundlescope vs source-map-explorer',
     fixture: { bundle: smeBundle, class: 'real' },
     tolerance_ppm: TOLERANCE_PPM,
     ours: { attributed_total: ourTotal, sources: null },

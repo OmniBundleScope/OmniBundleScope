@@ -1,21 +1,21 @@
-# Labels follow the workstream lanes in docs/contracts/OWNERS.md, so an issue
-# or PR routes to the lane that owns it without anyone assigning it by hand.
+# One label per area of the codebase, so an issue or PR routes to whoever owns
+# it without anyone assigning it by hand.
 "area: stats":
-  - changed-files: {globs: ["crates/fastscope-core/src/stats/**"]}
+  - changed-files: {globs: ["crates/omnibundlescope-core/src/stats/**"]}
 "area: sizes":
-  - changed-files: {globs: ["crates/fastscope-core/src/sizes/**"]}
+  - changed-files: {globs: ["crates/omnibundlescope-core/src/sizes/**"]}
 "area: sourcemap":
-  - changed-files: {globs: ["crates/fastscope-core/src/sourcemap/**"]}
+  - changed-files: {globs: ["crates/omnibundlescope-core/src/sourcemap/**"]}
 "area: fusion":
-  - changed-files: {globs: ["crates/fastscope-core/src/fusion/**"]}
+  - changed-files: {globs: ["crates/omnibundlescope-core/src/fusion/**"]}
 "area: report":
-  - changed-files: {globs: ["crates/fastscope-core/src/report/**", "assets/report/**"]}
+  - changed-files: {globs: ["crates/omnibundlescope-core/src/report/**", "assets/report/**"]}
 "area: model":
-  - changed-files: {globs: ["crates/fastscope-core/src/model.rs", "docs/contracts/**"]}
+  - changed-files: {globs: ["crates/omnibundlescope-core/src/model.rs", "docs/contracts/**"]}
 "area: cli":
-  - changed-files: {globs: ["crates/fastscope-cli/**"]}
+  - changed-files: {globs: ["crates/omnibundlescope-cli/**"]}
 "area: wasm":
-  - changed-files: {globs: ["crates/fastscope-wasm/**"]}
+  - changed-files: {globs: ["crates/omnibundlescope-wasm/**"]}
 "area: bench":
   - changed-files: {globs: ["bench/**"]}
 "area: ci":
@@ -25,4 +25,4 @@
 "area: docs":
   - changed-files: {globs: ["docs/**", "*.md"]}
 "area: npm-packaging":
-  - changed-files: {globs: ["npm/fastscope/package.json", "npm/fastscope/install.mjs"]}
+  - changed-files: {globs: ["npm/omnibundlescope/package.json", "npm/omnibundlescope/install.mjs"]}

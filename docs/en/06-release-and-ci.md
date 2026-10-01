@@ -1,15 +1,15 @@
 # 06 — Release, distribution and CI
 
-Owner: WS-8 · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 ## 1. Artefacts
 
 | artefact | channel | notes |
 |---|---|---|
-| `fastscope-core` | crates.io | published first; proves the build is real |
+| `omnibundlescope-core` | crates.io | published first; proves the build is real |
 | static binaries | GitHub releases | windows x64, macOS x64 + arm64, linux x64 + arm64 |
-| `fastscope` (npm) | npm | thin wrapper: resolves the platform, downloads the binary, execs it |
-| `fastscope-wasm` | npm (Phase 2) | `@fastscope/wasm`, browser bundle |
+| `omnibundlescope` (npm) | npm | thin wrapper: resolves the platform, downloads the binary, execs it |
+| `omnibundlescope-wasm` | npm (Phase 2) | `@omnibundlescope/wasm`, browser bundle |
 
 No native binaries inside npm tarballs: a 200 MB install is how a CLI loses its
 users, and the wrapper costs about 40 KB.
@@ -41,7 +41,7 @@ change, independently of the crate version.
 | `release.yml` | `v*` tags, manual | build matrix, checksums, publish order §2 |
 | `docs.yml` | PRs touching `docs/**` | i18n parity, link check, glossary conformance |
 
-`clippy -D warnings` is enforced on `fastscope-core` only. The CLI and WASM
+`clippy -D warnings` is enforced on `omnibundlescope-core` only. The CLI and WASM
 crates get warnings, because a pedantic lint storm in a wrapper is not where our
 attention belongs.
 
@@ -52,7 +52,7 @@ attention belongs.
 | linux x64/arm64, macOS x64/arm64 | first class | CI + release matrix |
 | windows x64 | first class | the reference machine is Windows; a tool that cannot verify its own benchmarks on Windows is not finished |
 | musl, armv7, s390x | best effort | via cargo-dist, not gated |
-| wasm32-unknown-unknown | Phase 2 | depends on `fastscope-wasm` |
+| wasm32-unknown-unknown | Phase 2 | depends on `omnibundlescope-wasm` |
 
 ## 6. Reproducible releases
 

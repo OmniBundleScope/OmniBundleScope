@@ -104,14 +104,14 @@
       "fixture_class": "synthetic"
     },
     {
-      "tool": "fastscope streaming prototype",
+      "tool": "omnibundlescope streaming prototype",
       "input": "stats-400mb",
       "wall_ms": 990,
       "peak_rss_mb": 17,
       "fixture_class": "synthetic"
     },
     {
-      "tool": "fastscope streaming prototype",
+      "tool": "omnibundlescope streaming prototype",
       "input": "stats-1gb",
       "wall_ms": 2787,
       "peak_rss_mb": 59,

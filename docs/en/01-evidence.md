@@ -1,8 +1,8 @@
 # 01 — Evidence: why this project exists
 
-Owner: WS-0, with WS-S for the source-map section · Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
-This document is the honest ledger behind FastScope. Every number here was
+This document is the honest ledger behind OmniBundleScope. Every number here was
 measured on the reference machine unless it is explicitly marked as coming from
 an upstream issue. Nothing in this file is aspirational.
 
@@ -11,7 +11,7 @@ Reference machine: Windows, node 24.18.0, python 3.12.10, rustc/cargo 1.97.1,
 
 ## 1. Where the idea came from
 
-FastScope is the survivor of a nine-round direction search for "rewrite a slow,
+OmniBundleScope is the survivor of a nine-round direction search for "rewrite a slow,
 in-demand developer tool in Rust". The full search record lives outside this
 repository and is referenced in §7; the short version:
 
@@ -70,12 +70,12 @@ Three things follow, and they are the technical core of this project:
 3. **Real wins are structural.** rayon on gzip gave 6.4x. That is the shape of
    this project's claims: no per-item process, no V8 heap, actual parallelism.
 
-**Superseded 2026-09-16:** the attribution-tree stage is now implemented (WS-2,
+**Superseded 2026-09-16:** the attribution-tree stage is now implemented (sizes,
 rayon over assets, sizes from disk) and B3/B4 are measured in §2b below. The
 table above is kept as the record of the *reference* tool's numbers, which is
 what those numbers are: WBA and the readFileSync floor, not us.
 
-## 2b. Our own full-pipeline numbers (WS-2/WS-4/WS-5, measured 2026-09-16)
+## 2b. Our own full-pipeline numbers (sizes/fusion/report, measured 2026-09-16)
 
 Same fixtures, but the whole pipeline: ingest, measure every asset, fuse the
 source maps, render the report. Peak memory is sampled every 25 ms from the
@@ -90,8 +90,8 @@ Raw records, committed so they can be inspected rather than taken on trust:
 | B3 | `bench/results/b3-full-pipeline-2026-09-16.json` |
 | B4 | `bench/results/b4-full-pipeline-2026-09-16.json` |
 | B8 | `bench/results/b8-stats-plus-map-2026-09-16.json` |
-| SME baseline | `bench/results/ws-s-sme-baseline-2026-09-03.json` |
-| WBA ingest | `bench/results/ws1-stats-ingest-2026-09-03.json` |
+| SME baseline | `bench/results/sme-baseline-2026-09-03.json` |
+| WBA ingest | `bench/results/stats-ingest-2026-09-03.json` |
 
 | benchmark | input | target | before | **now** |
 |---|---|---|---|---|
@@ -132,14 +132,14 @@ fixture has one asset, so "1 GB stats + 50 MB map" is a memory-and-join test,
 not a claim about a 1,500-asset build with a map for each one.
 
 
-## 3. The source-map-explorer measurement (WS-S, **done 2026-09-03**)
+## 3. The source-map-explorer measurement (the source-map-explorer baseline, **done 2026-09-03**)
 
 This was the load-bearing unknown of the whole product, so it went first. Result:
 **the answer is "it depends on scale", and that is more useful than a yes/no.**
 
 All numbers below are ours, on the reference machine, peak RSS sampled at
 100 ms (`bench/harness/run-bench.ps1`). Full record:
-`bench/results/ws-s-sme-baseline-2026-09-03.json`.
+`bench/results/sme-baseline-2026-09-03.json`.
 
 | fixture | class | map | bundle | SME 2.5.3 wall | peak RSS |
 |---|---|---|---|---|---|
@@ -204,7 +204,7 @@ tools fail in ways we had to discover ourselves:
   type-checker-based tool reported 5.35M. A 38x difference in "correct" output
   between a fast and a slow implementation is the normal case, not an edge case.
 
-Therefore: parity tests against WBA and SME (WS-7) are a release gate, not a
+Therefore: parity tests against WBA and SME (parity) are a release gate, not a
 nicety, and the ghost/hidden classifier needs hand-labelled ground truth
 (≥95 % agreement) before it ships.
 
@@ -215,7 +215,7 @@ cd bench
 ./fixtures/fetch.sh                 # real fixtures, pinned by commit
 node harness/gen-stats.mjs 381000000 out/stats-400mb.json
 node harness/materialize-assets.mjs --stats out/stats-400mb.json --out out/dist
-powershell -File harness/measure.ps1 -Binary ../target/release/fastscope.exe \
+powershell -File harness/measure.ps1 -Binary ../target/release/omnibundlescope.exe \
     -Target out/dist -Extra '--mode static --report out/report.html' -Runs 3
 node harness/parity.mjs --stats fixtures/artifacts/webpack/marked/stats.json \
     --bundle fixtures/artifacts/webpack/marked
@@ -242,7 +242,7 @@ a cold cache, same machine), §5 defines the result format. The point of writing
 a protocol instead of ad-hoc commands is that the next person can rerun this in
 a year and get numbers worth comparing.
 
-## 7. Provenance of the direction search
+## 7. Provenance of the prior-art survey
 
 The search record is maintained outside this repository:
 
@@ -257,4 +257,4 @@ Two of its conclusions are load-bearing here and worth restating: the pain
 reported in an issue is often a CI or network cost rather than tool CPU
 (changesets' "20 minutes" was CI, not the tool), and a rewrite only makes sense
 when the pain is a memory ceiling, a per-item process, or a superlinear
-algorithm. FastScope has all three.
+algorithm. OmniBundleScope has all three.

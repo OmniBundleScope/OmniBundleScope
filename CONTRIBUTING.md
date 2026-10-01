@@ -1,4 +1,4 @@
-# Contributing to FastScope
+# Contributing to OmniBundleScope
 
 Thanks for looking at this. The bar is deliberately specific, because the
 project's whole premise is that its claims are measurements:
@@ -13,8 +13,8 @@ measurement or gets an argument in the PR for why it obviously cannot.
 ## Setup
 
 ```bash
-git clone {{REPO_URL}}
-cd fastscope
+git clone https://github.com/OmniBundleScope/OmniBundleScope
+cd omnibundlescope
 cargo build --release
 cargo test --workspace
 ```
@@ -62,7 +62,7 @@ Two things are checked on top of the substitution:
 - `NPM_PACKAGE` and `CRATES_CORE_PACKAGE` must match what the manifests actually
   declare, so the badge cannot point at a package that does not exist under that name.
 - While anything is still empty, the checker fails if a URL for the
-  `fastscope/fastscope` repository has been hardcoded anywhere. Once the table
+  `omnibundlescope/omnibundlescope` repository has been hardcoded anywhere. Once the table
   is filled, that check switches off: those strings can legitimately be correct
   once someone owns that org or domain, and a gate that objects to a deliberate
   choice is worse than no gate.
@@ -73,21 +73,21 @@ publishes a README that cannot be fixed afterwards without a new version.
 
 ## Where things live
 
-Contracts are frozen first, and every path has one owning lane
-([docs/contracts/OWNERS.md](docs/contracts/OWNERS.md)). If your change touches
+Contracts are frozen first, and they live in
+[`docs/contracts/`](docs/contracts/unified-graph.md). If your change touches
 the unified graph, the report schema, the CLI surface or the benchmark
 protocol, it needs an ADR, not just a good commit message.
 
-| workstream | owns | module |
+| areas | owns | module |
 |---|---|---|
-| WS-1 | `stats.json` / `metafile.json` ingest | `crates/fastscope-core/src/stats` |
-| WS-2 | size attribution (stat / parsed / gzip) | `.../src/sizes` |
-| WS-3 | source map v3 parse + attribute | `.../src/sourcemap` |
-| WS-4 | the fusion join, ghost/hidden | `.../src/fusion` |
-| WS-5 | report payload + HTML shell | `.../src/report`, `assets/report` |
-| WS-6 | CLI surface, budget gate | `crates/fastscope-cli` |
-| WS-7 | parity harness | `bench/harness` |
-| WS-8 | CI, releases, packaging | `.github`, `npm` |
+| stats ingest | `stats.json` / `metafile.json` ingest | `crates/omnibundlescope-core/src/stats` |
+| sizes | size attribution (stat / parsed / gzip) | `.../src/sizes` |
+| source maps | source map v3 parse + attribute | `.../src/sourcemap` |
+| fusion | the fusion join, ghost/hidden | `.../src/fusion` |
+| report | report payload + HTML shell | `.../src/report`, `assets/report` |
+| the CLI | CLI surface, budget gate | `crates/omnibundlescope-cli` |
+| parity | parity harness | `bench/harness` |
+| distribution and CI | CI, releases, packaging | `.github`, `npm` |
 
 The core crate performs **no IO** and has no async runtime. That is what keeps
 the WASM target a packaging change instead of a rewrite, so a PR that adds

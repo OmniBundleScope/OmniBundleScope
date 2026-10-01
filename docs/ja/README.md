@@ -22,7 +22,7 @@
 
 1. 英語原本が frozen になるまで待ってから翻訳を開始する
 2. **数値・コマンド・パス・識別子・終了コードは逐語のまま**（例: `2.78 s`、
-   `176.3 s`、`FS0040`、`--dims`、`check_size_invariant`）
+   `176.3 s`、`OBS0040`、`--dims`、`check_size_invariant`）
 3. ファイル頭に `<!-- source: docs/en/<file> | version: <n> | status: translated -->`
    を記載する
 4. `node bench/harness/check-i18n.mjs --lang ja` がゼロ差分になるまで直す

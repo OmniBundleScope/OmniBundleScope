@@ -1,19 +1,19 @@
 # 02 — Architecture
 
-Owner: WS-0 · Translations: Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
 ## 1. Crates
 
 ```
-fastscope-core    pure logic: ingest, fusion, report payload. No IO, no CLI,
+omnibundlescope-core    pure logic: ingest, fusion, report payload. No IO, no CLI,
                    no async runtime. This is what Phase 2 compiles to WASM.
-fastscope-cli     the `fastscope` binary: scanning, budgets, file output.
-fastscope-wasm    Phase 2 bindings. Currently a schema-version shim only.
+omnibundlescope-cli     the `omnibundlescope` binary: scanning, budgets, file output.
+omnibundlescope-wasm    Phase 2 bindings. Currently a schema-version shim only.
 ```
 
 The core crate's IO-free rule is not stylistic. It is the reason a browser build
 is a packaging change instead of a rewrite, and it is enforced by review
-(`docs/contracts/OWNERS.md`).
+(`docs/contracts/`).
 
 ## 2. Data flow
 
@@ -21,7 +21,7 @@ is a packaging change instead of a rewrite, and it is enforced by review
   dist/ or stats.json or *.map or metafile.json
             │
             ▼
-   ┌──────────────────── ingestion (WS-1, WS-3) ────────────────────┐
+   ┌──────────────────── ingestion (stats ingest, source maps) ────────────────────┐
    │ stats::ingest   streaming serde_json seeds, no document buffer  │
    │ sourcemap::ingest  in-place VLQ decode → flat Vec<Mapping>     │
    └───────────────────────────────┬───────────────────────────────┘
@@ -30,11 +30,11 @@ is a packaging change instead of a rewrite, and it is enforced by review
                                    │
              ┌─────────────────────┴─────────────────────┐
              ▼                                           ▼
-      sizes::attribute (WS-2)                  fusion::analyse (WS-4)
+      sizes::attribute (sizes)                  fusion::analyse (fusion)
       stat / parsed / gzip / attributed        ghost + hidden + deltas
              └─────────────────────┬─────────────────────┘
                                    ▼
-              report payload (WS-5) ──▶ CLI (WS-6) ──▶ html | json | csv
+              report payload (report) ──▶ CLI (the CLI) ──▶ html | json | csv
                                    └──▶ WASM (Phase 2) ──▶ web UI
 ```
 
@@ -84,7 +84,7 @@ Three places, in order of value:
 | stage | strategy | measured |
 |---|---|---|
 | gzip / size measurement | rayon over assets | 2,177 ms → 342 ms, 6.4x |
-| size attribution (per module/source) | rayon over modules | WS-2 |
+| size attribution (per module/source) | rayon over modules | sizes |
 | parsing | deliberately **serial** — a single streaming pass; parallelising it would mean buffering | 1 GB at 2.78 s already |
 
 The last row matters: the instinct to parallelise the parser is wrong here. The
@@ -93,7 +93,7 @@ memory and in the stages after it.
 
 ## 7. Caching
 
-`.fastscope-cache/` keyed by `blake3` over the input bytes (and, for the
+`.omnibundlescope-cache/` keyed by `blake3` over the input bytes (and, for the
 merged graph, over the ordered artifact list). A cache hit is therefore provably
 about identical input, not about a timestamp. Cache entries store the parsed
 graph, not the rendered report, so a re-render with a different dimension costs

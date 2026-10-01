@@ -1,4 +1,4 @@
-# FastScope
+# OmniBundleScope
 
 **One analyzer for every bundler.** A dependency graph from `stats.json`, real byte
 attribution from source maps, esbuild metafiles, or a plain `dist/` folder -

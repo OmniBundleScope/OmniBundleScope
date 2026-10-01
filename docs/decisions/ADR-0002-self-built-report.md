@@ -1,6 +1,6 @@
 # ADR-0002: Write our own HTML report, vendor nothing
 
-Status: **accepted** (2026-09-02) · Owner: WS-0 · Affects: WS-5, WS-6
+Status: **accepted** (2026-09-02) · Owner: maintainers · Affects: report, the CLI
 
 ## Context
 

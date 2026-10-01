@@ -28,4 +28,4 @@ Fixtures and commands used:
 ## Contracts
 
 - [ ] This does not change the unified graph, report schema, CLI surface or benchmark protocol
-- [ ] If it does, an ADR is included (see `docs/contracts/OWNERS.md`)
+- [ ] If it does, an ADR is included (see `docs/decisions/`)

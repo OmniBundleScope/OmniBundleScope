@@ -1,4 +1,4 @@
-# 术语表 — FastScope（ZH）
+# 术语表 — OmniBundleScope（ZH）
 
 规范列表见 `docs/contracts/i18n-parity.md` §4。其他语言：
 [EN](../en/GLOSSARY.md) · [JA](../ja/GLOSSARY.md) · [DE](../de/GLOSSARY.md)
@@ -15,11 +15,10 @@
 | hidden code | 隐藏代码 | 无法映射回任何模块的生成字节 |
 | tree shaking | Tree Shaking | 消除未使用的导出 |
 | treemap | 矩阵树图 | squarified 布局，Phase 1 用 Canvas 2D 绘制 |
-| budget | 体积卡点 | CI 门禁；超限退出码 1 并输出 `FS0040` |
+| budget | 体积卡点 | CI 门禁；超限退出码 1 并输出 `OBS0040` |
 | baseline | 基线 | 用来对比的参照数值 |
 | size dimension | 体积维度 | `stat` / `parsed` / `gzip` / `attributed` |
 | phase | 阶段 | scan / parse / attribute / fuse / report |
-| lane / workstream | 工作流 | 拥有独占路径的职责单元（WS-0 … WS-9） |
 | fixture | 固定样本 | 测试或基准使用的固定输入 |
 | real fixture | 真实样本 | 由真实开源项目构建而来 |
 | synthetic fixture | 合成样本 | 为达到真实项目不具备的规模而生成 |
@@ -30,5 +29,5 @@
 
 ## 不翻译的内容
 
-代码、标识符、文件名、CLI 参数、JSON 键、诊断码（`FS0001` …）、crate 名称、
+代码、标识符、文件名、CLI 参数、JSON 键、诊断码（`OBS0001` …）、crate 名称、
 版本号。翻译其中任何一项都会让一致性检查失败。

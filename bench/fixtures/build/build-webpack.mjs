@@ -1,4 +1,4 @@
-// Real webpack build for the fixtures (WS-7 parity needs a real graph).
+// Real webpack build for the fixtures (parity needs a real graph).
 //
 // Our synthetic stats fixture is fine for scale benchmarks but useless for
 // parity: its module names and sizes are ours, so comparing it against

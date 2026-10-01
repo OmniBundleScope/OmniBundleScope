@@ -1,9 +1,9 @@
 {
-  "measurement": "WS-3 source map ingest + attribution (shipped binary, release build)",
+  "measurement": "source maps source map ingest + attribution (shipped binary, release build)",
   "date": "2026-09-21",
   "machine": "windows, rustc 1.97.1, release profile",
   "protocol": "bench-spec.md §2 — 3 runs per input, median reported; peak RSS sampled at 100 ms by harness/run-bench.ps1",
-  "command": "fastscope <map> --bench-map",
+  "command": "omnibundlescope <map> --bench-map",
   "rows": [
     {
       "fixture": "preact@10.29.8 bundle.js.map",
@@ -47,11 +47,11 @@
   ],
   "scaling_verdict": {
     "sme": "5x sources (10k -> 50k) costs 30.6x time and 2.3x memory: superlinear",
-    "fastscope": "5x sources costs 4.5x time (46 -> 209 ms) and roughly linear memory: 67 MB for a 36.5 MB map",
+    "omnibundlescope": "5x sources costs 4.5x time (46 -> 209 ms) and roughly linear memory: 67 MB for a 36.5 MB map",
     "conclusion": "the win mechanism is the one predicted in docs/en/01-evidence.md §3: flat Vec<Mapping> with no per-mapping allocation plus a single-pass attribution, not 'Rust parses faster'. A Rust parser over the same data is only ~1.6x faster than @babel/parser; the 400x-2690x gaps come from removing the allocation and the nested walk."
   },
   "targets": {
     "B5": "≤ 1 s for a 50 MB / 10k-source map: met at 46 ms median (10k) and 209 ms (50k, 36.5 MB)"
   },
-  "open": "attributed bytes are counted per source path; the join to stats modules (WS-4 fusion) is not yet measured, so the end-to-end fusion number stays unverified"
+  "open": "attributed bytes are counted per source path; the join to stats modules (the fusion) is not yet measured, so the end-to-end fusion number stays unverified"
 }

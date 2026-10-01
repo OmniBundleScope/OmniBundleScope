@@ -1,9 +1,9 @@
 # Contract: benchmark harness
 
-Status: **frozen for Phase 1**. Owner: WS-A. Code in `bench/`, CI job in
+Status: **frozen for Phase 1**. Owner: maintainers. Code in `bench/`, CI job in
 `.github/workflows/bench.yml`.
 
-FastScope's credibility rests on numbers other people can reproduce. This
+OmniBundleScope's credibility rests on numbers other people can reproduce. This
 contract exists so a benchmark run is a command, not an anecdote.
 
 ## 1. Two fixture classes, never mixed
@@ -33,7 +33,7 @@ For every run we record:
 Rule: **a phase we do not measure must not be claimed**. The reference numbers
 we already have (`docs/en/01-evidence.md`) show why: `webpack-bundle-analyzer`
 spent 0.94 s reading and parsing a 381 MB stats file and the remaining ~60 s in
-its own analysis, which is the part FastScope has to reproduce.
+its own analysis, which is the part OmniBundleScope has to reproduce.
 
 Sample size: 3 runs, report the median, discard the first run on a cold file
 cache and say so. Same machine, same power profile, nothing else running.
@@ -44,14 +44,14 @@ cache and say so. Same machine, same power profile, nothing else running.
 |---|---|---|---|
 | B1 | stats 381 MB / 160,728 modules, parse only | ≤ 2 s, ≤ 200 MB | prototype measured 0.99 s / 17 MB |
 | B2 | stats 1,049 MB / 441,976 modules, parse only | ≤ 3 s, ≤ 400 MB | prototype measured 2.78 s / 59 MB |
-| B3 | 400 MB full pipeline (parse + attribute + report) | ≤ 5 s, ≤ 200 MB | **unverified — WS-2** |
-| B4 | 1 GB full pipeline | ≤ 15 s, ≤ 400 MB | **unverified — WS-2** |
-| B5 | `.map` 50 MB / 10k sources, parse + attribute | ≤ 1 s | **unverified — WS-3** |
-| B6 | `source-map-explorer` on the same `.map` (baseline) | any number, but must be recorded | **unverified — WS-S** |
+| B3 | 400 MB full pipeline (parse + attribute + report) | ≤ 5 s, ≤ 200 MB | **unverified — sizes** |
+| B4 | 1 GB full pipeline | ≤ 15 s, ≤ 400 MB | **unverified — sizes** |
+| B5 | `.map` 50 MB / 10k sources, parse + attribute | ≤ 1 s | **unverified — source maps** |
+| B6 | `source-map-explorer` on the same `.map` (baseline) | any number, but must be recorded | **unverified — the source-map-explorer baseline** |
 | B7 | gzip of 25,600 assets | — | rayon prototype: 2,177 ms → 342 ms (6.4x) |
-| B8 | fusion memory on 1 GB stats + 50 MB map | < 500 MB peak | **unverified — WS-4** |
-| B9 | parity diff vs wba / sme | ≤ 0.1 % (ordering only) | **unverified — WS-7** |
-| B10 | report: 10k modules, first paint / interaction | < 2 s / > 30 fps | **unverified — WS-5** |
+| B8 | fusion memory on 1 GB stats + 50 MB map | < 500 MB peak | **unverified — fusion** |
+| B9 | parity diff vs wba / sme | ≤ 0.1 % (ordering only) | **unverified — parity** |
+| B10 | report: 10k modules, first paint / interaction | < 2 s / > 30 fps | **unverified — report** |
 
 Any target that gets missed is recorded as missed. Benchmarks are never
 quietly retargeted; a change needs an ADR.
@@ -66,8 +66,8 @@ Recorded here so a regression is obvious, machine and date included
 | webpack-bundle-analyzer 4.10.2 | stats 381 MB | 61.4 s | 1,985 MB |
 | webpack-bundle-analyzer 4.10.2 | stats 1,049 MB | 176.3 s | 1,437 MB |
 | node `JSON.parse` floor | stats 381 MB | 0.94 s | 919 MB |
-| FastScope streaming prototype | stats 381 MB | 0.99 s | 17 MB |
-| FastScope streaming prototype | stats 1,049 MB | 2.78 s | 59 MB |
+| OmniBundleScope streaming prototype | stats 381 MB | 0.99 s | 17 MB |
+| OmniBundleScope streaming prototype | stats 1,049 MB | 2.78 s | 59 MB |
 
 The `#492` crash ("Cannot create a string longer than 0x1fffffe8") did **not**
 reproduce on node 24: the V8 string ceiling moved. The memory wall is still
@@ -97,7 +97,7 @@ evidence log depends on.
 
 ## 6. CI behaviour
 
-`bench.yml` runs on every PR that touches `crates/fastscope-core/src/{stats,sizes,fusion,sourcemap}`:
+`bench.yml` runs on every PR that touches `crates/omnibundlescope-core/src/{stats,sizes,fusion,sourcemap}`:
 
 1. B1/B2 on the synthetic fixtures, 1 run, compare against the floor;
 2. parity (B9) on the real fixtures;

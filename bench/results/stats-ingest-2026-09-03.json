@@ -1,5 +1,5 @@
 {
-  "measurement": "WS-1 stats ingest, release build, streaming from disk",
+  "measurement": "stats ingest, release build, streaming from disk",
   "date": "2026-09-03",
   "machine": "windows, rustc 1.97.1, release profile",
   "protocol": "bench-spec.md §2 (3 runs, median, first cold run reported separately). Peak RSS sampled at 100 ms by harness/run-bench.ps1.",
@@ -11,7 +11,7 @@
       "modules": 154379,
       "assets": 1500,
       "packages": 400,
-      "tool": "fastscope@0.1.0 --bench",
+      "tool": "omnibundlescope@0.1.0 --bench",
       "ingest_ms": 1139,
       "total_ms": 1334,
       "peak_rss_mb": 126,
@@ -24,7 +24,7 @@
       "modules": 445602,
       "assets": 1500,
       "packages": 400,
-      "tool": "fastscope@0.1.0 --bench",
+      "tool": "omnibundlescope@0.1.0 --bench",
       "ingest_ms": 3318,
       "total_ms": 3628,
       "peak_rss_mb": 346,
@@ -42,7 +42,7 @@
   ],
   "comparison_on_identical_input": {
     "input": "ob-stats-400mb.json (363 MB, 154,379 modules)",
-    "fastscope": { "wall_ms": 1334, "peak_rss_mb": 126 },
+    "omnibundlescope": { "wall_ms": 1334, "peak_rss_mb": 126 },
     "webpack_b_bundle_analyzer": { "wall_ms": 63617, "peak_rss_mb": 2295 },
     "wall_ratio": 47.7,
     "memory_ratio": 18.2

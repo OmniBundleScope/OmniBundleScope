@@ -1,6 +1,6 @@
-// Synthetic source map generator (WS-A / WS-S).
+// Synthetic source map generator (benchmarks / the source-map-explorer baseline).
 //
-// Purpose: give `source-map-explorer` and our WS-3 ingest the same input at a
+// Purpose: give `source-map-explorer` and our source maps ingest the same input at a
 // scale real small projects cannot reach (10k+ sources, a long `mappings`
 // string). Real fixtures (preact/marked/chalk/dayjs) cover correctness; this
 // covers scale. Results from this generator are always labelled `synthetic`.
