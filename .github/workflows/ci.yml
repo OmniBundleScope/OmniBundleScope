@@ -13,12 +13,17 @@ env:
 
 jobs:
   test:
-    name: test (ubuntu, windows, macos)
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: test
+    # Windows only, which is the platform the benchmarks were measured on and the
+    # one the code is developed against. A cross-platform matrix looks thorough and
+    # measures nothing: every gate below is platform-independent by construction -
+    # no cfg(target_os), no build script, no path assumptions outside the report
+    # writer - so the extra runners re-run the same code and only add wall clock and
+    # three more places for an unrelated infrastructure failure to hide a real one.
+    #
+    # Adding a platform back means adding a target-specific path somewhere, and that
+    # is the point at which the runner earns its place.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -172,8 +177,8 @@ jobs:
         continue-on-error: true
 
       - name: end to end on a real webpack build
-        if: matrix.os == 'ubuntu-latest'
         working-directory: bench
+        shell: bash
         run: |
           node fixtures/build/build-webpack.mjs marked
           node ../target/release/omnibundlescope fixtures/artifacts/webpack/marked \

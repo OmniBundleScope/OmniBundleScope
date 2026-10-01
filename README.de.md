@@ -206,7 +206,7 @@ Vor 1.0, und das ist die ehrliche Tabelle. Was nicht gemessen wurde, steht als s
 | Laufzeit der 1-GB-Eingabe | **verfehlt**: 4,40 s gegen ein Ziel von 3 s (Speicher mit 350 MB unkritisch) |
 | Erster Report-Paint / 30 fps | **unverifiziert** — kein Browser in CI; stattdessen gemessen: 1,56 MB und 1,27 s bei 154.379 Modulen |
 | WASM-Build, WebGL-Renderer | nicht begonnen |
-| Windows / macOS / Linux | in CI auf allen drei getestet |
+| Windows / macOS / Linux | keine plattformsspezifischen Codepfade; getestet wird auf Windows |
 | 57 Rust-Tests, 4 npm-Tests, 1.018 erzeugte Layout-Fälle | grün |
 
 Die einzige Verfehlung steht mit Ursache im [CHANGELOG](CHANGELOG.md): es ist der
@@ -252,37 +252,6 @@ Siehe [CONTRIBUTING.md](CONTRIBUTING.md); die Gates sind `cargo test`,
 70 %, Parität gegen `webpack-bundle-analyzer` und eine Vier-Sprachen-Dokumentprüfung.
 [Verhaltenskodex](CODE_OF_CONDUCT.md) · [Sicherheitsrichtlinie](SECURITY.md)
 
-## Noch einmal: unterstützte Bundler
-
-Weil es die erste Frage ist — und weil ein Projekt, das "alle Bundler" sagt, ohne
-zu sagen welche, keine lesenswerte Behauptung aufstellt:
-
-**webpack** (4 und 5, über `stats.json`) · **rspack** (über `stats.json`) ·
-**esbuild** (über `metafile.json`) · **Vite** · **Rollup** · **Parcel** ·
-**tsup** — sowie die Ausgabe von allem, was darauf aufbaut: **Angular**,
-**Next.js**, **Nuxt**, **SvelteKit**, **React Server Components**.
-
-Zwei Eingabeformen:
-
-```bash
-omnibundlescope ./dist/stats.json   # ein Bundler-Graph: webpack, rspack, esbuild --metafile
-omnibundlescope ./dist              # nur der Ausgabeordner: vite, rollup, parcel, tsup
-```
-
-Die zweite braucht keine Konfiguration — auf `dist/` zeigen, und die Source Maps,
-die der Bundler ohnehin schreibt, genügen. Die erste schaltet zusätzlich die
-**Ghost-Code**-Erkennung frei, denn diese Frage braucht einen deklarierten
-Modulgraphen.
-
-| Bundler | Graph | Zuordnung | Ghost-Code |
-|---|---|---|---|
-| webpack, rspack | `stats.json` | Source Maps | ja |
-| esbuild | `metafile.json` | Source Maps | mit Metafile |
-| vite, rollup, parcel, tsup | nicht standardmäßig | Source Maps | mit `stats.json` |
-
----
-
-## Projekt
 ## Lizenz
 
 MIT ([LICENSE-MIT](LICENSE-MIT)) oder Apache-2.0

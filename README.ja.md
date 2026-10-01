@@ -196,7 +196,7 @@ omnibundlescope ./dist/map.js.map --bench-map            # 帰属のみ計測
 | 1 GB 取込の所要時間 | **未達**: 4.40 s（目標 3 s、メモリは 350 MB で余裕） |
 | レポートの初回描画 / 30 fps | **未検証** — CI にブラウザが無い。代わりに 154,379 モジュールで 1.56 MB / 1.27 s を測定 |
 | WASM ビルド、WebGL レンダラ | 未着手 |
-| Windows / macOS / Linux | CI の 3 プラットフォームでテスト |
+| Windows / macOS / Linux | プラットフォーム固有のコード分岐なし。Windows でのみテスト |
 | Rust テスト 57 件、npm テスト 4 件、生成レイアウト 1,018 ケース | すべて green |
 
 唯一の未達項目は、原因は [CHANGELOG](CHANGELOG.md) に明記しています:
@@ -242,36 +242,6 @@ omnibundlescope ./dist/map.js.map --bench-map            # 帰属のみ計測
 `webpack-bundle-analyzer` との整合性比較、4 言語ドキュメント検査です。
 [行動規範](CODE_OF_CONDUCT.md) · [セキュリティ方針](SECURITY.md)
 
-## もう一度、サポートするバンドラー
-
-最初の疑問であり、「すべてのバンドラーをサポート」とだけ書いて、具体的に何を指すのかを示さない
-プロジェクトには、読む価値がありません:
-
-**webpack**（4 と 5、`stats.json` 経由）· **rspack**（`stats.json` 経由）·
-**esbuild**（`metafile.json` 経由）· **Vite** · **Rollup** · **Parcel** · **tsup**、
-およびそれらを基盤とするあらゆるビルドの出力——**Angular**、**Next.js**、
-**Nuxt**、**SvelteKit**、**React Server Components**。
-
-入力は 2 つの形:
-
-```bash
-omnibundlescope ./dist/stats.json   # バンドラーのグラフ: webpack, rspack, esbuild --metafile
-omnibundlescope ./dist              # 出力フォルダのみ: vite, rollup, parcel, tsup
-```
-
-後者は設定不要です。`dist/` を指せば、バンドラーがすでに書いているソースマップが
-十分です。前者は **ゴーストコード**検出を有効にします。あの問いには宣言された
-モジュールグラフが必要だからです。
-
-| バンドラー | グラフ | 帰属 | ゴーストコード |
-|---|---|---|---|
-| webpack、rspack | `stats.json` | ソースマップ | あり |
-| esbuild | `metafile.json` | ソースマップ | metafile があればあり |
-| vite、rollup、parcel、tsup | 既定ではない | ソースマップ | `stats.json` があればあり |
-
----
-
-## プロジェクト
 ## ライセンス
 
 MIT（[LICENSE-MIT](LICENSE-MIT)）または Apache-2.0（[LICENSE-APACHE](LICENSE-APACHE)）、お好きな方を。

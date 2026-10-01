@@ -196,7 +196,7 @@ omnibundlescope ./dist/map.js.map --bench-map            # 只跑归因，并计
 | 1 GB 摄取的墙钟时间 | **未达标**：4.40 s，目标 3 s（内存 350 MB，很宽裕） |
 | 报告首屏渲染 / 30 fps | **未验证**——CI 里没有浏览器；改为测量 154,379 模块下 1.56 MB、1.27 s |
 | WASM 构建、WebGL 渲染器 | 尚未开始 |
-| Windows / macOS / Linux | CI 三平台均测试 |
+| Windows / macOS / Linux | 没有平台相关的代码分支，只在 Windows 上验证 |
 | 57 个 Rust 测试、4 个 npm 测试、1,018 个生成的布局用例 | 全绿 |
 
 唯一那个未达标项，在 [CHANGELOG](CHANGELOG.md) 里写明了原因：瓶颈是 `serde_json` 的 DOM 游标
@@ -241,35 +241,6 @@ omnibundlescope ./dist/map.js.map --bench-map            # 只跑归因，并计
 `cargo fmt`、70% 覆盖率下限、与 `webpack-bundle-analyzer` 的一致性比对，以及四语文档检查。
 [行为准则](CODE_OF_CONDUCT.md) · [安全策略](SECURITY.md)
 
-## 再说一次支持的打包器
-
-因为这是第一个问题，而且一个只说"支持所有打包器"却不说是哪些的项目，这句话就没有
-值得一读的分量：
-
-**webpack**（4 和 5，走 `stats.json`）· **rspack**（走 `stats.json`）·
-**esbuild**（走 `metafile.json`）· **Vite** · **Rollup** · **Parcel** ·
-**tsup**，以及所有基于它们构建的东西的产物——**Angular**、**Next.js**、
-**Nuxt**、**SvelteKit**、**React Server Components**。
-
-两种输入形态：
-
-```bash
-omnibundlescope ./dist/stats.json   # 打包器图：webpack、rspack、esbuild --metafile
-omnibundlescope ./dist              # 只有产物目录：vite、rollup、parcel、tsup
-```
-
-第二种不需要任何配置——指到 `dist/`，你的打包器本来就会写的 source map 就够了。
-第一种额外开启**幽灵代码**检测，因为那个问题需要一个声明出来的模块图。
-
-| 打包器 | 模块图 | 字节归因 | 幽灵代码 |
-|---|---|---|---|
-| webpack、rspack | `stats.json` | source map | 支持 |
-| esbuild | `metafile.json` | source map | 有 metafile 时支持 |
-| vite、rollup、parcel、tsup | 默认没有 | source map | 有 `stats.json` 时支持 |
-
----
-
-## 项目
 ## 许可证
 
 MIT（[LICENSE-MIT](LICENSE-MIT)）或 Apache-2.0（[LICENSE-APACHE](LICENSE-APACHE)），由你选择。
