@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question or discussion
-    url: "{{REPO_URL}}/discussions"
+    url: "https://github.com/OmniBundleScope/OmniBundleScope/discussions"
     about: "Usage questions, ideas, and 'is this a bug?' — discussions keep the issue tracker for actionable work."
   - name: Security vulnerability
-    url: "{{REPO_URL}}/security/advisories/new"
+    url: "https://github.com/OmniBundleScope/OmniBundleScope/security/advisories/new"
     about: Report privately. Do not open a public issue for a vulnerability.

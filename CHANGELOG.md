@@ -13,7 +13,7 @@ says so and gives the number.
 
 ### Fixed
 
-- The README offered `npx fastscope` and `cargo install fastscope-cli`, and
+- The README offered `npx omnibundlescope` and `cargo install omnibundlescope-cli`, and
   carried npm and crates.io badges, none of which resolves: neither package is
   published, and by this project's own release order the npm wrapper is spent
   last. The install section says so and builds from source instead, and
@@ -25,12 +25,12 @@ says so and gives the number.
 
 ## [0.1.0] - 2026-09-30
 
-First public release. The ingest, fusion, report, budget and CI workstreams are
+First public release. The ingest, fusion, report, budget and CI areas are
 implemented and measured; WASM and the WebGL renderer are not.
 
 ### Added
 
-- **Streaming stats ingest** (`fastscope stats.json ./dist/stats.json`) for
+- **Streaming stats ingest** (`omnibundlescope stats.json ./dist/stats.json`) for
   webpack and rspack, plus esbuild `metafile.json`. Modules enter the graph one
   at a time; the document is never materialised.
 - **Size attribution** from disk: `parsed` (real bytes) and `gzip` (level 6) per
@@ -47,15 +47,15 @@ implemented and measured; WASM and the WebGL renderer are not.
   source / chunk dimensions, fuzzy search, light-dark-auto, no web fonts and no
   network requests. Reports over 2 MB of detail ship a companion `.data.js`
   loaded on demand, because `fetch()` cannot read a sibling file from `file://`.
-- **Size budgets** (`fastscope.config.json`) over total bytes, per chunk or per
-  package, each optionally on a named dimension. A breach exits 1 with `FS0040`;
+- **Size budgets** (`omnibundlescope.config.json`) over total bytes, per chunk or per
+  package, each optionally on a named dimension. A breach exits 1 with `OBS0040`;
   a rule that matches nothing is an error, not a silent pass.
 - **`--mode json` and `--mode csv`** for CI and BI consumers.
-- **A build folder with no bundler metadata** (`fastscope ./dist`): the output
+- **A build folder with no bundler metadata** (`omnibundlescope ./dist`): the output
   and its source maps, which is what Vite, Rollup, Parcel and tsup give you by
   default. Sizes are measured rather than declared, so they are exact, and each
   source in a map becomes a module. Ghost code is defined against a declared
-  graph, so this mode reports itself as undetectable (`FS0051`) instead of the
+  graph, so this mode reports itself as undetectable (`OBS0051`) instead of the
   reassuring zero it would otherwise print.
 - **Parity harness** against `webpack-bundle-analyzer` on real webpack builds.
 - **Performance charts** generated from the records in `bench/results/`, with a
@@ -142,5 +142,5 @@ Bugs found by the benchmarks, each with a regression test:
 - The report renders text to Canvas and never to `innerHTML`; the shell escapes
   `</script` in its data island.
 
-[Unreleased]: {{REPO_URL}}/compare/v0.1.0...HEAD
-[0.1.0]: {{REPO_URL}}/releases/tag/v0.1.0
+[Unreleased]: https://github.com/OmniBundleScope/OmniBundleScope/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/OmniBundleScope/OmniBundleScope/releases/tag/v0.1.0

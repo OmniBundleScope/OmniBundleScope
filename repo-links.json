@@ -3,7 +3,7 @@
     "Every URL this project does not control yet, in one place.",
     "",
     "Why: a README full of plausible-looking URLs for a repository that does not",
-    "exist is worse than a README with obvious holes in it. github.com/fastscope",
+    "exist is worse than a README with obvious holes in it. github.com/omnibundlescope",
     "resolves to nothing today, so every badge on the front page is broken and every",
     "'report an issue' link goes nowhere - and nothing in the repository says so,",
     "because broken external links are not build failures.",
@@ -20,38 +20,38 @@
   ],
   "links": {
     "REPO_URL": {
-      "value": "",
-      "example": "https://github.com/your-name/fastscope",
+      "value": "https://github.com/OmniBundleScope/OmniBundleScope",
+      "example": "https://github.com/your-name/omnibundlescope",
       "note": "The GitHub repository. Everything that is a path inside it - issues, discussions, releases, the CI badge URL, blob/main links - is this token plus a suffix."
     },
     "REPO_SLUG": {
-      "value": "",
-      "example": "your-name/fastscope",
+      "value": "OmniBundleScope/OmniBundleScope",
+      "example": "your-name/omnibundlescope",
       "note": "The same repository as owner/name, for the shields.io release badge, which cannot take a full URL. No scheme, no .git."
     },
     "NPM_PACKAGE": {
-      "value": "",
-      "example": "fastscope",
-      "note": "The npm package name. Must match npm/fastscope/package.json; links.mjs checks that it does."
+      "value": "omnibundlescope",
+      "example": "omnibundlescope",
+      "note": "The npm package name. Must match npm/omnibundlescope/package.json; links.mjs checks that it does."
     },
     "NPM_URL": {
-      "value": "",
-      "example": "https://www.npmjs.com/package/fastscope",
-      "note": "The npm package page, for the install instructions and the npm badge target. Until this is set, links.mjs refuses an npm badge or an offered `npx fastscope` on any README: the package does not exist yet, so both are 404s. Setting this is where they come back."
+      "value": "https://www.npmjs.com/package/omnibundlescope",
+      "example": "https://www.npmjs.com/package/omnibundlescope",
+      "note": "The npm package page, for the install instructions and the npm badge target. Until this is set, links.mjs refuses an npm badge or an offered `npx omnibundlescope` on any README: the package does not exist yet, so both are 404s. Setting this is where they come back."
     },
     "CRATES_CORE_PACKAGE": {
       "value": "",
-      "example": "fastscope-core",
-      "note": "The crates.io name of the core crate. Must match crates/fastscope-core/Cargo.toml; links.mjs checks that it does."
+      "example": "omnibundlescope-core",
+      "note": "The crates.io name of the core crate. Must match crates/omnibundlescope-core/Cargo.toml; links.mjs checks that it does."
     },
     "CRATES_CORE_URL": {
       "value": "",
-      "example": "https://crates.io/crates/fastscope-core",
-      "note": "The crates.io page for the core crate. Same rule as NPM_URL: no crates.io badge and no offered `cargo install fastscope-cli` until this is set."
+      "example": "https://crates.io/crates/omnibundlescope-core",
+      "note": "The crates.io page for the core crate. Same rule as NPM_URL: no crates.io badge and no offered `cargo install omnibundlescope-cli` until this is set."
     },
     "DOCS_URL": {
       "value": "",
-      "example": "https://your-name.github.io/fastscope",
+      "example": "https://your-name.github.io/omnibundlescope",
       "note": "The mdBook site that CI publishes, and the host for the JSON schemas that declare their $id. No trailing slash. If you get a custom domain later, this is the one value to change - and only this one."
     }
   }

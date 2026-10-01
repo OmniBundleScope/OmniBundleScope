@@ -42,19 +42,20 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           VERSION=$(cargo metadata --no-deps --format-version 1 \
-            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=JSON.parse(s);console.log(m.packages.find(p=>p.name==="fastscope-cli")?.version??"")})')
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=JSON.parse(s);console.log(m.packages.find(p=>p.name==="omnibundlescope-cli")?.version??"")})')
           echo "tag=$TAG version=$VERSION"
           test "${TAG#v}" = "$VERSION" || {
-            echo "::error::tag $TAG does not match fastscope-cli version $VERSION"; exit 1; }
+            echo "::error::tag $TAG does not match omnibundlescope-cli version $VERSION"; exit 1; }
       - name: the npm shim's own tests
-        working-directory: npm/fastscope
+        working-directory: npm/omnibundlescope
         run: npm test
-      # --deny, unlike CI's report. Publishing a release whose README links to a
-      # repository that does not exist puts a broken page in front of every reader
-      # of npm and crates.io, and it cannot be fixed after the fact without
-      # publishing a new version.
-      - name: no placeholder URLs in a release
-        run: node bench/harness/links.mjs --deny
+      # --for, because the channels are published on different days. Requiring the
+      # crates.io URL to be filled before the first release would block the release
+      # and the npm package over a channel that is not being used yet; requiring
+      # nothing would ship a README pointing at a repository that does not exist.
+      # Each channel is checked for the URLs it actually needs.
+      - name: no placeholder URLs in the channels being published
+        run: node bench/harness/links.mjs --deny --for github,npm
 
   binaries:
     name: ${{ matrix.target }}
@@ -92,7 +93,7 @@ jobs:
 
       # Fully static on Linux so the binary does not depend on the runner's glibc.
       - name: build
-        run: cargo build --release --bin fastscope --target ${{ matrix.target }}
+        run: cargo build --release --bin omnibundlescope --target ${{ matrix.target }}
         env:
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: x86_64-linux-gnu-gcc
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
@@ -103,14 +104,14 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
-          NAME="fastscope-${VERSION}-${{ matrix.target }}"
+          NAME="omnibundlescope-${VERSION}-${{ matrix.target }}"
           if [ "${{ matrix.archive }}" = "zip" ]; then
-            cp fastscope.exe "${NAME}.exe"
+            cp omnibundlescope.exe "${NAME}.exe"
             zip -q "${NAME}.zip" "${NAME}.exe"
             echo "ASSET=${NAME}.zip" >> "$GITHUB_ENV"
           else
             mkdir -p "${NAME}"
-            cp fastscope "${NAME}/"
+            cp omnibundlescope "${NAME}/"
             # A licence and a version have to travel with the binary.
             cp ../../../LICENSE-MIT ../../../LICENSE-APACHE "${NAME}/"
             tar -czf "${NAME}.tar.gz" "${NAME}"
@@ -163,7 +164,7 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
       - name: the package version must match the tag
-        working-directory: npm/fastscope
+        working-directory: npm/omnibundlescope
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           PKG=$(node -p "require('./package.json').version")
@@ -171,7 +172,7 @@ jobs:
       # Skipped automatically for forks: they have no NPM_TOKEN, and a failed
       # publish on a fork would be noise rather than signal.
       - name: publish
-        working-directory: npm/fastscope
+        working-directory: npm/omnibundlescope
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -180,6 +181,11 @@ jobs:
     name: publish to crates.io
     needs: [verify, binaries]
     runs-on: ubuntu-latest
+    # Off until the crates.io URLs are filled in, which is a repository setting
+    # rather than a code change: Settings -> Secrets and variables -> Actions ->
+    # Variables -> PUBLISH_CRATES = true. Turning it on is the moment the
+    # crates.io badge and the `cargo install` line come back to the front page.
+    if: ${{ vars.PUBLISH_CRATES == 'true' }}
     # crates.io is the secondary channel - npm and the release binaries are the
     # primary ones - so a failure here does not fail the release job. Publishing
     # the core first is mandatory and ordering is the whole difficulty: the CLI
@@ -189,14 +195,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: publish fastscope-core
+      - name: publish omnibundlescope-core
         run: |
           set -euo pipefail
-          cargo publish -p fastscope-core --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+          cargo publish -p omnibundlescope-core --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
           # crates.io needs a moment to serve the new version to the index
           # before anything can depend on it.
           sleep 30
-      - name: publish fastscope-cli
-        run: cargo publish -p fastscope-cli --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
-      - name: publish fastscope-wasm
-        run: cargo publish -p fastscope-wasm --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+      - name: publish omnibundlescope-cli
+        run: cargo publish -p omnibundlescope-cli --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+      - name: publish omnibundlescope-wasm
+        run: cargo publish -p omnibundlescope-wasm --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"

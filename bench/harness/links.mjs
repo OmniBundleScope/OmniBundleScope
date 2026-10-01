@@ -25,14 +25,14 @@ const deny = args.has('--deny');
 // to make impossible to make twice.
 //
 // Only enforced while the table still has empty values. Once filled in, these
-// strings can be *correct* - someone may legitimately own fastscope.dev or the
-// fastscope GitHub org - and a gate that fires on their own choice is worse than
+// strings can be *correct* - someone may legitimately own omnibundlescope.dev or the
+// omnibundlescope GitHub org - and a gate that fires on their own choice is worse than
 // no gate. The file itself is skipped, or it would match its own needle list.
 const INVENTED = [
-  'github.com/fastscope/fastscope',
-  'fastscope.github.io',
-  'fastscope.dev',
-  'img.shields.io/github/v/release/fastscope',
+  'github.com/omnibundlescope/omnibundlescope',
+  'omnibundlescope.github.io',
+  'omnibundlescope.dev',
+  'img.shields.io/github/v/release/omnibundlescope',
 ];
 
 // Claims that a package can be installed. Worse than a dead link: a reader cannot
@@ -41,19 +41,19 @@ const INVENTED = [
 // release workflow has published something.
 //
 // Split in two on purpose. A command inside a fenced block is an instruction; the
-// same words in a sentence can be the opposite - "`npx fastscope` does not work
+// same words in a sentence can be the opposite - "`npx omnibundlescope` does not work
 // yet" is the honest sentence this gate exists to encourage. A badge URL carries no
 // such ambiguity, so it is matched anywhere.
 //
 // Only the front pages are scanned: `docs/` describes the npm one-liner as the
 // target shape of the CLI, which is a third kind of sentence again.
 const UNAVAILABLE_COMMAND = [
-  ['NPM_URL', 'npx fastscope'],
-  ['NPM_URL', 'npm i fastscope'],
-  ['NPM_URL', 'npm install fastscope'],
-  // fastscope-cli, not fastscope: there is no crate called `fastscope`, and an
+  ['NPM_URL', 'npx omnibundlescope'],
+  ['NPM_URL', 'npm i omnibundlescope'],
+  ['NPM_URL', 'npm install omnibundlescope'],
+  // omnibundlescope-cli, not omnibundlescope: there is no crate called `omnibundlescope`, and an
   // install line that 404s on crates.io is the exact failure this list is for.
-  ['CRATES_CORE_URL', 'cargo install fastscope-cli'],
+  ['CRATES_CORE_URL', 'cargo install omnibundlescope-cli'],
 ];
 
 const UNAVAILABLE_BADGE = [
@@ -148,8 +148,8 @@ for (const [token, entry] of Object.entries(table.links)) {
 // The package names are also declared in the manifests. If the badge says one
 // thing and the published package is called another, the badge is decoration.
 const MISMATCH = [
-  ['NPM_PACKAGE', 'npm/fastscope/package.json', (m) => m.name],
-  ['CRATES_CORE_PACKAGE', 'crates/fastscope-core/Cargo.toml', (t) => /^\s*name\s*=\s*"([^"]+)"/m.exec(t)?.[1]],
+  ['NPM_PACKAGE', 'npm/omnibundlescope/package.json', (m) => m.name],
+  ['CRATES_CORE_PACKAGE', 'crates/omnibundlescope-core/Cargo.toml', (t) => /^\s*name\s*=\s*"([^"]+)"/m.exec(t)?.[1]],
 ];
 for (const [token, file, read] of MISMATCH) {
   const value = table.links[token].value;
@@ -161,26 +161,36 @@ for (const [token, file, read] of MISMATCH) {
 }
 
 if (apply) {
-  if (empty.length) {
-    console.error(
-      `refusing to apply: ${empty.length} value(s) are still empty:\n` +
-        empty.map((t) => `  ${t.padEnd(20)} e.g. ${table.links[t].example}`).join('\n'),
-    );
+  // Partial application is the normal case, not a mistake. crates.io and the docs
+  // host are published later than the repository, and a launch that has to wait
+  // for every URL before it can fill in the ones it already knows would be a launch
+  // that waits on nothing. Whatever is set gets substituted; whatever is not stays
+  // a visible token and keeps being reported.
+  const set = new Map(Object.entries(table.links).filter(([, v]) => v.value).map(([k, v]) => [k, v.value]));
+  if (set.size === 0) {
+    console.error('nothing to apply: no value in repo-links.json is set.');
     process.exit(1);
   }
+  const applyPattern = new RegExp(`\\{\\{(${[...set.keys()].join('|')})\\}\\}`, 'g');
   let changed = 0;
   for (const file of files) {
     const before = readFileSync(file, 'utf8');
-    const after = before.replace(tokenPattern, (whole, token) => table.links[token].value);
+    const after = before.replace(applyPattern, (whole, token) => set.get(token));
     if (after !== before) {
       writeFileSync(file, after, 'utf8');
       changed++;
-      console.log(`  filled ${file}`);
     }
   }
-  console.log(`\napplied to ${changed} file(s). The tokens are gone; commit and push.`);
-  // Filling in is the whole job; there is nothing left to report.
-  process.exit(problems.length || inventedHits.length || unavailableHits.length ? 1 : 0);
+  console.log(`applied ${set.size} value(s) across ${changed} file(s).`);
+  if (empty.length) {
+    console.log(
+      `still a visible token in the tree, by choice: ${empty.join(', ')}\n` +
+        '  These are reported on every CI run and enforced by `links.mjs --deny --for`,\n' +
+        '  so an unfilled one blocks the channel that needs it and nothing else.',
+    );
+  }
+  // A bad value that got written into the tree is worth failing on.
+  process.exit(problems.length || unknown.length || inventedHits.length ? 1 : 0);
 }
 
 // ---------------------------------------------------------------- report mode
@@ -224,6 +234,45 @@ if (problems.length) {
 }
 
 const broken = empty.length + unknown.length + inventedHits.length + unavailableHits.length + problems.length;
+
+// --for narrows what must be filled in to the channels actually being published.
+// Without it, deferring crates.io would block the GitHub release and the npm
+// package too, which is backwards: those two are how anybody installs the thing,
+// and a crate nobody has published yet is not what stops them.
+//
+//   node bench/harness/links.mjs --deny --for github,npm
+const forFlag = process.argv.indexOf('--for');
+const channels = forFlag > -1 ? process.argv[forFlag + 1].split(',').map((c) => c.trim()) : null;
+
+if (deny && channels) {
+  const REQUIRED = {
+    github: ['REPO_URL', 'REPO_SLUG', 'DOCS_URL'],
+    npm: ['REPO_URL', 'REPO_SLUG', 'NPM_URL', 'NPM_PACKAGE'],
+    crates: ['REPO_URL', 'CRATES_CORE_URL', 'CRATES_CORE_PACKAGE'],
+  };
+  const unknownChannel = channels.filter((c) => !REQUIRED[c]);
+  if (unknownChannel.length) {
+    console.error(`unknown channel(s): ${unknownChannel.join(', ')}`);
+    console.error(`known: ${Object.keys(REQUIRED).join(', ')}`);
+    process.exit(2);
+  }
+  const needed = [...new Set(channels.flatMap((c) => REQUIRED[c]))];
+  const missing = needed.filter((t) => !table.links[t].value);
+  if (missing.length) {
+    console.error(
+      `publishing ${channels.join(' + ')} needs ${missing.length} URL(s) that are still unset:\n` +
+        missing.map((t) => `  ${t.padEnd(20)} e.g. ${table.links[t].example}`).join('\n'),
+    );
+    process.exit(1);
+  }
+  // The unset crates.io URL is then not a problem for this run, but the front-page
+  // offer of `cargo install` still is, and the checks above already said so.
+  console.log(`every URL needed for ${channels.join(' + ')} is filled in`);
+  if (problems.length || unknown.length || inventedHits.length || unavailableHits.length) {
+    process.exit(1);
+  }
+  process.exit(0);
+}
 
 if (deny && broken) {
   console.error(`${broken} placeholder problem(s); a release must not ship with these.`);

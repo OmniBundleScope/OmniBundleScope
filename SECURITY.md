@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-FastScope is pre-1.0. Fixes land on `main` and in the next release; there are
+OmniBundleScope is pre-1.0. Fixes land on `main` and in the next release; there are
 no long-term support branches yet.
 
 | version | supported |
@@ -26,7 +26,7 @@ ask us not to.
 
 ## Threat model
 
-FastScope reads untrusted build output and renders it. The interesting surfaces
+OmniBundleScope reads untrusted build output and renders it. The interesting surfaces
 are:
 
 | surface | risk | what we do |
@@ -38,7 +38,7 @@ are:
 
 Known limits, stated rather than hidden:
 
-- **No size limit on input.** FastScope will read a 40 GB stats file if you ask
+- **No size limit on input.** OmniBundleScope will read a 40 GB stats file if you ask
   it to. The memory target is a *constant* overhead, not a cap.
 - **The report is HTML with inline data.** It opens from `file://`, which is
   what makes it work by double-clicking. A report is only as safe as the machine

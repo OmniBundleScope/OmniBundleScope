@@ -3,9 +3,9 @@
 # rather than copies of them. A site that duplicates the docs has two answers to
 # every question within a release, and only one of them gets fixed.
 src = "../docs"
-title = "FastScope"
+title = "OmniBundleScope"
 description = "One analyzer for every bundler: bundler graph plus source maps, in a fraction of the memory."
-authors = ["FastScope contributors"]
+authors = ["OmniBundleScope contributors"]
 language = "en"
 
 [build]

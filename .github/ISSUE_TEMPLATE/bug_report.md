@@ -20,7 +20,7 @@ than a customer's build:
 ```bash
 cd bench
 node harness/gen-stats.mjs 5000000 /tmp/small.json
-../target/release/fastscope /tmp/small.json --report /tmp/report.html
+../target/release/omnibundlescope /tmp/small.json --report /tmp/report.html
 ```
 
 If the bug is about size numbers, please state which dimension you expected and
@@ -29,7 +29,7 @@ prints which one it used.
 
 | field | value |
 |---|---|
-| FastScope version | `fastscope --version` |
+| OmniBundleScope version | `omnibundlescope --version` |
 | input class | real project / synthetic |
 | bundler | webpack / rspack / vite / rollup / esbuild / other |
 | OS | |
