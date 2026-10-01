@@ -7,10 +7,7 @@
 グラフに統合します。メモリは仅仅その一部で済みます。
 
 [![CI]({{REPO_URL}}/actions/workflows/ci.yml/badge.svg)]({{REPO_URL}}/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/{{CRATES_CORE_PACKAGE}}.svg)]({{CRATES_CORE_URL}})
-[![npm](https://img.shields.io/npm/v/{{NPM_PACKAGE}}.svg)]({{NPM_URL}})
-[![release](https://img.shields.io/github/v/release/{{REPO_SLUG}}?include_prereleases&sort=semver)]({{REPO_URL}}/releases/latest)
-[![docs](https://img.shields.io/badge/docs-mdbook-informational)]({{DOCS_URL}})
+[![status](https://img.shields.io/badge/status-unreleased-orange.svg)](#インストール)
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
@@ -133,19 +130,22 @@ HTML レポートにはさらに検索、3 つのグルーピング軸、モジ�
 
 ## インストール
 
+**まだ公開していません。** npm に `omnibundle` はなく、インストールできる crate もないため、
+`npx omnibundle` と `cargo install omnibundle-cli` は現在どちらも動きません。本 README は
+それを提供しません。ソースからビルドしてください：
+
 ```bash
-# npm — 検証済みバイナリを取得。Rust ツールチェーンは不要
-npx omnibundle ./dist
-
-# cargo
-cargo install omnibundle-cli
-
-# リリースバイナリ: linux x64/arm64, macOS x64/arm64, windows x64
-# {{REPO_URL}}/releases
+git clone {{REPO_URL}}.git
+cd omnibundle
+cargo build --release
+./target/release/omnibundle ./dist
 ```
 
-npm パッケージは `checksums.txt` を検証してから書き込み・実行し、ハッシュ不一致なら
-インストールを拒否します。
+`v*` タグを push すると、リリースワークフローが `docs/en/06-release-and-ci.md` §2 の順で
+公開します：まずバイナリを GitHub リリースへ、次に `omnibundle-core` を crates.io へ、
+最後に npm ラッパーを —— npm の名前は最も希少な資源なので最後に使います。
+npm と crates.io のバッジ、および 2 つのインストールコマンドは、`repo-links.json` を
+埋めるコミットで戻ります。npm ラッパーは書き込みや実行の前に `checksums.txt` を検証します。
 
 ## 使い方
 

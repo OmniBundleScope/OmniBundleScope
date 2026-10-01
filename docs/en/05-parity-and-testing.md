@@ -65,7 +65,7 @@ public repos (ADR-0005) and synthetic generators.
 | property | fuzz-ish: random stats shapes, random maps, invariants must hold | every PR, cheap seeds |
 | parity | real fixtures vs the reference tools | every PR that touches ingest/fusion |
 | benchmark | synthetic scale, memory ceilings | every PR touching a measured path; gates on memory, publishes timings |
-| smoke | `npx omnibundle` on a tiny real repo end-to-end | every PR, and on release tags |
+| smoke | the built CLI on a tiny real repo end-to-end | every PR, and on release tags |
 
 ## 6. Fuzzing (Phase 2, but the hooks are already there)
 

@@ -7,10 +7,7 @@
 graph, with real byte attribution, in a fraction of the memory.
 
 [![CI]({{REPO_URL}}/actions/workflows/ci.yml/badge.svg)]({{REPO_URL}}/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/{{CRATES_CORE_PACKAGE}}.svg)]({{CRATES_CORE_URL}})
-[![npm](https://img.shields.io/npm/v/{{NPM_PACKAGE}}.svg)]({{NPM_URL}})
-[![release](https://img.shields.io/github/v/release/{{REPO_SLUG}}?include_prereleases&sort=semver)]({{REPO_URL}}/releases/latest)
-[![docs](https://img.shields.io/badge/docs-mdbook-informational)]({{DOCS_URL}})
+[![status](https://img.shields.io/badge/status-unreleased-orange.svg)](#install)
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
@@ -178,19 +175,23 @@ light/dark, and no network requests.</sub>
 
 ## Install
 
+**Not published yet.** There is no `omnibundle` on npm and no crate to install,
+so `npx omnibundle` and `cargo install omnibundle-cli` do not work today, and
+this README does not offer them. Build it instead:
+
 ```bash
-# npm — downloads a verified prebuilt binary, no Rust toolchain needed
-npx omnibundle ./dist
-
-# cargo
-cargo install omnibundle-cli
-
-# or a release binary: linux x64/arm64, macOS x64/arm64, windows x64
-# {{REPO_URL}}/releases
+git clone {{REPO_URL}}.git
+cd omnibundle
+cargo build --release
+./target/release/omnibundle ./dist
 ```
 
-The npm package verifies `checksums.txt` before it writes or executes anything,
-and refuses a binary whose hash does not match.
+When a `v*` tag is pushed, the release workflow publishes in the order given in
+`docs/en/06-release-and-ci.md` §2 — binaries to GitHub releases, then
+`omnibundle-core` to crates.io, then the npm wrapper, because the npm name is the
+scarcest resource here and is spent last. The npm and crates.io badges and the
+two install one-liners come back in the commit that fills in `repo-links.json`.
+The npm wrapper verifies `checksums.txt` before it writes or executes anything.
 
 ## Use
 

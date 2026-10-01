@@ -35,6 +35,34 @@ const INVENTED = [
   'img.shields.io/github/v/release/omnibundle',
 ];
 
+// Claims that a package can be installed. Worse than a dead link: a reader cannot
+// tell whether the command failed or the project is lying, and these are the lines
+// people copy. Refused while the matching URL is unset, which is exactly until the
+// release workflow has published something.
+//
+// Split in two on purpose. A command inside a fenced block is an instruction; the
+// same words in a sentence can be the opposite - "`npx omnibundle` does not work
+// yet" is the honest sentence this gate exists to encourage. A badge URL carries no
+// such ambiguity, so it is matched anywhere.
+//
+// Only the front pages are scanned: `docs/` describes the npm one-liner as the
+// target shape of the CLI, which is a third kind of sentence again.
+const UNAVAILABLE_COMMAND = [
+  ['NPM_URL', 'npx omnibundle'],
+  ['NPM_URL', 'npm i omnibundle'],
+  ['NPM_URL', 'npm install omnibundle'],
+  ['CRATES_CORE_URL', 'cargo install omnibundle'],
+];
+
+const UNAVAILABLE_BADGE = [
+  ['NPM_URL', 'img.shields.io/npm/v/'],
+  ['CRATES_CORE_URL', 'img.shields.io/crates/v/'],
+];
+
+const fenced = (text) => (text.match(/```[\s\S]*?```/g) ?? []).join('\n');
+
+const FRONT_PAGE = /^README(\.[a-z]{2})?\.md$/;
+
 const BINARY = new Set(['.png', '.svg', '.ico', '.woff2', '.pdf', '.zip', '.gz', '.jpg', '.jpeg']);
 
 function trackedFiles() {
@@ -69,12 +97,25 @@ for (const file of files) {
 const empty = tokens.filter((t) => !table.links[t].value);
 
 // Enforced only while something is unfilled; see the note on INVENTED.
+const unavailableHits = [];
 if (empty.length > 0) {
   for (const file of files) {
     if (file === 'bench/harness/links.mjs') continue;
     const text = readFileSync(file, 'utf8');
     for (const needle of INVENTED) {
       if (text.includes(needle)) inventedHits.push({ needle, file });
+    }
+    if (!FRONT_PAGE.test(file)) continue;
+    const offered = fenced(text);
+    for (const [token, needle] of UNAVAILABLE_COMMAND) {
+      if (!table.links[token].value && offered.includes(needle)) {
+        unavailableHits.push({ token, needle, file });
+      }
+    }
+    for (const [token, needle] of UNAVAILABLE_BADGE) {
+      if (!table.links[token].value && text.includes(needle)) {
+        unavailableHits.push({ token, needle, file });
+      }
     }
   }
 }
@@ -137,7 +178,7 @@ if (apply) {
   }
   console.log(`\napplied to ${changed} file(s). The tokens are gone; commit and push.`);
   // Filling in is the whole job; there is nothing left to report.
-  process.exit(problems.length || inventedHits.length ? 1 : 0);
+  process.exit(problems.length || inventedHits.length || unavailableHits.length ? 1 : 0);
 }
 
 // ---------------------------------------------------------------- report mode
@@ -166,13 +207,21 @@ if (inventedHits.length) {
   console.error('');
 }
 
+if (unavailableHits.length) {
+  console.error('the front page offers an install that does not exist yet:');
+  for (const { token, needle, file } of unavailableHits) {
+    console.error(`  "${needle}" in ${file} - ${token} is unset, so this is a 404`);
+  }
+  console.error('');
+}
+
 if (problems.length) {
   console.error('values that look unfinished:');
   for (const p of problems) console.error(`  ${p}`);
   console.error('');
 }
 
-const broken = empty.length + unknown.length + inventedHits.length + problems.length;
+const broken = empty.length + unknown.length + inventedHits.length + unavailableHits.length + problems.length;
 
 if (deny && broken) {
   console.error(`${broken} placeholder problem(s); a release must not ship with these.`);

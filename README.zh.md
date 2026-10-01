@@ -6,10 +6,7 @@
 esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张图，内存占用只占对方的一小部分。
 
 [![CI]({{REPO_URL}}/actions/workflows/ci.yml/badge.svg)]({{REPO_URL}}/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/{{CRATES_CORE_PACKAGE}}.svg)]({{CRATES_CORE_URL}})
-[![npm](https://img.shields.io/npm/v/{{NPM_PACKAGE}}.svg)]({{NPM_URL}})
-[![release](https://img.shields.io/github/v/release/{{REPO_SLUG}}?include_prereleases&sort=semver)]({{REPO_URL}}/releases/latest)
-[![docs](https://img.shields.io/badge/docs-mdbook-informational)]({{DOCS_URL}})
+[![status](https://img.shields.io/badge/status-unreleased-orange.svg)](#安装)
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
@@ -134,18 +131,22 @@ HTML 报告另外还有搜索、三种分组维度、按模块下钻、明暗主
 
 ## 安装
 
+**尚未发布。** npm 上没有 `omnibundle`，crates.io 上也没有可安装的 crate，所以
+`npx omnibundle` 和 `cargo install omnibundle-cli` 今天都不可用，本 README 不提供它们。
+请从源码构建：
+
 ```bash
-# npm —— 下载经过校验的预编译二进制，不需要 Rust 工具链
-npx omnibundle ./dist
-
-# cargo
-cargo install omnibundle-cli
-
-# 或直接下载 release 二进制：linux x64/arm64、macOS x64/arm64、windows x64
-# {{REPO_URL}}/releases
+git clone {{REPO_URL}}.git
+cd omnibundle
+cargo build --release
+./target/release/omnibundle ./dist
 ```
 
-npm 包会在写入或执行任何东西之前校验 `checksums.txt`，哈希不匹配就拒绝安装。
+推送 `v*` tag 之后，发布流程按 `docs/en/06-release-and-ci.md` §2 的顺序执行：先把二进制
+传到 GitHub releases，再把 `omnibundle-core` 发到 crates.io，最后才发 npm wrapper
+—— npm 包名是最稀缺的资源，留到最后使用。npm 与 crates.io 的徽章以及两条安装命令会在
+填写 `repo-links.json` 的那次提交里回来。npm wrapper 会在写入或执行任何东西之前校验
+`checksums.txt`。
 
 ## 使用
 

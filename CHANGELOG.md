@@ -11,7 +11,17 @@ says so and gives the number.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- The README offered `npx omnibundle` and `cargo install omnibundle-cli`, and
+  carried npm and crates.io badges, none of which resolves: neither package is
+  published, and by this project's own release order the npm wrapper is spent
+  last. The install section says so and builds from source instead, and
+  `bench/harness/links.mjs` now refuses an offered install or a package badge on
+  any front page while `repo-links.json` is still empty. A claim of availability
+  is worse than a dead link, because a reader cannot tell whether the command
+  failed or the project is lying. The badges and the two one-liners come back in
+  the commit that fills the table in.
 
 ## [0.1.0] - 2026-09-30
 

@@ -37,7 +37,7 @@
     "NPM_URL": {
       "value": "",
       "example": "https://www.npmjs.com/package/omnibundle",
-      "note": "The npm package page, for the install instructions and the npm badge target."
+      "note": "The npm package page, for the install instructions and the npm badge target. Until this is set, links.mjs refuses an npm badge or an offered `npx omnibundle` on any README: the package does not exist yet, so both are 404s. Setting this is where they come back."
     },
     "CRATES_CORE_PACKAGE": {
       "value": "",
@@ -47,7 +47,7 @@
     "CRATES_CORE_URL": {
       "value": "",
       "example": "https://crates.io/crates/omnibundle-core",
-      "note": "The crates.io page for the core crate."
+      "note": "The crates.io page for the core crate. Same rule as NPM_URL: no crates.io badge and no offered `cargo install omnibundle-cli` until this is set."
     },
     "DOCS_URL": {
       "value": "",

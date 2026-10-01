@@ -8,10 +8,7 @@ echte Byte-Zuordnung aus Source Maps, esbuild-Metafiles oder einfach einem
 Speichers.
 
 [![CI]({{REPO_URL}}/actions/workflows/ci.yml/badge.svg)]({{REPO_URL}}/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/{{CRATES_CORE_PACKAGE}}.svg)]({{CRATES_CORE_URL}})
-[![npm](https://img.shields.io/npm/v/{{NPM_PACKAGE}}.svg)]({{NPM_URL}})
-[![release](https://img.shields.io/github/v/release/{{REPO_SLUG}}?include_prereleases&sort=semver)]({{REPO_URL}}/releases/latest)
-[![docs](https://img.shields.io/badge/docs-mdbook-informational)]({{DOCS_URL}})
+[![status](https://img.shields.io/badge/status-unreleased-orange.svg)](#installation)
 [![MSRV](https://img.shields.io/badge/rust-1.90%2B-blue.svg)](https://doc.rust-lang.org/stable/notes.html)
 [![license](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
@@ -142,19 +139,23 @@ eine Detailansicht je Modul, Hell und Dunkel und keine Netzwerkanfragen.</sub>
 
 ## Installation
 
+**Noch nicht veröffentlicht.** Es gibt kein `omnibundle` auf npm und kein Crate zum
+Installieren, also funktionieren `npx omnibundle` und `cargo install omnibundle-cli`
+heute nicht, und diese README bietet sie nicht an. Aus dem Quellcode bauen:
+
 ```bash
-# npm — lädt eine geprüfte Binärdatei, keine Rust-Toolchain nötig
-npx omnibundle ./dist
-
-# cargo
-cargo install omnibundle-cli
-
-# oder Binärdatei aus dem Release: linux x64/arm64, macOS x64/arm64, windows x64
-# {{REPO_URL}}/releases
+git clone {{REPO_URL}}.git
+cd omnibundle
+cargo build --release
+./target/release/omnibundle ./dist
 ```
 
-Das npm-Paket prüft `checksums.txt`, bevor es irgendetwas schreibt oder ausführt, und
-verweigert die Installation bei abweichender Prüfsumme.
+Nach einem `v*`-Tag veröffentlicht die Release-Pipeline in der Reihenfolge aus
+`docs/en/06-release-and-ci.md` §2: zuerst Binärdateien in die GitHub-Releases, dann
+`omnibundle-core` auf crates.io, zuletzt den npm-Wrapper — der npm-Name ist die knappste
+Ressource und wird zuletzt ausgegeben. Die npm- und crates.io-Badges und die beiden
+Installationsbefehle kommen im Commit zurück, der `repo-links.json` ausfüllt. Der
+npm-Wrapper prüft `checksums.txt`, bevor er etwas schreibt oder ausführt.
 
 ## Verwendung
 
