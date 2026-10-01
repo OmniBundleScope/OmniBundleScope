@@ -41,6 +41,18 @@ from matplotlib.ticker import FuncFormatter, NullFormatter  # noqa: E402
 REPO = pathlib.Path(__file__).resolve().parents[2]
 OUT = REPO / "docs" / "assets"
 
+# The font is pinned, because the CI gate is `git diff --exit-code` on these files
+# and the default font list resolves differently per platform: matplotlib's fallback
+# chain hands Linux and macOS a different face from the one Windows picks, every
+# glyph advance changes with it, and the layout moves by fractions of a point.
+#
+# DejaVu Sans ships inside matplotlib itself, so this resolves identically on every
+# platform and in CI without installing a system font. It is also what the committed
+# SVGs already contain, which is why the paths are named DejaVuSans-*.
+matplotlib.rcParams["font.family"] = "sans-serif"
+matplotlib.rcParams["font.sans-serif"] = ["DejaVu Sans"]
+matplotlib.rcParams["axes.unicode_minus"] = False
+
 # ---------------------------------------------------------------- data
 # Every number below is transcribed from a committed record under
 # bench/results/ or from docs/en/01-evidence.md, which cites the session each
