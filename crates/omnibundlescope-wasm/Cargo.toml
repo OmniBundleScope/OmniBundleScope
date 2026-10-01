@@ -1,0 +1,17 @@
+[package]
+name = "omnibundlescope-wasm"
+description = "WASM bindings for the OmniBundleScope engine (Phase 2; structure only for now)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+
+[dependencies]
+omnibundlescope-core = { version = "0.1.0", path = "../omnibundlescope-core" }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true

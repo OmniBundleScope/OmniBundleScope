@@ -1,0 +1,36 @@
+[package]
+name = "omnibundlescope-core"
+description = "Portable bundle analysis engine: stats + source map ingestion, fusion, report data"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "README.md"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+rayon = { workspace = true }
+flate2 = { workspace = true }
+blake3 = { workspace = true }
+thiserror = { workspace = true }
+
+[[bench]]
+name = "ingest"
+harness = false
+
+[[bench]]
+name = "attribution"
+harness = false
+
+[dev-dependencies]
+# Criterion keeps a baseline so a perf regression is a threshold failure, not a
+# number nobody reads. proptest is on stable and needs no nightly toolchain,
+# unlike cargo-fuzz, which is why the parser properties live here.
+criterion = { version = "0.5", features = ["html_reports"] }
+proptest = "1"
+
+[lints]
+workspace = true
