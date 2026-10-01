@@ -1,7 +1,7 @@
 # 用語集 — OmniBundleScope（JA）
 
 規範リストは `docs/contracts/i18n-parity.md` §4 にあります。他の言語:
-[EN](../en/GLOSSARY.md) · [ZH](../zh/GLOSSARY.md) · [DE](../de/GLOSSARY.md)
+[EN](../en/GLOSSARY.md) · ZH: docs/zh/GLOSSARY.md · DE: docs/de/GLOSSARY.md
 
 | EN | JA | 備考 |
 |---|---|---|

@@ -1,7 +1,7 @@
 # Glossary — OmniBundleScope (EN)
 
 Canonical list per `docs/contracts/i18n-parity.md` §4. Translations:
-[ZH](../zh/GLOSSARY.md) · [JA](../ja/GLOSSARY.md) · [DE](../de/GLOSSARY.md)
+ZH: docs/zh/GLOSSARY.md · JA: docs/ja/GLOSSARY.md · DE: docs/de/GLOSSARY.md
 
 | EN | ZH | JA | DE | notes |
 |---|---|---|---|---|

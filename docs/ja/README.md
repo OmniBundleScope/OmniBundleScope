@@ -5,8 +5,8 @@
 
 | ファイル | 英語原本 | 状態 |
 |---|---|---|
-| README | [README.ja.md](../../README.ja.md) | ✅ リリース級 |
-| GLOSSARY | [GLOSSARY.md](GLOSSARY.md) | ✅ リリース級 |
+| README | README.ja.md (README.ja.md) | ✅ リリース級 |
+| GLOSSARY | [GLOSSARY.md] (docs/ja/GLOSSARY.md) | ✅ リリース級 |
 | 00 PRD 製品要件 | [en/00-prd.md](../en/00-prd.md) | ⏳ 翻訳キュー（リリース級） |
 | 01 エビデンス | [en/01-evidence.md](../en/01-evidence.md) | ⏳ 翻訳キュー |
 | 02 アーキテクチャ | [en/02-architecture.md](../en/02-architecture.md) | ⏳ 翻訳キュー |
@@ -31,4 +31,4 @@
 
 ## 用語
 
-[GLOSSARY.md](GLOSSARY.md) を参照。
+[GLOSSARY.md] (docs/ja/GLOSSARY.md) を参照。

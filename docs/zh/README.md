@@ -5,8 +5,8 @@
 
 | 文件 | 英文源 | 状态 |
 |---|---|---|
-| README | [README.zh.md](../../README.zh.md) | ✅ 已发布级 |
-| GLOSSARY | [GLOSSARY.md](GLOSSARY.md) | ✅ 已发布级 |
+| README | README.zh.md (README.zh.md) | ✅ 已发布级 |
+| GLOSSARY | [GLOSSARY.md] (docs/zh/GLOSSARY.md) | ✅ 已发布级 |
 | 00 PRD 产品需求 | [en/00-prd.md](../en/00-prd.md) | ⏳ 翻译队列（发布级） |
 | 01 证据台账 | [en/01-evidence.md](../en/01-evidence.md) | ⏳ 翻译队列 |
 | 02 架构 | [en/02-architecture.md](../en/02-architecture.md) | ⏳ 翻译队列 |
@@ -29,4 +29,4 @@
 
 ## 术语
 
-见 [GLOSSARY.md](GLOSSARY.md)。每个术语都给了四种语言的诿法，不直搬。
+见 [GLOSSARY.md] (docs/zh/GLOSSARY.md)。每个术语都给了四种语言的诿法，不直搬。

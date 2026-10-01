@@ -6,8 +6,8 @@ Die englische Fassung ist die **normative Quelle**; dieses Verzeichnis enthält
 
 | Datei | Englische Quelle | Status |
 |---|---|---|
-| README | [README.de.md](../../README.de.md) | ✅ release-stufe |
-| GLOSSARY | [GLOSSARY.md](GLOSSARY.md) | ✅ release-stufe |
+| README | README.de.md (README.de.md) | ✅ release-stufe |
+| GLOSSARY | [GLOSSARY.md] (docs/de/GLOSSARY.md) | ✅ release-stufe |
 | 00 PRD Produkzanforderungen | [en/00-prd.md](../en/00-prd.md) | ⏳ Übersetzungswarteschlange (Release) |
 | 01 Evidenzprotokoll | [en/01-evidence.md](../en/01-evidence.md) | ⏳ Warteschlange |
 | 02 Architektur | [en/02-architecture.md](../en/02-architecture.md) | ⏳ Warteschlange |
@@ -32,4 +32,4 @@ Die englische Fassung ist die **normative Quelle**; dieses Verzeichnis enthält
 
 ## Begriffe
 
-Siehe [GLOSSARY.md](GLOSSARY.md).
+Siehe [GLOSSARY.md] (docs/de/GLOSSARY.md).

@@ -1,7 +1,7 @@
 # Glossar — OmniBundleScope (DE)
 
 Die kanonische Liste steht in `docs/contracts/i18n-parity.md` §4. Andere
-Sprachen: [EN](../en/GLOSSARY.md) · [ZH](../zh/GLOSSARY.md) · [JA](../ja/GLOSSARY.md)
+Sprachen: [EN](../en/GLOSSARY.md) · ZH: docs/zh/GLOSSARY.md · JA: docs/ja/GLOSSARY.md
 
 | EN | DE | Anmerkung |
 |---|---|---|

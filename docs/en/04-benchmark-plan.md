@@ -1,6 +1,6 @@
 # 04 — Benchmark plan
 
-Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. ZH: docs/zh/README.md · JA: docs/ja/README.md · DE: docs/de/README.md
 
 Normative protocol: `docs/contracts/bench-spec.md`. This file is the **status
 board**: every target, its current number or an explicit `unverified`, and the

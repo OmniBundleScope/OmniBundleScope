@@ -1,7 +1,7 @@
 # 术语表 — OmniBundleScope（ZH）
 
 规范列表见 `docs/contracts/i18n-parity.md` §4。其他语言：
-[EN](../en/GLOSSARY.md) · [JA](../ja/GLOSSARY.md) · [DE](../de/GLOSSARY.md)
+[EN](../en/GLOSSARY.md) · JA: docs/ja/GLOSSARY.md · DE: docs/de/GLOSSARY.md
 
 | EN | ZH | 说明 |
 |---|---|---|

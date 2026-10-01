@@ -1,6 +1,6 @@
 # OmniBundleScope — Product Requirements (V1.0 + verification annotations)
 
-Status: product scope frozen for Phase 1 · Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Status: product scope frozen for Phase 1 · Translations: per-document translations are still in progress. ZH: docs/zh/README.md · JA: docs/ja/README.md · DE: docs/de/README.md
 
 > The first section is the original PRD, kept verbatim. The second section
 > annotates every measurable claim with what we have actually verified. That

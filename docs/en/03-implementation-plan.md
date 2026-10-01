@@ -1,6 +1,6 @@
 # 03 — Implementation plan
 
-Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. ZH: docs/zh/README.md · JA: docs/ja/README.md · DE: docs/de/README.md
 
 This plan is expressed as **milestones and dependencies, not dates**. The
 areas below are independent of each other; a calendar would imply

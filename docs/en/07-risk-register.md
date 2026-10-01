@@ -1,6 +1,6 @@
 # 07 — Risk register
 
-Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. ZH: docs/zh/README.md · JA: docs/ja/README.md · DE: docs/de/README.md
 
 Each risk has a trigger, a mitigation and a named owner. A risk without a
 measurable trigger is a worry, not a risk, and gets deleted at the next review.

@@ -1,6 +1,6 @@
 # 02 — Architecture
 
-Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. ZH: docs/zh/README.md · JA: docs/ja/README.md · DE: docs/de/README.md
 
 ## 1. Crates
 

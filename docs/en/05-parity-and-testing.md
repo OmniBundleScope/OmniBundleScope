@@ -1,6 +1,6 @@
 # 05 — Parity and testing
 
-Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. ZH: docs/zh/README.md · JA: docs/ja/README.md · DE: docs/de/README.md
 
 OmniBundleScope replaces tools people already trust. "Trust" here means one thing:
 **the numbers must match**, or the tool is lying with a nicer UI.

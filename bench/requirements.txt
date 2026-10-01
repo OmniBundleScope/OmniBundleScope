@@ -1,0 +1,11 @@
+# Pinned, and pinned exactly.
+#
+# The charts are generated artefacts: CI regenerates them and fails on a diff. That
+# only works if the generator is a function of the repository alone, and matplotlib
+# is part of the generator. An unpinned install means the pixels can change because
+# a dependency moved, and the diff says nothing about the data - which is the worst
+# kind of CI failure, because the obvious response is to commit whatever it produced
+# and lose the check.
+#
+# 3.11.2 is the version the committed charts were produced with, on every platform.
+matplotlib==3.11.2

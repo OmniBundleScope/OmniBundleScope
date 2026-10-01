@@ -1,6 +1,6 @@
 # 01 — Evidence: why this project exists
 
-Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
+Translations: per-document translations are still in progress. ZH: docs/zh/README.md · JA: docs/ja/README.md · DE: docs/de/README.md
 
 This document is the honest ledger behind OmniBundleScope. Every number here was
 measured on the reference machine unless it is explicitly marked as coming from
