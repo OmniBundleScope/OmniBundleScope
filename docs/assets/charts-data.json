@@ -13,14 +13,14 @@
     "pipeline": {
       "light": {
         "figure_width_pt": 685.2,
-        "labels": 20,
+        "labels": 19,
         "font_pt_min": 9.0,
         "font_pt_max": 13.0,
         "smallest_px_at_880px_wide": 11.56
       },
       "dark": {
         "figure_width_pt": 685.2,
-        "labels": 20,
+        "labels": 19,
         "font_pt_min": 9.0,
         "font_pt_max": 13.0,
         "smallest_px_at_880px_wide": 11.56
@@ -44,18 +44,18 @@
     },
     "memory-budget": {
       "light": {
-        "figure_width_pt": 588.2,
-        "labels": 20,
-        "font_pt_min": 7.0,
+        "figure_width_pt": 698.0,
+        "labels": 16,
+        "font_pt_min": 8.5,
         "font_pt_max": 12.5,
-        "smallest_px_at_880px_wide": 10.47
+        "smallest_px_at_880px_wide": 10.72
       },
       "dark": {
-        "figure_width_pt": 588.2,
-        "labels": 20,
-        "font_pt_min": 7.0,
+        "figure_width_pt": 698.0,
+        "labels": 16,
+        "font_pt_min": 8.5,
         "font_pt_max": 12.5,
-        "smallest_px_at_880px_wide": 10.47
+        "smallest_px_at_880px_wide": 10.72
       }
     }
   },

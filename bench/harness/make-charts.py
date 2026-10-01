@@ -36,7 +36,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.ticker import FuncFormatter  # noqa: E402
+from matplotlib.ticker import FuncFormatter, NullFormatter  # noqa: E402
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 OUT = REPO / "docs" / "assets"
@@ -132,6 +132,11 @@ def style_axes(ax, theme, *, xgrid=True):
         ax.spines[side].set_visible(False)
     ax.spines["bottom"].set_color(theme["grid"])
     ax.tick_params(colors=theme["muted"], labelsize=9, length=0)
+    # Log axes grow minor ticks, and with only a handful of major ticks
+    # matplotlib starts *labelling* the minors: "4 × 10²" on a memory axis is how
+    # a chart ends up with three numbering systems in one centimetre.
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_minor_formatter(NullFormatter())
     if not xgrid:
         ax.xaxis.grid(False)
         ax.yaxis.grid(True, color=theme["grid"], linewidth=0.8, zorder=0)
@@ -168,6 +173,32 @@ def ratio(a: float, b: float) -> str:
     if factor >= 10:
         return f"{factor:.0f}x"
     return f"{factor:.1f}x"
+
+
+def tick_time(seconds: float) -> str:
+    """Axis ticks. Deliberately *not* `human_time`.
+
+    `human_time` is tuned for a value label, where "1.7 min" is the honest
+    rendering of 100 s. On an axis, sitting between "1 s" and "10 s", the same
+    string is noise - and worse, it makes the reader do arithmetic to notice the
+    axis is log. Ticks stay inside one unit per decade and let the position carry
+    the magnitude.
+    """
+    if seconds >= 1:
+        return f"{seconds:g} s"
+    return f"{seconds * 1000:g} ms"
+
+
+def tick_mb(mb: float) -> str:
+    """Axis ticks, for the same reason `tick_time` exists.
+
+    `human_mb(4000)` is "3.91 GB", which is a correct rendering of a data value
+    and a terrible label for a gridline: the reader is looking for the order of
+    magnitude, not four significant figures.
+    """
+    if mb >= 1024:
+        return f"{mb / 1024:g} GB"
+    return f"{mb:g} MB"
 
 
 def check_formatters() -> None:
@@ -250,19 +281,23 @@ def chart_pipeline(name: str, theme: dict) -> pathlib.Path:
 
         # Value labels sit in a column past the longest bar rather than at the end
         # of each bar, so the two numbers on a row line up and the eye compares
-        # them instead of hunting.
-        ax_time.text(430, y + height / 2, human_time(data["ref_s"]), va="center",
+        # them instead of hunting. The column is inside the axis limits on
+        # purpose: `ax.text` draws outside the axes by default and
+        # `bbox_inches="tight"` then widens the canvas to fit it, which is how
+        # the labels ended up floating in the margin, detached from the panel
+        # they belong to.
+        ax_time.text(620, y + height / 2, human_time(data["ref_s"]), va="center",
                      ha="right", color=theme["ref_ink"], fontsize=9.5)
-        ax_time.text(430, y - height / 2, human_time(data["ob_s"]), va="center",
+        ax_time.text(620, y - height / 2, human_time(data["ob_s"]), va="center",
                      ha="right", color=theme["accent"], fontsize=9.5, fontweight="bold")
-        ax_mem.text(7200, y + height / 2, human_mb(mem["ref_mb"]), va="center",
+        ax_mem.text(11_000, y + height / 2, human_mb(mem["ref_mb"]), va="center",
                     ha="right", color=theme["ref_ink"], fontsize=9.5)
-        ax_mem.text(7200, y - height / 2, human_mb(mem["ob_mb"]), va="center",
+        ax_mem.text(11_000, y - height / 2, human_mb(mem["ob_mb"]), va="center",
                     ha="right", color=theme["accent"], fontsize=9.5, fontweight="bold")
 
     for ax, xmax, ticks, formatter in (
-        (ax_time, 400.0, [1, 10, 100], human_time),
-        (ax_mem, 6000.0, [100, 1000, 4000], human_mb),
+        (ax_time, 700.0, [1, 10, 60], tick_time),
+        (ax_mem, 13_000.0, [100, 1000], tick_mb),
     ):
         style_axes(ax, theme)
         ax.set_xscale("log")
@@ -321,8 +356,8 @@ def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
     sme_mb = [p[4] for p in MAP_POINTS]
 
     for ax, ours, theirs, formatter in (
-        (ax_time, ob_s, sme_s, human_time),
-        (ax_mem, ob_mb, sme_mb, human_mb),
+        (ax_time, ob_s, sme_s, tick_time),
+        (ax_mem, ob_mb, sme_mb, tick_mb),
     ):
         ax.plot(sources, theirs, color=theme["ref"], linewidth=2.2, marker="o",
                 markersize=5, zorder=3)
@@ -393,6 +428,12 @@ def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
 
     ax_time.set_ylim(0.003, 3000)
     ax_mem.set_ylim(3, 1400)
+    # Ticks chosen, not inherited. On a log axis matplotlib picks one tick per
+    # decade and then formats it with the data-label formatter, which is where
+    # "1.7 min" and "16.7 min" came from; these are the values a reader can
+    # actually place.
+    ax_time.set_yticks([0.01, 0.1, 1, 10, 100, 1000])
+    ax_mem.set_yticks([10, 100, 1000])
 
     ax_time.set_title("attribution time", loc="left", fontsize=10.5, color=theme["muted"], pad=14)
     ax_mem.set_title("peak memory", loc="left", fontsize=10.5, color=theme["muted"], pad=14)
@@ -429,46 +470,53 @@ def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
 
 
 def chart_budget(name: str, theme: dict) -> pathlib.Path:
-    """Peak memory against input size, with the published ceiling drawn in."""
-    fig, ax = plt.subplots(figsize=(6.6, 3.3), dpi=200, constrained_layout=True)
+    """Peak memory against the published ceiling, one marker per benchmark.
+
+    Three markers and no line, and that is the point: B3 and B4 are the same
+    workload at two input sizes, but B8 is the *same 1 GB input with a source map
+    added*, so a line through all three draws a vertical drop that is not a
+    measurement - it is two different benchmarks sharing an x coordinate. The
+    previous version connected them and shipped a chart whose most prominent
+    feature was a fall that never happened.
+
+    Every ceiling carries its own number, because a dashed line at an unstated
+    height is decoration.
+    """
+    fig, ax = plt.subplots(figsize=(6.6, 3.4), dpi=200, constrained_layout=True)
     fig.patch.set_facecolor(theme["bg"])
 
     points = [
-        # input MB, measured MB, ceiling MB, label
-        (363.0, 126.8, 200.0, "363 MB"),
-        (1049.0, 375.9, 400.0, "1 GB"),
-        (1049.0, 137.0, 500.0, "1 GB + 36.5 MB map"),
+        # input MB, measured MB, ceiling MB, label, where the label goes
+        (363.0, 126.8, 200.0, "B3", (12, 0, "left")),
+        (1049.0, 375.9, 400.0, "B4", (-12, 0, "right")),
+        (1049.0, 137.0, 500.0, "B8", (12, 0, "left")),
     ]
-    xs = [p[0] for p in points]
-    ys = [p[1] for p in points]
-
-    ax.plot(xs, ys, color=theme["accent"], linewidth=2.2, marker="o", markersize=7, zorder=4)
-    for x, y, ceiling, label in points:
-        ax.annotate(
-            f"{human_mb(y)}\n{label}",
-            (x, y),
-            textcoords="offset points",
-            xytext=(0, -34),
-            ha="center",
-            color=theme["ink"],
-            fontsize=9,
-        )
-        ax.plot([x, x], [y, ceiling], color=theme["grid"], linewidth=1.4, linestyle=(0, (3, 3)), zorder=2)
-        ax.plot([x], [ceiling], marker="_", markersize=18, color=theme["ref_ink"], zorder=3)
+    for x, y, ceiling, label, (dx, dy, ha) in points:
+        ax.plot([x, x], [y, ceiling], color=theme["grid"], linewidth=1.4,
+                linestyle=(0, (3, 3)), zorder=2)
+        ax.plot([x], [ceiling], marker="_", markersize=16, color=theme["ref_ink"], zorder=3)
+        ax.plot([x], [y], marker="o", markersize=7, color=theme["accent"], zorder=4)
+        ax.annotate(f"{label} · {human_mb(y)}", (x, y), textcoords="offset points",
+                    xytext=(dx, dy), ha=ha, va="center", color=theme["ink"],
+                    fontsize=9.5, fontweight="bold")
+        ax.annotate(human_mb(ceiling), (x, ceiling), textcoords="offset points",
+                    xytext=(0, 7), ha="center", color=theme["muted"], fontsize=8.5)
 
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xticks([363, 1049])
     ax.set_xticklabels(["363 MB", "1 GB"])
-    ax.set_xlabel("input size", fontsize=9, color=theme["muted"])
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: human_mb(v)))
+    ax.set_xlim(250, 2000)
+    ax.set_xlabel("input size", fontsize=9, color=theme["muted"], labelpad=6)
+    ax.set_yticks([100, 200, 400])
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: tick_mb(v)))
     ax.set_ylim(80, 700)
     style_axes(ax, theme, xgrid=False)
 
     ax.annotate(
         "the dash is the published ceiling\nfor that target, not the measurement",
         xy=(1049, 500),
-        xytext=(430, 610),
+        xytext=(430, 620),
         color=theme["muted"],
         fontsize=9,
         style="italic",
@@ -486,8 +534,8 @@ def chart_budget(name: str, theme: dict) -> pathlib.Path:
     fig.text(
         0.008,
         -0.04,
-        "median of 3, sampled every 25 ms · working set includes file-backed pages of the "
-        "input, so the figure moves about 15% between runs",
+        "B3/B4: stats only  ·  B8: the same 1 GB input with a 36.5 MB source map  ·  "
+        "median of 3, sampled every 25 ms; the working set moves about 15% between runs",
         ha="left",
         fontsize=8.5,
         color=theme["muted"],
