@@ -1,4 +1,4 @@
-# OmniBundle — Product Requirements (V1.0 + verification annotations)
+# FastScope — Product Requirements (V1.0 + verification annotations)
 
 Owner: WS-0 · Status: product scope frozen for Phase 1 · Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
@@ -12,7 +12,7 @@ Owner: WS-0 · Status: product scope frozen for Phase 1 · Translations: per-doc
 ## Part 1 — The PRD (verbatim)
 
 **Document version:** V1.0
-**Product:** OmniBundle
+**Product:** FastScope
 **Positioning:** A next-generation, unified analysis and visualisation platform
 for front-end bundle output, built on Rust.
 
@@ -66,9 +66,9 @@ no stats module).
 treemaps (source file / npm package / chunk / module dependency), smooth zoom,
 global fuzzy search, code-level drill-down, dark mode, responsive layout.
 
-**3.4 CLI and CI.** Zero-config `npx omnibundle ./dist` with auto-detection;
+**3.4 CLI and CI.** Zero-config `npx fastscope ./dist` with auto-detection;
 exports to `report.json`, `report.html`, `csv`; a size budget in
-`omnibundle.config.json` that exits non-zero and blocks the pipeline.
+`fastscope.config.json` that exits non-zero and blocks the pipeline.
 
 **4. Non-functional requirements.** Performance: parse 500 MB of `stats.json`
 plus its maps in **< 2 s** (Node tools typically need 10-30 s); peak memory
@@ -102,7 +102,7 @@ memory down 70% on 500 MB inputs.
 | `simd-json` for parsing | **changed** | ADR-0001: `simd-json` needs the whole document in memory, which would put the floor at ~2 GB for a 1 GB input. Replaced by streaming `serde_json` seeds, which match Node's parse speed at 1/50th the memory. |
 | WebGL treemap, > 50 FPS at 10k modules | **deferred** | Phase 1 uses Canvas 2D (target > 30 FPS, B10); WebGL lands in Phase 2 behind the same payload contract. |
 | Four grouping dimensions | **reduced** | Phase 1 ships source file / npm package / chunk. The module-dependency (edge) view needs its own interaction model and is Phase 2. |
-| WASM in Phase 1 | **deferred** | `omnibundle-core` is already IO-free so Phase 2 is additive, but no `wasm-bindgen` dependency enters the tree until then (ADR-0003). |
+| WASM in Phase 1 | **deferred** | `fastscope-core` is already IO-free so Phase 2 is additive, but no `wasm-bindgen` dependency enters the tree until then (ADR-0003). |
 | Ghost / hidden code detection | **specified, unproven** | The rule set is written down (`fusion::classify_ghost`) and gated: ≥95% agreement with hand-labelled expectations on three real projects before it ships. |
 | ≥5x faster than WBA | **true for one segment only** | Parsing: 176.3 s → 2.78 s is ~63x. Full pipeline: unverified. Public claims must state which segment. |
 | Memory down 70% at 500 MB | **likely exceeded** | 1,985 MB → 59 MB at 1,049 MB is ~97% at the parse stage. Re-state as a measured, segmented number after B3/B8. |

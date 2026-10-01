@@ -2,7 +2,7 @@
 
 Owner: WS-0, with WS-S for the source-map section · Translations: per-document translations are still in progress. [ZH](../zh/README.md) · [JA](../ja/README.md) · [DE](../de/README.md)
 
-This document is the honest ledger behind OmniBundle. Every number here was
+This document is the honest ledger behind FastScope. Every number here was
 measured on the reference machine unless it is explicitly marked as coming from
 an upstream issue. Nothing in this file is aspirational.
 
@@ -11,7 +11,7 @@ Reference machine: Windows, node 24.18.0, python 3.12.10, rustc/cargo 1.97.1,
 
 ## 1. Where the idea came from
 
-OmniBundle is the survivor of a nine-round direction search for "rewrite a slow,
+FastScope is the survivor of a nine-round direction search for "rewrite a slow,
 in-demand developer tool in Rust". The full search record lives outside this
 repository and is referenced in §7; the short version:
 
@@ -215,7 +215,7 @@ cd bench
 ./fixtures/fetch.sh                 # real fixtures, pinned by commit
 node harness/gen-stats.mjs 381000000 out/stats-400mb.json
 node harness/materialize-assets.mjs --stats out/stats-400mb.json --out out/dist
-powershell -File harness/measure.ps1 -Binary ../target/release/omnibundle.exe \
+powershell -File harness/measure.ps1 -Binary ../target/release/fastscope.exe \
     -Target out/dist -Extra '--mode static --report out/report.html' -Runs 3
 node harness/parity.mjs --stats fixtures/artifacts/webpack/marked/stats.json \
     --bundle fixtures/artifacts/webpack/marked
@@ -257,4 +257,4 @@ Two of its conclusions are load-bearing here and worth restating: the pain
 reported in an issue is often a CI or network cost rather than tool CPU
 (changesets' "20 minutes" was CI, not the tool), and a rewrite only makes sense
 when the pain is a memory ceiling, a per-item process, or a superlinear
-algorithm. OmniBundle has all three.
+algorithm. FastScope has all three.

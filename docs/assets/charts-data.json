@@ -78,23 +78,23 @@
   "source_maps": [
     {
       "sources": 12,
-      "omnibundle_seconds": 0.007,
+      "fastscope_seconds": 0.007,
       "source_map_explorer_seconds": 0.252,
-      "omnibundle_mb": 4.7,
+      "fastscope_mb": 4.7,
       "source_map_explorer_mb": 31.0
     },
     {
       "sources": 10000,
-      "omnibundle_seconds": 0.046,
+      "fastscope_seconds": 0.046,
       "source_map_explorer_seconds": 18.38,
-      "omnibundle_mb": 6.0,
+      "fastscope_mb": 6.0,
       "source_map_explorer_mb": 277.0
     },
     {
       "sources": 50000,
-      "omnibundle_seconds": 0.209,
+      "fastscope_seconds": 0.209,
       "source_map_explorer_seconds": 562.269,
-      "omnibundle_mb": 67.0,
+      "fastscope_mb": 67.0,
       "source_map_explorer_mb": 642.0
     }
   ]

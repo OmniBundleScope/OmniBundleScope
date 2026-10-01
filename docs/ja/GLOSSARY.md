@@ -1,4 +1,4 @@
-# 用語集 — OmniBundle（JA）
+# 用語集 — FastScope（JA）
 
 規範リストは `docs/contracts/i18n-parity.md` §4 にあります。他の言語:
 [EN](../en/GLOSSARY.md) · [ZH](../zh/GLOSSARY.md) · [DE](../de/GLOSSARY.md)
@@ -15,7 +15,7 @@
 | hidden code | 隠しコード | どのモジュールにも属さない生成バイト |
 | tree shaking | ツリーシェイキング | 未使用の export の除去 |
 | treemap | ツリーマップ | squarified レイアウト。Phase 1 は Canvas 2D |
-| budget | サイズバジェット | CI ゲート。超過時は終了コード 1 と `OB0040` |
+| budget | サイズバジェット | CI ゲート。超過時は終了コード 1 と `FS0040` |
 | baseline | ベースライン | 比較の基準となる数値 |
 | size dimension | サイズ軸 | `stat` / `parsed` / `gzip` / `attributed` |
 | phase | フェーズ | scan / parse / attribute / fuse / report |
@@ -31,5 +31,5 @@
 ## 翻訳しないもの
 
 コード、識別子、ファイル名、CLI フラグ、JSON キー、診断コード
-（`OB0001` …）、crate 名、バージョン番号。これらを翻訳すると整合性チェックが
+（`FS0001` …）、crate 名、バージョン番号。これらを翻訳すると整合性チェックが
 失敗します。

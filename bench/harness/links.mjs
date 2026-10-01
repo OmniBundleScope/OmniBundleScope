@@ -25,14 +25,14 @@ const deny = args.has('--deny');
 // to make impossible to make twice.
 //
 // Only enforced while the table still has empty values. Once filled in, these
-// strings can be *correct* - someone may legitimately own omnibundle.dev or the
-// omnibundle GitHub org - and a gate that fires on their own choice is worse than
+// strings can be *correct* - someone may legitimately own fastscope.dev or the
+// fastscope GitHub org - and a gate that fires on their own choice is worse than
 // no gate. The file itself is skipped, or it would match its own needle list.
 const INVENTED = [
-  'github.com/omnibundle/omnibundle',
-  'omnibundle.github.io',
-  'omnibundle.dev',
-  'img.shields.io/github/v/release/omnibundle',
+  'github.com/fastscope/fastscope',
+  'fastscope.github.io',
+  'fastscope.dev',
+  'img.shields.io/github/v/release/fastscope',
 ];
 
 // Claims that a package can be installed. Worse than a dead link: a reader cannot
@@ -41,17 +41,19 @@ const INVENTED = [
 // release workflow has published something.
 //
 // Split in two on purpose. A command inside a fenced block is an instruction; the
-// same words in a sentence can be the opposite - "`npx omnibundle` does not work
+// same words in a sentence can be the opposite - "`npx fastscope` does not work
 // yet" is the honest sentence this gate exists to encourage. A badge URL carries no
 // such ambiguity, so it is matched anywhere.
 //
 // Only the front pages are scanned: `docs/` describes the npm one-liner as the
 // target shape of the CLI, which is a third kind of sentence again.
 const UNAVAILABLE_COMMAND = [
-  ['NPM_URL', 'npx omnibundle'],
-  ['NPM_URL', 'npm i omnibundle'],
-  ['NPM_URL', 'npm install omnibundle'],
-  ['CRATES_CORE_URL', 'cargo install omnibundle'],
+  ['NPM_URL', 'npx fastscope'],
+  ['NPM_URL', 'npm i fastscope'],
+  ['NPM_URL', 'npm install fastscope'],
+  // fastscope-cli, not fastscope: there is no crate called `fastscope`, and an
+  // install line that 404s on crates.io is the exact failure this list is for.
+  ['CRATES_CORE_URL', 'cargo install fastscope-cli'],
 ];
 
 const UNAVAILABLE_BADGE = [
@@ -146,8 +148,8 @@ for (const [token, entry] of Object.entries(table.links)) {
 // The package names are also declared in the manifests. If the badge says one
 // thing and the published package is called another, the badge is decoration.
 const MISMATCH = [
-  ['NPM_PACKAGE', 'npm/omnibundle/package.json', (m) => m.name],
-  ['CRATES_CORE_PACKAGE', 'crates/omnibundle-core/Cargo.toml', (t) => /^\s*name\s*=\s*"([^"]+)"/m.exec(t)?.[1]],
+  ['NPM_PACKAGE', 'npm/fastscope/package.json', (m) => m.name],
+  ['CRATES_CORE_PACKAGE', 'crates/fastscope-core/Cargo.toml', (t) => /^\s*name\s*=\s*"([^"]+)"/m.exec(t)?.[1]],
 ];
 for (const [token, file, read] of MISMATCH) {
   const value = table.links[token].value;

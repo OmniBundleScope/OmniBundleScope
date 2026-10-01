@@ -40,12 +40,12 @@ flattering one.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/chart-pipeline-dark.svg">
-  <img alt="Bar charts comparing OmniBundle with webpack-bundle-analyzer on wall clock and peak memory for a 363 MB and a 1 GB stats file." src="../assets/chart-pipeline-light.svg" width="100%">
+  <img alt="Bar charts comparing FastScope with webpack-bundle-analyzer on wall clock and peak memory for a 363 MB and a 1 GB stats file." src="../assets/chart-pipeline-light.svg" width="100%">
 </picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="../assets/chart-source-maps-dark.svg">
-  <img alt="Log-log charts of source map attribution time and memory against the number of sources, comparing OmniBundle with source-map-explorer." src="../assets/chart-source-maps-light.svg" width="100%">
+  <img alt="Log-log charts of source map attribution time and memory against the number of sources, comparing FastScope with source-map-explorer." src="../assets/chart-source-maps-light.svg" width="100%">
 </picture>
 
 <picture>
@@ -74,8 +74,8 @@ than buried:
 
 | tool | input | wall | peak RSS | fixture |
 |---|---|---|---|---|
-| **omnibundle 0.1.0 (release)** | **stats 363 MB / 154,379 modules** | **1.33 s** | **126 MB** | synthetic |
-| **omnibundle 0.1.0 (release)** | **stats 1,049 MB / 445,602 modules** | **3.63 s** | **346 MB** | synthetic |
+| **fastscope 0.1.0 (release)** | **stats 363 MB / 154,379 modules** | **1.33 s** | **126 MB** | synthetic |
+| **fastscope 0.1.0 (release)** | **stats 1,049 MB / 445,602 modules** | **3.63 s** | **346 MB** | synthetic |
 | webpack-bundle-analyzer 4.10.2 | stats 363 MB (same file) | 63.6 s | 2,295 MB | synthetic |
 | webpack-bundle-analyzer 4.10.2 | stats 1,049 MB | 176.3 s | 1,437 MB | synthetic |
 | node `readFileSync` + `JSON.parse` | stats 381 MB | 0.94 s | 919 MB | synthetic |

@@ -192,12 +192,12 @@ def find_binary(explicit: str | None) -> pathlib.Path:
     if from_env:
         return pathlib.Path(from_env)
 
-    stem = REPO / "target" / "release" / "omnibundle"
+    stem = REPO / "target" / "release" / "fastscope"
     for candidate in (stem.with_suffix(".exe"), stem):
         if candidate.exists():
             return candidate
     raise SystemExit(
-        "no omnibundle binary found: build it with `cargo build --release`, "
+        "no fastscope binary found: build it with `cargo build --release`, "
         "or pass --binary / set OB_BINARY"
     )
 
@@ -215,14 +215,14 @@ def run_payload(binary: pathlib.Path, stats: pathlib.Path) -> dict:
     if result.returncode != 0:
         detail = result.stderr.decode("utf-8", "replace").strip()
         raise SystemExit(f"{binary} exited {result.returncode}: {detail}")
-    # `omnibundle --mode json` writes a UTF-8 BOM, which `json.loads` rejects.
+    # `fastscope --mode json` writes a UTF-8 BOM, which `json.loads` rejects.
     return json.loads(result.stdout.decode("utf-8-sig"))
 
 
 def size_of(sizes: dict) -> tuple[int, str]:
     """`Module::sizes.effective()`: ground truth, then measurement, then claim.
 
-    Kept identical to `crates/omnibundle-core/src/model.rs` so the picture and
+    Kept identical to `crates/fastscope-core/src/model.rs` so the picture and
     the product cannot disagree about what a module weighs.
     """
     attributed = sizes.get("attributed")
@@ -378,7 +378,7 @@ def render(
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Render the OmniBundle README treemap to SVG.")
+    parser = argparse.ArgumentParser(description="Render the FastScope README treemap to SVG.")
     parser.add_argument("--stats", required=True, help="stats.json (or metafile.json) to analyse")
     parser.add_argument("--out", required=True, help="SVG to write")
     parser.add_argument("--width", type=int, default=880)

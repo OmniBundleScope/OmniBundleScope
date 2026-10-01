@@ -1,4 +1,4 @@
-// Build the real fixtures into the artifacts OmniBundle ingests (WS-A).
+// Build the real fixtures into the artifacts FastScope ingests (WS-A).
 //
 // We build with our own bundler config rather than each project's release
 // config, deliberately (ADR-0005): the fixture must exercise *our* input path

@@ -1,4 +1,4 @@
-# OmniBundle documentation
+# FastScope documentation
 
 The site is built from this directory, with English as the normative source.
 There is exactly one copy of every document: the chapters in

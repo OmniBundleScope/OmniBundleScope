@@ -33,7 +33,7 @@ for entry in "${fixtures[@]}"; do
   ( cd "$dest" && git fetch --depth 1 --quiet origin "refs/tags/v$ref:refs/tags/v$ref" 2>/dev/null || true
     git checkout --quiet "v$ref" 2>/dev/null || true
     echo "   commit: $(git rev-parse HEAD)"
-    git rev-parse HEAD > "$dest/.omnibundle-commit" )
+    git rev-parse HEAD > "$dest/.fastscope-commit" )
 done
 
 cat <<'EOF'

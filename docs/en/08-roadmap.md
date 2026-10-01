@@ -26,7 +26,7 @@ Those are Phase 2+ and the README must not imply otherwise.
 
 ## Phase 2 — Web UI and WASM
 
-- `omnibundle-wasm` gets real bindings; the core is already IO-free so this is
+- `fastscope-wasm` gets real bindings; the core is already IO-free so this is
   packaging plus a JS API.
 - WebGL treemap renderer behind the existing payload contract, keeping the
   Canvas 2D path as a fallback.

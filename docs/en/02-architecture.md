@@ -5,10 +5,10 @@ Owner: WS-0 · Translations: Translations: per-document translations are still i
 ## 1. Crates
 
 ```
-omnibundle-core    pure logic: ingest, fusion, report payload. No IO, no CLI,
+fastscope-core    pure logic: ingest, fusion, report payload. No IO, no CLI,
                    no async runtime. This is what Phase 2 compiles to WASM.
-omnibundle-cli     the `omnibundle` binary: scanning, budgets, file output.
-omnibundle-wasm    Phase 2 bindings. Currently a schema-version shim only.
+fastscope-cli     the `fastscope` binary: scanning, budgets, file output.
+fastscope-wasm    Phase 2 bindings. Currently a schema-version shim only.
 ```
 
 The core crate's IO-free rule is not stylistic. It is the reason a browser build
@@ -93,7 +93,7 @@ memory and in the stages after it.
 
 ## 7. Caching
 
-`.omnibundle-cache/` keyed by `blake3` over the input bytes (and, for the
+`.fastscope-cache/` keyed by `blake3` over the input bytes (and, for the
 merged graph, over the ordered artifact list). A cache hit is therefore provably
 about identical input, not about a timestamp. Cache entries store the parsed
 graph, not the rendered report, so a re-render with a different dimension costs

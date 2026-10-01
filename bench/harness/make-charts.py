@@ -47,7 +47,7 @@ OUT = REPO / "docs" / "assets"
 # came from. The sidecar written next to the SVGs repeats this provenance so the
 # figure can be audited without reading this script.
 
-# (label, OmniBundle seconds, reference tool seconds, reference name)
+# (label, FastScope seconds, reference tool seconds, reference name)
 STATS = {
     "363 MB stats, 154,379 modules": {
         "ob_s": 1.869,
@@ -75,7 +75,7 @@ STATS_MEM = {
 # the *minified* preact run while taking the time from the readable one. Every
 # number below is now a value with a record behind it.
 MAP_POINTS = [
-    # sources, omnibundle seconds, sme seconds, omnibundle MB, sme MB
+    # sources, fastscope seconds, sme seconds, fastscope MB, sme MB
     (12, 0.007, 0.252, 4.7, 31.0),
     (10_000, 0.046, 18.380, 6.0, 277.0),
     (50_000, 0.209, 562.269, 67.0, 642.0),
@@ -385,7 +385,7 @@ def chart_source_maps(name: str, theme: dict) -> pathlib.Path:
         (ax_mem, ob_mb, sme_mb, human_mb),
     ):
         ax.annotate(
-            "OmniBundle",
+            "FastScope",
             xy=(sources[-1], ours[-1]),
             xytext=(9, 4),
             textcoords="offset points",
@@ -797,9 +797,9 @@ def main() -> int:
         "source_maps": [
             {
                 "sources": s,
-                "omnibundle_seconds": ob,
+                "fastscope_seconds": ob,
                 "source_map_explorer_seconds": sme,
-                "omnibundle_mb": obmb,
+                "fastscope_mb": obmb,
                 "source_map_explorer_mb": smemb,
             }
             for s, ob, sme, obmb, smemb in MAP_POINTS

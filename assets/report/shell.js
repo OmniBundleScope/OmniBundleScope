@@ -1,4 +1,4 @@
-/* OmniBundle report shell — WS-5.
+/* FastScope report shell — WS-5.
  *
  * Squarified treemap (Bruls, Huizing & van Wijk) on a 2D canvas, drawn with
  * label culling so 10k nodes stay responsive: anything that cannot fit a legible

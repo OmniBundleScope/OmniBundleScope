@@ -1,8 +1,8 @@
 <div align="center">
 
-# OmniBundle
+# FastScope
 
-**One tool for every bundler.** Read webpack and rspack `stats.json`, esbuild
+**One analyzer for every bundler.** Read webpack and rspack `stats.json`, esbuild
 `metafile.json`, or nothing but the output folder itself — and get one size
 graph, with real byte attribution, in a fraction of the memory.
 
@@ -29,7 +29,7 @@ graph, with real byte attribution, in a fraction of the memory.
 
 ## Supported bundlers
 
-| bundler | what OmniBundle reads | needs `dist/` + `*.map`? | ghost code detection |
+| bundler | what FastScope reads | needs `dist/` + `*.map`? | ghost code detection |
 |---|---|---|---|
 | **webpack** 4 / 5 | `stats.json` | no | yes |
 | **rspack** | `stats.json` (same schema) | no | yes |
@@ -53,10 +53,10 @@ Two input shapes, and the difference matters:
   claiming zero:
 
 ```
-$ omnibundle ./dist
+$ fastscope ./dist
 dist  ·  9 modules  ·  4 assets  ·  3 packages  ·  ingest 8 ms  ·  total 10 ms  ·  dimension parsed
 fusion: 2 map(s) · coverage 97% · 9/9 modules attributed · ghost code needs a stats.json to detect · 0 hidden source(s) (0 KB)
-wrote omnibundle-report.html (0.0 MB), detail inlined
+wrote fastscope-report.html (0.0 MB), detail inlined
 ```
 
 Nothing is configured, and `dist/` is read recursively, because that is where
@@ -84,7 +84,7 @@ holds the entire `stats.json` in the JS heap: on a 363 MB build that is
 the treemap it still cannot tell you the two things that actually cost you
 money — see [below](#ghost-code-and-hidden-code).
 
-OmniBundle streams the stats file, measures the emitted bytes, joins the source
+FastScope streams the stats file, measures the emitted bytes, joins the source
 maps onto the module graph, and says which dimension it used.
 
 ## The measurements
@@ -94,10 +94,10 @@ render the report. Synthetic fixtures, median of three runs, reference machine.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-pipeline-dark.svg">
-  <img alt="Horizontal bar charts comparing OmniBundle with webpack-bundle-analyzer. Wall clock: 1.87 s against 63.6 s on a 363 MB stats file, 6.14 s against 176.3 s on 1 GB. Peak memory: 127 MB against 2,295 MB, and 376 MB against 1,437 MB." src="docs/assets/chart-pipeline-light.svg" width="100%">
+  <img alt="Horizontal bar charts comparing FastScope with webpack-bundle-analyzer. Wall clock: 1.87 s against 63.6 s on a 363 MB stats file, 6.14 s against 176.3 s on 1 GB. Peak memory: 127 MB against 2,295 MB, and 376 MB against 1,437 MB." src="docs/assets/chart-pipeline-light.svg" width="100%">
 </picture>
 
-| input | OmniBundle | webpack-bundle-analyzer | ratio |
+| input | FastScope | webpack-bundle-analyzer | ratio |
 |---|---|---|---|
 | 363 MB `stats.json`, 154,379 modules | **1.87 s / 127 MB** | 63.6 s / 2,295 MB | **34× faster, 18× smaller** |
 | 1 GB `stats.json`, 445,602 modules | **6.14 s / 376 MB** | 176.3 s / 1,437 MB | 29× faster, 3.8× smaller |
@@ -108,7 +108,7 @@ the sources costs it thirty times the time**, while ours stays linear.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-source-maps-dark.svg">
-  <img alt="Log-log line charts of source map attribution time and memory against the number of sources. source-map-explorer rises from 0.25 s on a real 12-source bundle to 562 s at 50,000 sources; OmniBundle from 7 ms to 209 ms. Memory: 642 MB against 67 MB at 50,000 sources." src="docs/assets/chart-source-maps-light.svg" width="100%">
+  <img alt="Log-log line charts of source map attribution time and memory against the number of sources. source-map-explorer rises from 0.25 s on a real 12-source bundle to 562 s at 50,000 sources; FastScope from 7 ms to 209 ms. Memory: 642 MB against 67 MB at 50,000 sources." src="docs/assets/chart-source-maps-light.svg" width="100%">
 </picture>
 
 Every number here is reproducible with the harness in `bench/`, and the raw
@@ -128,11 +128,11 @@ actually new.
   snippet, an `eval`, a polyfill the bundler injected. It is in your bundle and
   in no module's size.
 
-OmniBundle folds each source's byte share into the modules that produced it, and
+FastScope folds each source's byte share into the modules that produced it, and
 whatever does not reconcile becomes a diagnostic instead of a rounding error:
 
 ```
-$ omnibundle ./dist
+$ fastscope ./dist
 dist  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 2143 ms  ·  total 2845 ms  ·  dimension attributed
 fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · ghost code needs a stats.json to detect · 0 hidden source(s) (0 KB)
 wrote dist/report.html (0.1 MB), detail in a companion script (loaded on demand)
@@ -142,7 +142,7 @@ and when it does not add up, it says which way. A build where one of two assets
 ships without a source map:
 
 ```
-$ omnibundle ./dist
+$ fastscope ./dist
 dist  ·  22 modules  ·  2 assets  ·  11 packages  ·  ingest 4 ms  ·  total 6 ms  ·  dimension parsed
 fusion: 1 map(s) · coverage 47% · 0/22 modules attributed · 22 ghost (83 KB of declared) · 3 hidden source(s) (39 KB)
 ```
@@ -155,7 +155,7 @@ to no measurement.
 Attribution is a longest-suffix path match on the real join key
 ([`unified-graph.md`](docs/contracts/unified-graph.md)), never a content hash,
 and the corrected sizes are checked against the asset total by an invariant that
-fails loudly (`OB0042`) instead of quietly rounding. A map that covers only part
+fails loudly (`FS0042`) instead of quietly rounding. A map that covers only part
 of the build downgrades the report from the `attributed` dimension to `parsed`
 and the CLI says so — a report that claimed ground truth it did not have would
 be worse than no report.
@@ -163,7 +163,7 @@ be worse than no report.
 ## The report
 
 <p align="center">
-  <img alt="OmniBundle HTML report: a squarified treemap of a build grouped by package, showing the 40 largest of 400, with a searchable module list, three grouping dimensions and light/dark themes." src="docs/assets/treemap-large.svg" width="100%">
+  <img alt="FastScope HTML report: a squarified treemap of a build grouped by package, showing the 40 largest of 400, with a searchable module list, three grouping dimensions and light/dark themes." src="docs/assets/treemap-large.svg" width="100%">
 </p>
 
 <sub>The 40 largest packages of a synthetic 400-package build: 1,500 assets and
@@ -175,20 +175,20 @@ light/dark, and no network requests.</sub>
 
 ## Install
 
-**Not published yet.** There is no `omnibundle` on npm and no crate to install,
-so `npx omnibundle` and `cargo install omnibundle-cli` do not work today, and
+**Not published yet.** There is no `fastscope` on npm and no crate to install,
+so `npx fastscope` and `cargo install fastscope-cli` do not work today, and
 this README does not offer them. Build it instead:
 
 ```bash
 git clone {{REPO_URL}}.git
-cd omnibundle
+cd fastscope
 cargo build --release
-./target/release/omnibundle ./dist
+./target/release/fastscope ./dist
 ```
 
 When a `v*` tag is pushed, the release workflow publishes in the order given in
 `docs/en/06-release-and-ci.md` §2 — binaries to GitHub releases, then
-`omnibundle-core` to crates.io, then the npm wrapper, because the npm name is the
+`fastscope-core` to crates.io, then the npm wrapper, because the npm name is the
 scarcest resource here and is spent last. The npm and crates.io badges and the
 two install one-liners come back in the commit that fills in `repo-links.json`.
 The npm wrapper verifies `checksums.txt` before it writes or executes anything.
@@ -196,18 +196,18 @@ The npm wrapper verifies `checksums.txt` before it writes or executes anything.
 ## Use
 
 ```bash
-omnibundle ./dist                      # a folder: stats + assets + *.map
-omnibundle ./dist/stats.json           # a stats file
-omnibundle ./dist/metafile.json        # an esbuild metafile
+fastscope ./dist                      # a folder: stats + assets + *.map
+fastscope ./dist/stats.json           # a stats file
+fastscope ./dist/metafile.json        # an esbuild metafile
 
-omnibundle ./dist --budget omnibundle.config.json   # exits 1 on a breach
-omnibundle ./dist --mode json > sizes.json          # for CI or BI
-omnibundle ./dist --mode csv  > sizes.csv
-omnibundle ./dist/map.js.map --bench-map            # attribution only, timed
+fastscope ./dist --budget fastscope.config.json   # exits 1 on a breach
+fastscope ./dist --mode json > sizes.json          # for CI or BI
+fastscope ./dist --mode csv  > sizes.csv
+fastscope ./dist/map.js.map --bench-map            # attribution only, timed
 ```
 
 ```jsonc
-// omnibundle.config.json
+// fastscope.config.json
 {
   "limits": [
     { "scope": "total",   "max": 1_500_000 },
@@ -223,7 +223,7 @@ omnibundle ./dist/map.js.map --bench-map            # attribution only, timed
 | code | meaning |
 |---|---|
 | 0 | analysed, and every budget held |
-| 1 | analysed, and a budget was breached (`OB0040`) |
+| 1 | analysed, and a budget was breached (`FS0040`) |
 | 2 | bad command line |
 | 3 | input unreadable, or a budget rule that matches nothing |
 
@@ -305,8 +305,8 @@ without saying which ones is not making a claim worth reading:
 Two input shapes:
 
 ```bash
-omnibundle ./dist/stats.json   # a bundler graph: webpack, rspack, esbuild --metafile
-omnibundle ./dist              # just the output folder: vite, rollup, parcel, tsup
+fastscope ./dist/stats.json   # a bundler graph: webpack, rspack, esbuild --metafile
+fastscope ./dist              # just the output folder: vite, rollup, parcel, tsup
 ```
 
 The second needs nothing configured — point it at `dist/` and the source maps

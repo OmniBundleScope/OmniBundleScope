@@ -79,7 +79,7 @@ prerequisites, so you can check whether it may start.
 ### WS-3 — source map ingest
 
 - Base64 VLQ decoding in place; flat `Vec<Mapping>`; `sourcesContent`;
-  `sections` (index maps) support; reject non-v3 with `OB0010`.
+  `sections` (index maps) support; reject non-v3 with `FS0010`.
 - Target B5. Equivalence test: identical mapping count and attributed byte
   totals against a JS reference on the same `.map`.
 
@@ -104,7 +104,7 @@ prerequisites, so you can check whether it may start.
   non-zero exit, `--json`, `--dims`, deterministic output, Windows included
   (the reference machine is Windows; a tool that only works on Linux cannot
   verify its own benchmarks).
-- Also owns the `.omnibundle-cache/` implementation (content-addressed).
+- Also owns the `.fastscope-cache/` implementation (content-addressed).
 
 ### WS-7 — parity tests
 
@@ -153,8 +153,8 @@ maps, we do not emit them), and any code that would duplicate a bundler.
 ## 6. What "done" looks like from the outside
 
 ```bash
-npx omnibundle ./dist
-# → omnibundle-report.html (one file, no network)
-# → exit 0, or exit 1 with OB0040 when a budget is breached
+npx fastscope ./dist
+# → fastscope-report.html (one file, no network)
+# → exit 0, or exit 1 with FS0040 when a budget is breached
 # and, for the same input, the numbers match WBA and SME to within 0.1 %
 ```

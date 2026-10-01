@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
 const binary =
-  process.env.OB_BINARY ?? join(repoRoot, 'target', 'release', 'omnibundle.exe');
+  process.env.OB_BINARY ?? join(repoRoot, 'target', 'release', 'fastscope.exe');
 const resultsDir = join(repoRoot, 'bench', 'results');
 
 const inputs = process.argv.slice(2);
@@ -61,7 +61,7 @@ for (const input of inputs) {
   rows.push({
     fixture: input.split(/[\\/]/).pop(),
     fixture_class: input.includes('artifacts') ? 'real' : 'synthetic',
-    tool: 'omnibundle@0.1.0 --bench-map',
+    tool: 'fastscope@0.1.0 --bench-map',
     input_bytes: size,
     sources,
     mappings: detail.mappings ?? null,

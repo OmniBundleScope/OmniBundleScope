@@ -11,7 +11,7 @@
       "modules": 154379,
       "assets": 1500,
       "packages": 400,
-      "tool": "omnibundle@0.1.0 --bench",
+      "tool": "fastscope@0.1.0 --bench",
       "ingest_ms": 1139,
       "total_ms": 1334,
       "peak_rss_mb": 126,
@@ -24,7 +24,7 @@
       "modules": 445602,
       "assets": 1500,
       "packages": 400,
-      "tool": "omnibundle@0.1.0 --bench",
+      "tool": "fastscope@0.1.0 --bench",
       "ingest_ms": 3318,
       "total_ms": 3628,
       "peak_rss_mb": 346,
@@ -42,7 +42,7 @@
   ],
   "comparison_on_identical_input": {
     "input": "ob-stats-400mb.json (363 MB, 154,379 modules)",
-    "omnibundle": { "wall_ms": 1334, "peak_rss_mb": 126 },
+    "fastscope": { "wall_ms": 1334, "peak_rss_mb": 126 },
     "webpack_b_bundle_analyzer": { "wall_ms": 63617, "peak_rss_mb": 2295 },
     "wall_ratio": 47.7,
     "memory_ratio": 18.2

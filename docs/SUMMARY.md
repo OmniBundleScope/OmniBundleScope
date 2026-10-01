@@ -1,6 +1,6 @@
 # Summary
 
-[OmniBundle](index.md)
+[FastScope](index.md)
 - [Product requirements](en/00-prd.md)
 - [Evidence log](en/01-evidence.md)
 
@@ -32,6 +32,7 @@
 - [ADR-0003: full fusion scope](decisions/ADR-0003-full-fusion-scope.md)
 - [ADR-0004: naming](decisions/ADR-0004-naming.md)
 - [ADR-0005: fixture matrix](decisions/ADR-0005-fixture-matrix.md)
+- [ADR-0006: renaming to fastscope](decisions/ADR-0006-renaming.md)
 
 # Translations
 

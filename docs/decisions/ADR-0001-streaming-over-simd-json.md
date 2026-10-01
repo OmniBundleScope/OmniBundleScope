@@ -29,7 +29,7 @@ inputs (`docs/en/01-evidence.md`):
 
 A `simd-json` implementation would have to hold the entire 1 GB document
 (plus its in-place copy) before it could start, which puts the floor at
-~2 GB — precisely the failure mode OmniBundle exists to remove. Node's own
+~2 GB — precisely the failure mode FastScope exists to remove. Node's own
 `JSON.parse` floor on the same file was 0.94 s at **919 MB RSS**; we match its
 speed at 1/50th the memory, and the memory is the thing that scales badly.
 

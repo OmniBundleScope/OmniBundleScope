@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
-const binary = process.env.OB_BINARY ?? join(repoRoot, 'target', 'release', 'omnibundle.exe');
+const binary = process.env.OB_BINARY ?? join(repoRoot, 'target', 'release', 'fastscope.exe');
 const resultsDir = join(repoRoot, 'bench', 'results');
 
 const arg = (flag, fallback = null) => {

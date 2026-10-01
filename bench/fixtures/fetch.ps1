@@ -53,7 +53,7 @@ foreach ($f in $fixtures) {
         $commit = git rev-parse HEAD
         $short = git rev-parse --short HEAD
         Write-Output "   commit: $short ($commit)"
-        $commit | Out-File -FilePath (Join-Path $dest '.omnibundle-commit') -Encoding utf8
+        $commit | Out-File -FilePath (Join-Path $dest '.fastscope-commit') -Encoding utf8
     } finally {
         Pop-Location
     }

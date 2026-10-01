@@ -11,9 +11,19 @@
 // What counts as broken:
 //   - U+FFFD REPLACEMENT CHARACTER: text that was decoded lossily at some point
 //   - C1 controls: what a Latin-1/UTF-8 mix-up leaves behind
+//   - C0 controls other than tab, newline and carriage return
 //   - the classic UTF-8-read-as-CP936/CP1252 fragments, matched literally
 //   - a UTF-8 BOM in a source file, which Rust and Node both tolerate but which
 //     is noise in a diff
+//
+// The C0 check is here because of a second real accident, and it is the one that
+// mattered: five files were edited through a shell that read a backtick as an
+// escape character, so a Markdown backtick in prose turned into a form feed, a
+// backspace or a bell - each silently eating the character after it. The result
+// was a source file containing a control character, in a comment, where nothing
+// fails to compile and nothing looks wrong in a diff. A gate that checks for
+// mojibake but not for control characters catches the accident it was written for
+// and misses the one that actually happened.
 //
 // Non-ASCII is otherwise fine and expected: the docs are translated, and
 // typographic punctuation (em dash, curly quotes, ellipsis, arrows) is
@@ -30,7 +40,7 @@ const SKIP_DIRS = new Set([
   '.git', 'target', 'node_modules', 'artifacts', 'vendor', 'coverage', 'repos',
 ]);
 // Path prefixes to skip anywhere in the tree, for generated output that is not a
-// directory name we can match on (ook/book/).
+// directory name we can match on (book/book/).
 const SKIP_PREFIXES = ['book/book'];
 // Authored files that are allowed to contain the patterns on purpose - a doc
 // *about* mojibake, for instance.
@@ -92,6 +102,16 @@ for (const file of walk(repoRoot)) {
       problems.push(`${rel}: C1 control U+${code.toString(16).padStart(4, '0')}`);
       break;
     }
+  }
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code >= 0x20 || code === 0x09 || code === 0x0a || code === 0x0d) continue;
+    const line = text.slice(0, i).split('\n').length;
+    problems.push(
+      `${rel}:${line}: control character U+${code.toString(16).padStart(4, '0')} ` +
+        `(escaped: ${JSON.stringify(text.slice(Math.max(0, i - 30), i + 10))})`,
+    );
+    break;
   }
   for (const suspect of SUSPECT) {
     if (text.includes(suspect)) {

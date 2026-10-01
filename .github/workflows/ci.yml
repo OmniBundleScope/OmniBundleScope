@@ -59,12 +59,12 @@ jobs:
         run: node harness/check-encoding.mjs
 
       - name: the npm shim honours argv and the exit codes
-        working-directory: npm/omnibundle
+        working-directory: npm/fastscope
         run: |
           npm test
           # The shim has to work from a build produced by this job, which is what
-          # OMNIBUNDLE_BIN is for.
-          OMNIBUNDLE_BIN="$GITHUB_WORKSPACE/target/release/omnibundle" npm test
+          # FASTSCOPE_BIN is for.
+          FASTSCOPE_BIN="$GITHUB_WORKSPACE/target/release/fastscope" npm test
 
       - name: the README images are valid geometry
         working-directory: bench
@@ -91,7 +91,7 @@ jobs:
       # Proptest runs on stable, so this needs no nightly toolchain. These are
       # the properties that found the two scaling/attribution defects.
       - name: property tests
-        run: cargo test -p omnibundle-core --test properties
+        run: cargo test -p fastscope-core --test properties
 
       # The charts are generated, not drawn, and they are only trustworthy if
       # regenerating them is reproducible. This also fails if a label formatter
@@ -160,7 +160,7 @@ jobs:
         working-directory: bench
         run: |
           node fixtures/build/build-webpack.mjs marked
-          node ../target/release/omnibundle fixtures/artifacts/webpack/marked \
+          node ../target/release/fastscope fixtures/artifacts/webpack/marked \
             --mode static --report "$RUNNER_TEMP/report.html"
           test -s "$RUNNER_TEMP/report.html"
 
@@ -225,7 +225,7 @@ jobs:
         working-directory: bench
         run: |
           set -euo pipefail
-          OB="$GITHUB_WORKSPACE/target/release/omnibundle"
+          OB="$GITHUB_WORKSPACE/target/release/fastscope"
           mkdir -p results
           echo "--- B1 stats ingest (target: <= 2000 ms, <= 200 MB) ---"
           pwsh -File harness/measure.ps1 -Binary "$OB" -Target "$RUNNER_TEMP/stats-400mb.json" \
@@ -298,7 +298,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/pkg
-          for c in omnibundle-core omnibundle-cli; do
+          for c in fastscope-core fastscope-cli; do
             echo "--- $c ---"
             cargo package -p "$c" --allow-dirty --no-verify 2>&1 | tee -a /tmp/pkg/package.log || true
           done

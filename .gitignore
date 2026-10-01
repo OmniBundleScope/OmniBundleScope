@@ -14,7 +14,7 @@
 # committed - the results record the fixture's parameters, not its bytes.
 
 # local caches
-.omnibundle-cache/
+.fastscope-cache/
 node_modules/
 __pycache__/
 dist/

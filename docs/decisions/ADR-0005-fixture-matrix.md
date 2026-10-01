@@ -45,7 +45,7 @@ uses them says `synthetic` in the fixture column.
 - Fixture repositories are **not** committed (`.gitignore`), only fetched by
   `bench/fixtures/fetch.ps1` / `fetch.sh` with `--depth 1`.
 - Licensing is recorded per fixture and the artifacts are used for measurement
-  and testing, never redistributed as part of an OmniBundle release.
+  and testing, never redistributed as part of an FastScope release.
 - We build the fixtures with our own bundler config where the upstream build
   does not emit what we need (notably webpack for preact). This means the
   fixture exercises *our* input path, not somebody's idea of a stats file — a

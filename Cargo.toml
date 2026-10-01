@@ -8,7 +8,7 @@ edition = "2024"
 rust-version = "1.90"
 license = "MIT OR Apache-2.0"
 repository = "{{REPO_URL}}"
-authors = ["OmniBundle contributors"]
+authors = ["FastScope contributors"]
 homepage = "{{REPO_URL}}"
 documentation = "{{DOCS_URL}}/"
 keywords = ["webpack", "bundler", "bundle-analyzer", "source-map", "tree-shaking"]
@@ -25,7 +25,7 @@ thiserror = "2"
 
 blake3 = "1"
 
-# Workstream lints: `omnibundle-core` must stay portable (no IO in the model),
+# Workstream lints: `fastscope-core` must stay portable (no IO in the model),
 # so the workspace denies a few things that would block the WASM target later.
 [workspace.lints.rust]
 unsafe_code = "forbid"

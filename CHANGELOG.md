@@ -13,7 +13,7 @@ says so and gives the number.
 
 ### Fixed
 
-- The README offered `npx omnibundle` and `cargo install omnibundle-cli`, and
+- The README offered `npx fastscope` and `cargo install fastscope-cli`, and
   carried npm and crates.io badges, none of which resolves: neither package is
   published, and by this project's own release order the npm wrapper is spent
   last. The install section says so and builds from source instead, and
@@ -30,7 +30,7 @@ implemented and measured; WASM and the WebGL renderer are not.
 
 ### Added
 
-- **Streaming stats ingest** (`omnibundle stats.json ./dist/stats.json`) for
+- **Streaming stats ingest** (`fastscope stats.json ./dist/stats.json`) for
   webpack and rspack, plus esbuild `metafile.json`. Modules enter the graph one
   at a time; the document is never materialised.
 - **Size attribution** from disk: `parsed` (real bytes) and `gzip` (level 6) per
@@ -47,15 +47,15 @@ implemented and measured; WASM and the WebGL renderer are not.
   source / chunk dimensions, fuzzy search, light-dark-auto, no web fonts and no
   network requests. Reports over 2 MB of detail ship a companion `.data.js`
   loaded on demand, because `fetch()` cannot read a sibling file from `file://`.
-- **Size budgets** (`omnibundle.config.json`) over total bytes, per chunk or per
-  package, each optionally on a named dimension. A breach exits 1 with `OB0040`;
+- **Size budgets** (`fastscope.config.json`) over total bytes, per chunk or per
+  package, each optionally on a named dimension. A breach exits 1 with `FS0040`;
   a rule that matches nothing is an error, not a silent pass.
 - **`--mode json` and `--mode csv`** for CI and BI consumers.
-- **A build folder with no bundler metadata** (`omnibundle ./dist`): the output
+- **A build folder with no bundler metadata** (`fastscope ./dist`): the output
   and its source maps, which is what Vite, Rollup, Parcel and tsup give you by
   default. Sizes are measured rather than declared, so they are exact, and each
   source in a map becomes a module. Ghost code is defined against a declared
-  graph, so this mode reports itself as undetectable (`OB0051`) instead of the
+  graph, so this mode reports itself as undetectable (`FS0051`) instead of the
   reassuring zero it would otherwise print.
 - **Parity harness** against `webpack-bundle-analyzer` on real webpack builds.
 - **Performance charts** generated from the records in `bench/results/`, with a

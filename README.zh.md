@@ -1,8 +1,8 @@
 <div align="center">
 
-# OmniBundle
+# FastScope
 
-**一个工具，分析所有打包器。** 依赖图来自 `stats.json`，真实字节归因来自 source map，
+**一个分析器，读取所有打包器的产物。** 依赖图来自 `stats.json`，真实字节归因来自 source map，
 esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张图，内存占用只占对方的一小部分。
 
 [![CI]({{REPO_URL}}/actions/workflows/ci.yml/badge.svg)]({{REPO_URL}}/actions/workflows/ci.yml)
@@ -27,7 +27,7 @@ esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张�
 
 ## 支持的打包器
 
-| 打包器 | OmniBundle 读什么 | 需要 `dist/` + `*.map`？ | 幽灵代码检测 |
+| 打包器 | FastScope 读什么 | 需要 `dist/` + `*.map`？ | 幽灵代码检测 |
 |---|---|---|---|
 | **webpack** 4 / 5 | `stats.json` | 不需要 | 支持 |
 | **rspack** | `stats.json`（同一套 schema） | 不需要 | 支持 |
@@ -53,7 +53,7 @@ esbuild metafile，或者一个普通的 `dist/` 目录——合并成同一张�
 **63.6 秒和 2.3 GB**，就为了回答"这玩意儿多大？"而且就算画完 treemap，它仍然无法告诉你那两件
 真正让你掏钱的事——见[下面](#幽灵代码与隐藏代码)。
 
-OmniBundle 流式读取 stats 文件、测量真实产出的字节、把 source map join 到模块图上，
+FastScope 流式读取 stats 文件、测量真实产出的字节、把 source map join 到模块图上，
 并且明确告诉你它用的是哪一个维度。
 
 ## 实测数据
@@ -63,10 +63,10 @@ OmniBundle 流式读取 stats 文件、测量真实产出的字节、把 source 
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-pipeline-dark.svg">
-  <img alt="横向条形图，对比 OmniBundle 与 webpack-bundle-analyzer。时间：363 MB stats 文件 1.87 s 对 63.6 s；1 GB 文件 6.14 s 对 176.3 s。内存：127 MB 对 2,295 MB，376 MB 对 1,437 MB。" src="docs/assets/chart-pipeline-light.svg" width="100%">
+  <img alt="横向条形图，对比 FastScope 与 webpack-bundle-analyzer。时间：363 MB stats 文件 1.87 s 对 63.6 s；1 GB 文件 6.14 s 对 176.3 s。内存：127 MB 对 2,295 MB，376 MB 对 1,437 MB。" src="docs/assets/chart-pipeline-light.svg" width="100%">
 </picture>
 
-| 输入 | OmniBundle | webpack-bundle-analyzer | 倍数 |
+| 输入 | FastScope | webpack-bundle-analyzer | 倍数 |
 |---|---|---|---|
 | 363 MB `stats.json`，154,379 模块 | **1.87 s / 127 MB** | 63.6 s / 2,295 MB | **快 34 倍，小 18 倍** |
 | 1 GB `stats.json`，445,602 模块 | **6.14 s / 376 MB** | 176.3 s / 1,437 MB | 快 29 倍，小 3.8 倍 |
@@ -76,7 +76,7 @@ source map 归因，横轴是 map 里的 source 数量。这正是让大 map 在
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-source-maps-dark.svg">
-  <img alt="双对数折线图，纵轴为 source map 归因的时间与内存，横轴为 source 数量。source-map-explorer 从真实 preact 构建（12 个 source）的 0.25 s 涨到 50,000 个时的 562 s；OmniBundle 从 7 ms 到 209 ms。50,000 个 source 时内存 642 MB 对 67 MB。" src="docs/assets/chart-source-maps-light.svg" width="100%">
+  <img alt="双对数折线图，纵轴为 source map 归因的时间与内存，横轴为 source 数量。source-map-explorer 从真实 preact 构建（12 个 source）的 0.25 s 涨到 50,000 个时的 562 s；FastScope 从 7 ms 到 209 ms。50,000 个 source 时内存 642 MB 对 67 MB。" src="docs/assets/chart-source-maps-light.svg" width="100%">
 </picture>
 
 这里每个数字都能用 `bench/` 里的 harness 复现，原始记录已入库：
@@ -92,11 +92,11 @@ source map 归因，横轴是 map 里的 source 数量。这正是让大 map 在
 - **隐藏代码（hidden code）**——生成的字节**不属于任何模块**：内联的代码片段、`eval`、打包器注入的
   polyfill。它在你的产物里，却不属于任何模块的体积。
 
-OmniBundle 把每个 source 的字节份额折算回产生它的模块，剩下无法对账的部分变成诊断信息，而
+FastScope 把每个 source 的字节份额折算回产生它的模块，剩下无法对账的部分变成诊断信息，而
 不是被四舍五入掉：
 
 ```
-$ omnibundle ./dist
+$ fastscope ./dist
 dist  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 2143 ms  ·  total 2845 ms  ·  dimension attributed
 fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · ghost code needs a stats.json to detect · 0 hidden source(s) (0 KB)
 wrote dist/report.html (0.1 MB), detail in a companion script (loaded on demand)
@@ -105,7 +105,7 @@ wrote dist/report.html (0.1 MB), detail in a companion script (loaded on demand)
 而当它确实对不上账，它会说明是哪个方向不对。下面是两个 asset 里只有一个带 map 的构建：
 
 ```
-$ omnibundle ./dist
+$ fastscope ./dist
 dist  ·  22 modules  ·  2 assets  ·  11 packages  ·  ingest 4 ms  ·  total 6 ms  ·  dimension parsed
 fusion: 1 map(s) · coverage 47% · 0/22 modules attributed · 22 ghost (83 KB of declared) · 3 hidden source(s) (39 KB)
 ```
@@ -115,13 +115,13 @@ fusion: 1 map(s) · coverage 47% · 0/22 modules attributed · 22 ghost (83 KB o
 
 归因依据是真实 join key 上的最长路径后缀匹配（见
 [`unified-graph.md`](docs/contracts/unified-graph.md)），**从不使用内容哈希**；
-修正后的尺寸之和会与 asset 总大小做不变量校验，不通过就大声报错（`OB0042`），
+修正后的尺寸之和会与 asset 总大小做不变量校验，不通过就大声报错（`FS0042`），
 而不是悄悄取整。
 
 ## 报告
 
 <p align="center">
-  <img alt="OmniBundle 的 HTML 报告：按 package 分组的 squarified treemap，展示 400 个 package 中最大的 40 个，附可搜索的模块列表、三种分组维度和明暗主题。" src="docs/assets/treemap-large.svg" width="100%">
+  <img alt="FastScope 的 HTML 报告：按 package 分组的 squarified treemap，展示 400 个 package 中最大的 40 个，附可搜索的模块列表、三种分组维度和明暗主题。" src="docs/assets/treemap-large.svg" width="100%">
 </p>
 
 <sub>合成 fixture 中 400 个 package 里最大的 40 个：1,500 个 asset、8,041 个模块，
@@ -131,19 +131,19 @@ HTML 报告另外还有搜索、三种分组维度、按模块下钻、明暗主
 
 ## 安装
 
-**尚未发布。** npm 上没有 `omnibundle`，crates.io 上也没有可安装的 crate，所以
-`npx omnibundle` 和 `cargo install omnibundle-cli` 今天都不可用，本 README 不提供它们。
+**尚未发布。** npm 上没有 `fastscope`，crates.io 上也没有可安装的 crate，所以
+`npx fastscope` 和 `cargo install fastscope-cli` 今天都不可用，本 README 不提供它们。
 请从源码构建：
 
 ```bash
 git clone {{REPO_URL}}.git
-cd omnibundle
+cd fastscope
 cargo build --release
-./target/release/omnibundle ./dist
+./target/release/fastscope ./dist
 ```
 
 推送 `v*` tag 之后，发布流程按 `docs/en/06-release-and-ci.md` §2 的顺序执行：先把二进制
-传到 GitHub releases，再把 `omnibundle-core` 发到 crates.io，最后才发 npm wrapper
+传到 GitHub releases，再把 `fastscope-core` 发到 crates.io，最后才发 npm wrapper
 —— npm 包名是最稀缺的资源，留到最后使用。npm 与 crates.io 的徽章以及两条安装命令会在
 填写 `repo-links.json` 的那次提交里回来。npm wrapper 会在写入或执行任何东西之前校验
 `checksums.txt`。
@@ -151,18 +151,18 @@ cargo build --release
 ## 使用
 
 ```bash
-omnibundle ./dist                      # 目录：stats + assets + *.map
-omnibundle ./dist/stats.json           # 单个 stats 文件
-omnibundle ./dist/metafile.json        # esbuild metafile
+fastscope ./dist                      # 目录：stats + assets + *.map
+fastscope ./dist/stats.json           # 单个 stats 文件
+fastscope ./dist/metafile.json        # esbuild metafile
 
-omnibundle ./dist --budget omnibundle.config.json   # 超限退出码 1
-omnibundle ./dist --mode json > sizes.json          # 给 CI 或 BI 用
-omnibundle ./dist --mode csv  > sizes.csv
-omnibundle ./dist/map.js.map --bench-map            # 只跑归因，并计时
+fastscope ./dist --budget fastscope.config.json   # 超限退出码 1
+fastscope ./dist --mode json > sizes.json          # 给 CI 或 BI 用
+fastscope ./dist --mode csv  > sizes.csv
+fastscope ./dist/map.js.map --bench-map            # 只跑归因，并计时
 ```
 
 ```jsonc
-// omnibundle.config.json
+// fastscope.config.json
 {
   "limits": [
     { "scope": "total",   "max": 1500000 },
@@ -178,7 +178,7 @@ omnibundle ./dist/map.js.map --bench-map            # 只跑归因，并计时
 | 退出码 | 含义 |
 |---|---|
 | 0 | 分析完成，且所有预算都通过 |
-| 1 | 分析完成，但有预算被突破（`OB0040`） |
+| 1 | 分析完成，但有预算被突破（`FS0040`） |
 | 2 | 命令行参数错误 |
 | 3 | 输入不可读，或某条预算规则匹配不到任何对象 |
 
@@ -254,8 +254,8 @@ omnibundle ./dist/map.js.map --bench-map            # 只跑归因，并计时
 两种输入形态：
 
 ```bash
-omnibundle ./dist/stats.json   # 打包器图：webpack、rspack、esbuild --metafile
-omnibundle ./dist              # 只有产物目录：vite、rollup、parcel、tsup
+fastscope ./dist/stats.json   # 打包器图：webpack、rspack、esbuild --metafile
+fastscope ./dist              # 只有产物目录：vite、rollup、parcel、tsup
 ```
 
 第二种不需要任何配置——指到 `dist/`，你的打包器本来就会写的 source map 就够了。

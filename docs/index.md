@@ -1,6 +1,6 @@
-# OmniBundle
+# FastScope
 
-**One tool for every bundler.** A dependency graph from `stats.json`, real byte
+**One analyzer for every bundler.** A dependency graph from `stats.json`, real byte
 attribution from source maps, esbuild metafiles, or a plain `dist/` folder -
 merged into one graph, in a fraction of the memory.
 

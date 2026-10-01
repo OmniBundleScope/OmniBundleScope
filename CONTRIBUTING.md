@@ -1,4 +1,4 @@
-# Contributing to OmniBundle
+# Contributing to FastScope
 
 Thanks for looking at this. The bar is deliberately specific, because the
 project's whole premise is that its claims are measurements:
@@ -14,7 +14,7 @@ measurement or gets an argument in the PR for why it obviously cannot.
 
 ```bash
 git clone {{REPO_URL}}
-cd omnibundle
+cd fastscope
 cargo build --release
 cargo test --workspace
 ```
@@ -62,7 +62,7 @@ Two things are checked on top of the substitution:
 - `NPM_PACKAGE` and `CRATES_CORE_PACKAGE` must match what the manifests actually
   declare, so the badge cannot point at a package that does not exist under that name.
 - While anything is still empty, the checker fails if a URL for the
-  `omnibundle/omnibundle` repository has been hardcoded anywhere. Once the table
+  `fastscope/fastscope` repository has been hardcoded anywhere. Once the table
   is filled, that check switches off: those strings can legitimately be correct
   once someone owns that org or domain, and a gate that objects to a deliberate
   choice is worse than no gate.
@@ -80,12 +80,12 @@ protocol, it needs an ADR, not just a good commit message.
 
 | workstream | owns | module |
 |---|---|---|
-| WS-1 | `stats.json` / `metafile.json` ingest | `crates/omnibundle-core/src/stats` |
+| WS-1 | `stats.json` / `metafile.json` ingest | `crates/fastscope-core/src/stats` |
 | WS-2 | size attribution (stat / parsed / gzip) | `.../src/sizes` |
 | WS-3 | source map v3 parse + attribute | `.../src/sourcemap` |
 | WS-4 | the fusion join, ghost/hidden | `.../src/fusion` |
 | WS-5 | report payload + HTML shell | `.../src/report`, `assets/report` |
-| WS-6 | CLI surface, budget gate | `crates/omnibundle-cli` |
+| WS-6 | CLI surface, budget gate | `crates/fastscope-cli` |
 | WS-7 | parity harness | `bench/harness` |
 | WS-8 | CI, releases, packaging | `.github`, `npm` |
 

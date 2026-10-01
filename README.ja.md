@@ -1,8 +1,8 @@
 <div align="center">
 
-# OmniBundle
+# FastScope
 
-**あらゆるバンドラーのための一つのツール。** `stats.json` から依存グラフ、source map から
+**あらゆるバンドラーのための一つのアナライザー。** `stats.json` から依存グラフ、source map から
 実バイトの帰属、esbuild の metafile、あるいはただの `dist/` ディレクトリを、すべて同一の
 グラフに統合します。メモリは仅仅その一部で済みます。
 
@@ -28,7 +28,7 @@
 
 ## サポートするバンドラー
 
-| バンドラー | OmniBundle が読むもの | `dist/` + `*.map` が要る? | ゴーストコード検出 |
+| バンドラー | FastScope が読むもの | `dist/` + `*.map` が要る? | ゴーストコード検出 |
 |---|---|---|---|
 | **webpack** 4 / 5 | `stats.json` | 不要 | あり |
 | **rspack** | `stats.json`（同じスキーマ） | 不要 | あり |
@@ -46,7 +46,7 @@ JS ヒープに載せます。363 MB のビルドでは、それで「これ有�
 **63.6 秒と 2.3 GB**。ツリーマップを描き終えても、本当にコストになっている二つのことは
 依然として答えられません（[後述](#ゴーストコードと隠しコード)）。
 
-OmniBundle は stats をストリームで読み、生成されたバイトを実測し、source map を
+FastScope は stats をストリームで読み、生成されたバイトを実測し、source map を
 モジュールグラフに join し、使った次元を明示します。
 
 ## 実測値
@@ -56,10 +56,10 @@ OmniBundle は stats をストリームで読み、生成されたバイトを�
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-pipeline-dark.svg">
-  <img alt="OmniBundle と webpack-bundle-analyzer を比較した横棒グラフ。所要時間: 363 MB の stats で 1.87 s 対 63.6 s、1 GB で 6.14 s 対 176.3 s。ピークメモリ: 127 MB 対 2,295 MB、および 376 MB 対 1,437 MB。" src="docs/assets/chart-pipeline-light.svg" width="100%">
+  <img alt="FastScope と webpack-bundle-analyzer を比較した横棒グラフ。所要時間: 363 MB の stats で 1.87 s 対 63.6 s、1 GB で 6.14 s 対 176.3 s。ピークメモリ: 127 MB 対 2,295 MB、および 376 MB 対 1,437 MB。" src="docs/assets/chart-pipeline-light.svg" width="100%">
 </picture>
 
-| 入力 | OmniBundle | webpack-bundle-analyzer | 比 |
+| 入力 | FastScope | webpack-bundle-analyzer | 比 |
 |---|---|---|---|
 | 363 MB `stats.json`、154,379 モジュール | **1.87 s / 127 MB** | 63.6 s / 2,295 MB | **34 倍速く、18 分の 1** |
 | 1 GB `stats.json`、445,602 モジュール | **6.14 s / 376 MB** | 176.3 s / 1,437 MB | 29 倍速く、3.8 分の 1 |
@@ -69,7 +69,7 @@ Source map の帰属を、map に含まれる source 数で見たもの。これ
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/chart-source-maps-dark.svg">
-  <img alt="source 数に対する source map 帰属の時間とメモリの両対数グラフ。source-map-explorer は実ビルドの preact（12 source）の 0.25 s から 50,000 source の 562 s へ。OmniBundle は 7 ms から 209 ms へ。50,000 source でのメモリは 642 MB 対 67 MB。" src="docs/assets/chart-source-maps-light.svg" width="100%">
+  <img alt="source 数に対する source map 帰属の時間とメモリの両対数グラフ。source-map-explorer は実ビルドの preact（12 source）の 0.25 s から 50,000 source の 562 s へ。FastScope は 7 ms から 209 ms へ。50,000 source でのメモリは 642 MB 対 67 MB。" src="docs/assets/chart-source-maps-light.svg" width="100%">
 </picture>
 
 ここにある数値はすべて `bench/` のハーネスで再現でき、原材料の記録もコミットされています:
@@ -78,7 +78,7 @@ Source map の帰属を、map に含まれる source 数で見たもの。これ
 
 ## ゴーストコードと隠しコード
 
-参照ツールのどちらにも出せない二つの診断です。OmniBundle の本当の新しさです。
+参照ツールのどちらにも出せない二つの診断です。FastScope の本当の新しさです。
 
 - **ゴーストコード** — バンドラーが宣言してバンドルしたのに、**どの source map にも
   説明が無い**モジュール。tree-shaking の取りこぼし、あるいは map 無しのアセット。
@@ -87,11 +87,11 @@ Source map の帰属を、map に含まれる source 数で見たもの。これ
   `eval`、バンドラーが注入した polyfill。成果物には入っているのに、どのモジュールの
   サイズにも属しません。
 
-OmniBundle は各ソースのバイト配分をそれを生み出したモジュールへ畳み込み、帳尻が合わなかった
+FastScope は各ソースのバイト配分をそれを生み出したモジュールへ畳み込み、帳尻が合わなかった
 残りを丸め誤差ではなく診断に変えます:
 
 ```
-$ omnibundle ./dist
+$ fastscope ./dist
 dist  ·  50000 modules  ·  1 assets  ·  0 packages  ·  ingest 2143 ms  ·  total 2845 ms  ·  dimension attributed
 fusion: 1 map(s) · coverage 100% · 50000/50000 modules attributed · ghost code needs a stats.json to detect · 0 hidden source(s) (0 KB)
 wrote dist/report.html (0.1 MB), detail in a companion script (loaded on demand)
@@ -101,7 +101,7 @@ wrote dist/report.html (0.1 MB), detail in a companion script (loaded on demand)
 map を持つビルドの場合:
 
 ```
-$ omnibundle ./dist
+$ fastscope ./dist
 dist  ·  22 modules  ·  2 assets  ·  11 packages  ·  ingest 4 ms  ·  total 6 ms  ·  dimension parsed
 fusion: 1 map(s) · coverage 47% · 0/22 modules attributed · 22 ghost (83 KB of declared) · 3 hidden source(s) (39 KB)
 ```
@@ -113,12 +113,12 @@ ground truth の次元は取り消され、レポートの 1 行目にそう書�
 帰属は実際の join key 上の最長サフィックス一致で行います
 （[`unified-graph.md`](docs/contracts/unified-graph.md)）。内容ハッシュは**使いません**。
 修正後のサイズ合計はアセット合計との不変条件で検証し、勝手に丸めずに loud に失敗します
-（`OB0042`）。
+（`FS0042`）。
 
 ## レポート
 
 <p align="center">
-  <img alt="OmniBundle の HTML レポート: パッケージ別の squarified treemap で 400 パッケージ中最大の 40 を表示、検索可能なモジュール一覧、3 つのグルーピング軸、ライトとダークのテーマ。" src="docs/assets/treemap-large.svg" width="100%">
+  <img alt="FastScope の HTML レポート: パッケージ別の squarified treemap で 400 パッケージ中最大の 40 を表示、検索可能なモジュール一覧、3 つのグルーピング軸、ライトとダークのテーマ。" src="docs/assets/treemap-large.svg" width="100%">
 </p>
 
 <sub>合成 fixture の 400 パッケージのうち最大の 40 パッケージ：1,500 アセット、
@@ -130,19 +130,19 @@ HTML レポートにはさらに検索、3 つのグルーピング軸、モジ�
 
 ## インストール
 
-**まだ公開していません。** npm に `omnibundle` はなく、インストールできる crate もないため、
-`npx omnibundle` と `cargo install omnibundle-cli` は現在どちらも動きません。本 README は
+**まだ公開していません。** npm に `fastscope` はなく、インストールできる crate もないため、
+`npx fastscope` と `cargo install fastscope-cli` は現在どちらも動きません。本 README は
 それを提供しません。ソースからビルドしてください：
 
 ```bash
 git clone {{REPO_URL}}.git
-cd omnibundle
+cd fastscope
 cargo build --release
-./target/release/omnibundle ./dist
+./target/release/fastscope ./dist
 ```
 
 `v*` タグを push すると、リリースワークフローが `docs/en/06-release-and-ci.md` §2 の順で
-公開します：まずバイナリを GitHub リリースへ、次に `omnibundle-core` を crates.io へ、
+公開します：まずバイナリを GitHub リリースへ、次に `fastscope-core` を crates.io へ、
 最後に npm ラッパーを —— npm の名前は最も希少な資源なので最後に使います。
 npm と crates.io のバッジ、および 2 つのインストールコマンドは、`repo-links.json` を
 埋めるコミットで戻ります。npm ラッパーは書き込みや実行の前に `checksums.txt` を検証します。
@@ -150,18 +150,18 @@ npm と crates.io のバッジ、および 2 つのインストールコマン�
 ## 使い方
 
 ```bash
-omnibundle ./dist                      # ディレクトリ: stats + assets + *.map
-omnibundle ./dist/stats.json           # stats ファイル単体
-omnibundle ./dist/metafile.json        # esbuild metafile
+fastscope ./dist                      # ディレクトリ: stats + assets + *.map
+fastscope ./dist/stats.json           # stats ファイル単体
+fastscope ./dist/metafile.json        # esbuild metafile
 
-omnibundle ./dist --budget omnibundle.config.json   # 超過時は終了コード 1
-omnibundle ./dist --mode json > sizes.json          # CI や BI 用
-omnibundle ./dist --mode csv  > sizes.csv
-omnibundle ./dist/map.js.map --bench-map            # 帰属のみ計測
+fastscope ./dist --budget fastscope.config.json   # 超過時は終了コード 1
+fastscope ./dist --mode json > sizes.json          # CI や BI 用
+fastscope ./dist --mode csv  > sizes.csv
+fastscope ./dist/map.js.map --bench-map            # 帰属のみ計測
 ```
 
 ```jsonc
-// omnibundle.config.json
+// fastscope.config.json
 {
   "limits": [
     { "scope": "total",   "max": 1500000 },
@@ -177,7 +177,7 @@ omnibundle ./dist/map.js.map --bench-map            # 帰属のみ計測
 | コード | 意味 |
 |---|---|
 | 0 | 解析完了、すべてのバジェットを満たした |
-| 1 | 解析完了、バジェット超過あり（`OB0040`） |
+| 1 | 解析完了、バジェット超過あり（`FS0040`） |
 | 2 | コマンドライン引数が不正 |
 | 3 | 入力が読めない、または一致対象の無いバジェット規則がある |
 
@@ -255,8 +255,8 @@ omnibundle ./dist/map.js.map --bench-map            # 帰属のみ計測
 入力は 2 つの形:
 
 ```bash
-omnibundle ./dist/stats.json   # バンドラーのグラフ: webpack, rspack, esbuild --metafile
-omnibundle ./dist              # 出力フォルダのみ: vite, rollup, parcel, tsup
+fastscope ./dist/stats.json   # バンドラーのグラフ: webpack, rspack, esbuild --metafile
+fastscope ./dist              # 出力フォルダのみ: vite, rollup, parcel, tsup
 ```
 
 後者は設定不要です。`dist/` を指せば、バンドラーがすでに書いているソースマップが

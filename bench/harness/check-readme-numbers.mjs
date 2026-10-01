@@ -84,7 +84,7 @@ for (const name of ['README.md', 'README.en.md', 'README.zh.md', 'README.ja.md',
     // every column shifts by one and the check silently finds nothing.
     const cells = line.split('|').map((c) => c.trim()).slice(1, -1);
 
-    if (/webpack-bundle-analyzer/i.test(line) && /omnibundle/i.test(line)) {
+    if (/webpack-bundle-analyzer/i.test(line) && /fastscope/i.test(line)) {
       inComparisonTable = true;
       continue;
     }

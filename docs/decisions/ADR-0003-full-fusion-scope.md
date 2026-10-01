@@ -34,6 +34,6 @@ baseline (WS-S) exists.
   2. If the 400 MB full pipeline cannot get under **5 s / 200 MB**, we drop
      the performance claim and ship the memory + fusion story instead of
      pretending.
-- WASM bindings stay a packaging-only placeholder. `omnibundle-core` performs
+- WASM bindings stay a packaging-only placeholder. `fastscope-core` performs
   no IO so Phase 2 is additive, but no `wasm-bindgen` dependency enters the tree
   until Phase 2 starts.

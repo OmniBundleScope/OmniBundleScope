@@ -15,7 +15,7 @@ a problem; "support X format" is a request.
 
 **What you would expect**
 
-**Why this fits OmniBundle rather than being a separate tool**
+**Why this fits FastScope rather than being a separate tool**
 
 This project fuses bundler graphs with source maps and refuses to publish a
 number it cannot measure. Requests that need a new measurement target, a new

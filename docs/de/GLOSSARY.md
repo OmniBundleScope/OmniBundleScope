@@ -1,4 +1,4 @@
-# Glossar — OmniBundle (DE)
+# Glossar — FastScope (DE)
 
 Die kanonische Liste steht in `docs/contracts/i18n-parity.md` §4. Andere
 Sprachen: [EN](../en/GLOSSARY.md) · [ZH](../zh/GLOSSARY.md) · [JA](../ja/GLOSSARY.md)
@@ -15,7 +15,7 @@ Sprachen: [EN](../en/GLOSSARY.md) · [ZH](../zh/GLOSSARY.md) · [JA](../ja/GLOSS
 | hidden code | versteckter Code | erzeugte Bytes, die zu keinem Modul gehören |
 | tree shaking | Tree Shaking | Entfernen ungenutzter Exporte |
 | treemap | Treemap | Squarified-Layout; in Phase 1 mit Canvas 2D |
-| budget | Größen-Budget | CI-Gate; Verletzung ⇒ Exit-Code 1 und `OB0040` |
+| budget | Größen-Budget | CI-Gate; Verletzung ⇒ Exit-Code 1 und `FS0040` |
 | baseline | Ausgangswert | der Referenzwert, gegen den gemessen wird |
 | size dimension | Größendimension | `stat` / `parsed` / `gzip` / `attributed` |
 | phase | Phase | scan / parse / attribute / fuse / report |
@@ -31,5 +31,5 @@ Sprachen: [EN](../en/GLOSSARY.md) · [ZH](../zh/GLOSSARY.md) · [JA](../ja/GLOSS
 ## Nicht übersetzen
 
 Code, Bezeichner, Dateinamen, CLI-Flags, JSON-Schlüssel, Diagnosecodes
-(`OB0001` …), Crate-Namen, Versionsnummern. Wer eines davon übersetzt, bricht
+(`FS0001` …), Crate-Namen, Versionsnummern. Wer eines davon übersetzt, bricht
 die Paritätsprüfung.

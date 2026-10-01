@@ -25,7 +25,7 @@
   "conclusion": {
     "small_real_projects": "no pain: 0.22-1.65 s and 31-49 MB, dominated by process start-up",
     "large_maps": "real, reproducible pain: 18.4 s at 7 MB, 9.4 minutes at 36.5 MB, 277-642 MB RSS",
-    "implication": "the OmniBundle stop-the-line condition R1 (>1 s on realistic maps) is NOT triggered for small projects, but IS triggered for large ones; the product case is therefore about the large-project segment, and the positioning must say so explicitly",
+    "implication": "the FastScope stop-the-line condition R1 (>1 s on realistic maps) is NOT triggered for small projects, but IS triggered for large ones; the product case is therefore about the large-project segment, and the positioning must say so explicitly",
     "open": "WS-S phase breakdown is still unmeasured (SME does not report per-phase timings); the win mechanism (zero-allocation VLQ + binary search over sorted mappings) is therefore still a hypothesis until B5 is run"
   }
 }

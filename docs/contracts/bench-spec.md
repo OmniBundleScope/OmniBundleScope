@@ -3,7 +3,7 @@
 Status: **frozen for Phase 1**. Owner: WS-A. Code in `bench/`, CI job in
 `.github/workflows/bench.yml`.
 
-OmniBundle's credibility rests on numbers other people can reproduce. This
+FastScope's credibility rests on numbers other people can reproduce. This
 contract exists so a benchmark run is a command, not an anecdote.
 
 ## 1. Two fixture classes, never mixed
@@ -33,7 +33,7 @@ For every run we record:
 Rule: **a phase we do not measure must not be claimed**. The reference numbers
 we already have (`docs/en/01-evidence.md`) show why: `webpack-bundle-analyzer`
 spent 0.94 s reading and parsing a 381 MB stats file and the remaining ~60 s in
-its own analysis, which is the part OmniBundle has to reproduce.
+its own analysis, which is the part FastScope has to reproduce.
 
 Sample size: 3 runs, report the median, discard the first run on a cold file
 cache and say so. Same machine, same power profile, nothing else running.
@@ -66,8 +66,8 @@ Recorded here so a regression is obvious, machine and date included
 | webpack-bundle-analyzer 4.10.2 | stats 381 MB | 61.4 s | 1,985 MB |
 | webpack-bundle-analyzer 4.10.2 | stats 1,049 MB | 176.3 s | 1,437 MB |
 | node `JSON.parse` floor | stats 381 MB | 0.94 s | 919 MB |
-| OmniBundle streaming prototype | stats 381 MB | 0.99 s | 17 MB |
-| OmniBundle streaming prototype | stats 1,049 MB | 2.78 s | 59 MB |
+| FastScope streaming prototype | stats 381 MB | 0.99 s | 17 MB |
+| FastScope streaming prototype | stats 1,049 MB | 2.78 s | 59 MB |
 
 The `#492` crash ("Cannot create a string longer than 0x1fffffe8") did **not**
 reproduce on node 24: the V8 string ceiling moved. The memory wall is still
@@ -97,7 +97,7 @@ evidence log depends on.
 
 ## 6. CI behaviour
 
-`bench.yml` runs on every PR that touches `crates/omnibundle-core/src/{stats,sizes,fusion,sourcemap}`:
+`bench.yml` runs on every PR that touches `crates/fastscope-core/src/{stats,sizes,fusion,sourcemap}`:
 
 1. B1/B2 on the synthetic fixtures, 1 run, compare against the floor;
 2. parity (B9) on the real fixtures;

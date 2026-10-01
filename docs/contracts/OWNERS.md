@@ -8,17 +8,17 @@ are binding: a change that edits outside its lane should be blocked in review.
 
 | lane | owns (exclusive) | must not touch |
 |---|---|---|
-| **WS-0** contracts | `docs/contracts/**`, `docs/decisions/**`, `crates/omnibundle-core/src/model.rs`, `crates/omnibundle-core/src/error.rs` | anything else |
+| **WS-0** contracts | `docs/contracts/**`, `docs/decisions/**`, `crates/fastscope-core/src/model.rs`, `crates/fastscope-core/src/error.rs` | anything else |
 | **WS-A** bench | `bench/**`, `.github/workflows/bench.yml` | `crates/**` |
 | **WS-S** SME baseline | `docs/en/01-evidence.md` (§ SME), `bench/baselines/**` | other evidence sections |
-| **WS-1** stats ingest | `crates/omnibundle-core/src/stats/**` | `model.rs`, other modules |
-| **WS-2** sizes | `crates/omnibundle-core/src/sizes/**` | ditto |
-| **WS-3** source maps | `crates/omnibundle-core/src/sourcemap/**` | ditto |
-| **WS-4** fusion | `crates/omnibundle-core/src/fusion/**` | ditto |
-| **WS-5** report | `crates/omnibundle-core/src/report/**`, `assets/report/**` | ditto |
-| **WS-6** CLI | `crates/omnibundle-cli/**` | core modules (raises a change request to WS-0 instead) |
-| **WS-7** parity | `crates/omnibundle-core/tests/parity/**`, `crates/omnibundle-cli/tests/**` | production code (fixtures only) |
-| **WS-8** dist & CI | `.github/**` (except `bench.yml`), `crates/omnibundle-wasm/**`, `packaging/**` | core + CLI |
+| **WS-1** stats ingest | `crates/fastscope-core/src/stats/**` | `model.rs`, other modules |
+| **WS-2** sizes | `crates/fastscope-core/src/sizes/**` | ditto |
+| **WS-3** source maps | `crates/fastscope-core/src/sourcemap/**` | ditto |
+| **WS-4** fusion | `crates/fastscope-core/src/fusion/**` | ditto |
+| **WS-5** report | `crates/fastscope-core/src/report/**`, `assets/report/**` | ditto |
+| **WS-6** CLI | `crates/fastscope-cli/**` | core modules (raises a change request to WS-0 instead) |
+| **WS-7** parity | `crates/fastscope-core/tests/parity/**`, `crates/fastscope-cli/tests/**` | production code (fixtures only) |
+| **WS-8** dist & CI | `.github/**` (except `bench.yml`), `crates/fastscope-wasm/**`, `packaging/**` | core + CLI |
 | **WS-9** docs/i18n | `docs/{en,zh,ja,de}/**`, `README*.md` | `crates/**`, `bench/**` |
 
 A change request across lanes is a PR against the owning lane's path plus a

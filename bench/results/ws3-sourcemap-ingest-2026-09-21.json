@@ -3,7 +3,7 @@
   "date": "2026-09-21",
   "machine": "windows, rustc 1.97.1, release profile",
   "protocol": "bench-spec.md §2 — 3 runs per input, median reported; peak RSS sampled at 100 ms by harness/run-bench.ps1",
-  "command": "omnibundle <map> --bench-map",
+  "command": "fastscope <map> --bench-map",
   "rows": [
     {
       "fixture": "preact@10.29.8 bundle.js.map",
@@ -47,7 +47,7 @@
   ],
   "scaling_verdict": {
     "sme": "5x sources (10k -> 50k) costs 30.6x time and 2.3x memory: superlinear",
-    "omnibundle": "5x sources costs 4.5x time (46 -> 209 ms) and roughly linear memory: 67 MB for a 36.5 MB map",
+    "fastscope": "5x sources costs 4.5x time (46 -> 209 ms) and roughly linear memory: 67 MB for a 36.5 MB map",
     "conclusion": "the win mechanism is the one predicted in docs/en/01-evidence.md §3: flat Vec<Mapping> with no per-mapping allocation plus a single-pass attribution, not 'Rust parses faster'. A Rust parser over the same data is only ~1.6x faster than @babel/parser; the 400x-2690x gaps come from removing the allocation and the nested walk."
   },
   "targets": {

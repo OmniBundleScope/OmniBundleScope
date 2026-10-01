@@ -42,12 +42,12 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           VERSION=$(cargo metadata --no-deps --format-version 1 \
-            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=JSON.parse(s);console.log(m.packages.find(p=>p.name==="omnibundle-cli")?.version??"")})')
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const m=JSON.parse(s);console.log(m.packages.find(p=>p.name==="fastscope-cli")?.version??"")})')
           echo "tag=$TAG version=$VERSION"
           test "${TAG#v}" = "$VERSION" || {
-            echo "::error::tag $TAG does not match omnibundle-cli version $VERSION"; exit 1; }
+            echo "::error::tag $TAG does not match fastscope-cli version $VERSION"; exit 1; }
       - name: the npm shim's own tests
-        working-directory: npm/omnibundle
+        working-directory: npm/fastscope
         run: npm test
       # --deny, unlike CI's report. Publishing a release whose README links to a
       # repository that does not exist puts a broken page in front of every reader
@@ -92,7 +92,7 @@ jobs:
 
       # Fully static on Linux so the binary does not depend on the runner's glibc.
       - name: build
-        run: cargo build --release --bin omnibundle --target ${{ matrix.target }}
+        run: cargo build --release --bin fastscope --target ${{ matrix.target }}
         env:
           CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER: x86_64-linux-gnu-gcc
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
@@ -103,14 +103,14 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${GITHUB_REF_NAME#v}"
-          NAME="omnibundle-${VERSION}-${{ matrix.target }}"
+          NAME="fastscope-${VERSION}-${{ matrix.target }}"
           if [ "${{ matrix.archive }}" = "zip" ]; then
-            cp omnibundle.exe "${NAME}.exe"
+            cp fastscope.exe "${NAME}.exe"
             zip -q "${NAME}.zip" "${NAME}.exe"
             echo "ASSET=${NAME}.zip" >> "$GITHUB_ENV"
           else
             mkdir -p "${NAME}"
-            cp omnibundle "${NAME}/"
+            cp fastscope "${NAME}/"
             # A licence and a version have to travel with the binary.
             cp ../../../LICENSE-MIT ../../../LICENSE-APACHE "${NAME}/"
             tar -czf "${NAME}.tar.gz" "${NAME}"
@@ -163,7 +163,7 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
       - name: the package version must match the tag
-        working-directory: npm/omnibundle
+        working-directory: npm/fastscope
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           PKG=$(node -p "require('./package.json').version")
@@ -171,7 +171,7 @@ jobs:
       # Skipped automatically for forks: they have no NPM_TOKEN, and a failed
       # publish on a fork would be noise rather than signal.
       - name: publish
-        working-directory: npm/omnibundle
+        working-directory: npm/fastscope
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -189,14 +189,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: publish omnibundle-core
+      - name: publish fastscope-core
         run: |
           set -euo pipefail
-          cargo publish -p omnibundle-core --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+          cargo publish -p fastscope-core --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
           # crates.io needs a moment to serve the new version to the index
           # before anything can depend on it.
           sleep 30
-      - name: publish omnibundle-cli
-        run: cargo publish -p omnibundle-cli --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
-      - name: publish omnibundle-wasm
-        run: cargo publish -p omnibundle-wasm --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+      - name: publish fastscope-cli
+        run: cargo publish -p fastscope-cli --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+      - name: publish fastscope-wasm
+        run: cargo publish -p fastscope-wasm --token "${{ secrets.CARGO_REGISTRY_TOKEN }}"
