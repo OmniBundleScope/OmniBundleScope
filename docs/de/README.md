@@ -17,7 +17,7 @@ Die englische Fassung ist die **normative Quelle**; dieses Verzeichnis enthält
 | 06 Release und CI | [en/06-release-and-ci.md](../en/06-release-and-ci.md) | ⏳ Warteschlange |
 | 07 Risikoregister | [en/07-risk-register.md](../en/07-risk-register.md) | ⏳ Warteschlange |
 | 08 Roadmap | [en/08-roadmap.md](../en/08-roadmap.md) | ⏳ Warteschlange |
-| Verträge / ADR | [contracts](../contracts/) · [decisions](../decisions/) | 🔒 nur Englisch (normativ) |
+| Verträge / ADR | [unified graph](../contracts/unified-graph.md) · [CLI](../contracts/cli-surface.md) · [ADRs](../decisions/ADR-0001-streaming-over-simd-json.md) | 🔒 nur Englisch (normativ) |
 
 ## Übersetzungsregeln
 

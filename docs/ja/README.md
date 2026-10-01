@@ -16,7 +16,7 @@
 | 06 リリースと CI | [en/06-release-and-ci.md](../en/06-release-and-ci.md) | ⏳ 翻訳キュー |
 | 07 リスク登録簿 | [en/07-risk-register.md](../en/07-risk-register.md) | ⏳ 翻訳キュー |
 | 08 ロードマップ | [en/08-roadmap.md](../en/08-roadmap.md) | ⏳ 翻訳キュー |
-| 契約 / ADR | [contracts](../contracts/) · [decisions](../decisions/) | 🔒 英語のみ（規範） |
+| 契約 / ADR | [unified graph](../contracts/unified-graph.md) · [CLI](../contracts/cli-surface.md) · [ADRs](../decisions/ADR-0001-streaming-over-simd-json.md) | 🔒 英語のみ（規範） |
 
 ## 翻訳の規則
 

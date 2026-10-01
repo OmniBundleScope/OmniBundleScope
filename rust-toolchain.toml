@@ -1,4 +1,14 @@
 [toolchain]
-channel = "stable"
+# Pinned, not "stable".
+#
+# This repository denies warnings from clippy with pedantic enabled, so the lint
+# set is part of the build. On a floating channel the build changes when the
+# channel does: the first CI run on this repository failed clippy on Linux, Windows
+# and macOS with a tree that was green locally, because the runner had a newer
+# stable than the one every gate had been run against. A gate that fails for a
+# reason nobody can find in the diff trains people to re-run it.
+#
+# Bump this deliberately, as its own commit, with the version in the subject.
+channel = "1.97.1"
 components = ["rustfmt", "clippy"]
 profile = "minimal"

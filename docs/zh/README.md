@@ -16,7 +16,7 @@
 | 06 发布与 CI | [en/06-release-and-ci.md](../en/06-release-and-ci.md) | ⏳ 翻译队列 |
 | 07 风险登记 | [en/07-risk-register.md](../en/07-risk-register.md) | ⏳ 翻译队列 |
 | 08 路线图 | [en/08-roadmap.md](../en/08-roadmap.md) | ⏳ 翻译队列 |
-| 契约 / ADR | [contracts](../contracts/) · [decisions](../decisions/) | 🔒 仅英文（规范性） |
+| 契约 / ADR | [unified graph](../contracts/unified-graph.md) · [CLI](../contracts/cli-surface.md) · [ADRs](../decisions/ADR-0001-streaming-over-simd-json.md) | 🔒 仅英文（规范性） |
 
 ## 翻译规则（译者必读）
 
