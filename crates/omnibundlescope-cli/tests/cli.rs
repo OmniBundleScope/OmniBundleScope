@@ -121,6 +121,89 @@ fn no_declared_graph_means_no_ghost_claim() {
 }
 
 #[test]
+fn the_report_is_not_counted_as_one_of_the_assets() {
+    // The report is written into the folder being analysed, so the second run finds
+    // it. Before, the asset count grew by one every run and the coverage figure fell
+    // with it, which looks like a build that stopped shipping source maps.
+    let dir = temp_dir("report-not-an-asset");
+    let map = two_source_map(2_048);
+    fs::write(dir.join("index.js"), vec![b'x'; 4_096]).expect("write bundle");
+    fs::write(dir.join("index.js.map"), map.as_bytes()).expect("write map");
+
+    let (first, _, first_code) = run(&dir);
+    assert_eq!(first_code, 0, "{first}");
+    let (second, _, second_code) = run(&dir);
+    assert_eq!(second_code, 0, "{second}");
+
+    // The count is the first token after the word "assets" in the summary line.
+    let count = |line: &str| -> String {
+        line.split_whitespace()
+            .skip_while(|w| !w.contains("assets"))
+            .nth(1)
+            .unwrap_or_default()
+            .to_string()
+    };
+    assert_eq!(
+        count(&first),
+        count(&second),
+        "the second run must see the same assets as the first:\nfirst:  {first}\nsecond: {second}"
+    );
+}
+
+#[test]
+fn a_budget_config_with_a_typo_does_not_pass_the_build() {
+    // `rules` instead of `limits`. This used to parse into an empty list and exit 0,
+    // which is the worst failure a size gate can have: the config is wrong, the
+    // build is green, and nothing was checked.
+    let dir = temp_dir("budget-typo");
+    let map = two_source_map(2_048);
+    fs::write(dir.join("index.js"), vec![b'x'; 4_096]).expect("write bundle");
+    fs::write(dir.join("index.js.map"), map.as_bytes()).expect("write map");
+    let config = dir.join("budget.json");
+    fs::write(&config, br#"{"rules":[{"name":"total","limit":1000}]}"#).expect("write config");
+
+    let out = Command::new(binary())
+        .arg(&dir)
+        .args(["--budget", config.to_str().expect("path")])
+        .arg("--report")
+        .arg(dir.join("report.html"))
+        .output()
+        .expect("the CLI runs");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    let code = out.status.code().unwrap_or(-1);
+    assert_ne!(code, 0, "a config that disables the gate must not exit 0");
+    assert!(
+        stderr.contains("unknown field") && stderr.contains("limits"),
+        "the error should name the field it wanted: {stderr}"
+    );
+}
+
+#[test]
+fn a_budget_config_with_no_rules_is_an_error() {
+    // Same failure one level up: `{"limits": []}` parses cleanly and checks nothing.
+    let dir = temp_dir("budget-empty");
+    let map = two_source_map(2_048);
+    fs::write(dir.join("index.js"), vec![b'x'; 4_096]).expect("write bundle");
+    fs::write(dir.join("index.js.map"), map.as_bytes()).expect("write map");
+    let config = dir.join("budget.json");
+    fs::write(&config, br#"{"limits":[]}"#).expect("write config");
+
+    let out = Command::new(binary())
+        .arg(&dir)
+        .args(["--budget", config.to_str().expect("path")])
+        .arg("--report")
+        .arg(dir.join("report.html"))
+        .output()
+        .expect("the CLI runs");
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert_ne!(out.status.code().unwrap_or(-1), 0, "an empty rule list must not pass");
+    assert!(
+        stderr.contains("no limits") && stderr.contains("Add at least one"),
+        "the error should say what to do about it: {stderr}"
+    );
+}
+
+#[test]
 fn a_map_that_cannot_be_read_is_said_out_loud() {
     // A truncated map. Before, it was dropped without a word: the report showed
     // 0 modules and no explanation, which reads as "this build shipped no source

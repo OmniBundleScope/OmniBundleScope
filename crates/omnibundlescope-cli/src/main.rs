@@ -158,21 +158,37 @@ fn run(cli: &Cli) -> Result<ExitCode> {
             let picked = candidates.iter().map(|n| dir.join(n)).find(|p| p.is_file());
 
             let from_metadata = picked.is_some();
-            let mut graph = match picked {
-                Some(path) => {
-                    stats::ingest_file(&path, sniff_tool(&read_head(&path, 512 * 1024)?))?
+            // No bundler metadata is what vite, rollup, parcel and tsup hand you by
+            // default. The output and its source maps are enough for measured sizes
+            // and per-source attribution; ghost code needs a declared graph and is
+            // reported as undetectable rather than as a clean bill of health.
+            let mut graph = if let Some(path) = picked {
+                stats::ingest_file(&path, sniff_tool(&read_head(&path, 512 * 1024)?))?
+            } else {
+                {
+                    let mut graph = omnibundlescope_core::folder::ingest(dir).with_context(|| {
+                        format!(
+                            "no stats.json or metafile.json in {}, and it holds no build output either",
+                            dir.display()
+                        )
+                    })?;
+                    // The report is written into the folder being analysed by
+                    // default, so the second run finds it and counts it as a build
+                    // output. It is the tool's own file, not the bundler's.
+                    let report_name =
+                        cli.report.file_name().map(|n| n.to_string_lossy().to_string());
+                    if let Some(name) = &report_name {
+                        graph.assets.retain(|a| &a.name != name);
+                        // and the companion detail script, when there is one.
+                        // strip_suffix, not trim_end_matches: the latter takes a
+                        // set of characters, so it would eat into "report" as well.
+                        if let Some(stem) = name.strip_suffix(".html") {
+                            let companion = format!("{stem}.data.js");
+                            graph.assets.retain(|a| a.name != companion);
+                        }
+                    }
+                    graph
                 }
-                // No bundler metadata: this is what vite, rollup, parcel and tsup
-                // hand you by default. The output and its source maps are enough
-                // for measured sizes and per-source attribution; ghost code needs
-                // a declared graph and is reported as undetectable rather than as
-                // a clean bill of health.
-                None => omnibundlescope_core::folder::ingest(dir).with_context(|| {
-                    format!(
-                        "no stats.json or metafile.json in {}, and it holds no build output either",
-                        dir.display()
-                    )
-                })?,
             };
             sizes::attribute_from_disk(&mut graph, dir)?;
 
@@ -430,12 +446,18 @@ fn human_bytes(n: u64) -> String {
 
 /// A budget rule from `omnibundlescope.config.json` (cli-surface §3).
 #[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 struct BudgetConfig {
-    #[serde(default)]
+    /// No `#[serde(default)]`: a config that omits `limits` is a config that
+    /// disables the gate, and a size gate that can be switched off by deleting one
+    /// key is not a gate. `deny_unknown_fields` closes the same hole from the other
+    /// side, because the failure mode this prevents is a typo - `rules` instead of
+    /// `limits` - which used to parse into an empty list and pass every build.
     limits: Vec<BudgetLimit>,
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 struct BudgetLimit {
     /// `total`, `chunk` or `package`
     scope: String,
@@ -495,6 +517,18 @@ fn evaluate_budget(
     config: &BudgetConfig,
 ) -> (Vec<anyhow::Error>, bool, Vec<omnibundlescope_core::model::Diagnostic>) {
     let mut errors = Vec::new();
+
+    // A budget file with no rules is the same failure as a rule that matches
+    // nothing, one level up: the build passes, CI is green, and the reason no size
+    // was checked is that nobody was looking. It is a configuration error, not a
+    // pass.
+    if config.limits.is_empty() {
+        errors.push(anyhow::anyhow!(
+            "budget: the config has no limits, so nothing would be checked. \
+             Add at least one, for example {{\"limits\":[{{\"scope\":\"total\",\"max\":{}}}]}}",
+            graph.totals.total_size
+        ));
+    }
     let mut breached = 0usize;
     let mut diagnostics = Vec::new();
 
