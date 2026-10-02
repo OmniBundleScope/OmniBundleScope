@@ -51,10 +51,10 @@
   }
 
   // Per-module detail. For small graphs it is an inline JSON island; for large
-  // ones it arrives as `window.__OB_DETAIL__` from a companion `<script>`
+  // ones it arrives as `window.__OBS_DETAIL__` from a companion `<script>`
   // (a `<script src>` works from `file://`, `fetch` does not).
   function readDetail() {
-    if (window.__OB_DETAIL__) return window.__OB_DETAIL__;
+    if (window.__OBS_DETAIL__) return window.__OBS_DETAIL__;
     var island = document.getElementById("detail");
     if (!island) return null;
     var text = island.textContent.trim();

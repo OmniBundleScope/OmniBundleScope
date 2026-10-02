@@ -888,7 +888,7 @@ mod report {
     /// The caller streams the detail to disk, so nothing here holds the payload in
     /// memory. Only reports small enough to inline are read back, and then the
     /// companion file is removed.
-    /// shell reads `window.__OB_DETAIL__`, and because a `<script src>` on
+    /// shell reads `window.__OBS_DETAIL__`, and because a `<script src>` on
     /// `file://` is the only way a report can pull in sibling data at all.
     ///
     /// Returns the byte size so the caller can decide inline vs companion
@@ -902,7 +902,7 @@ mod report {
         let file = std::fs::File::create(&data_path)
             .with_context(|| format!("creating {}", data_path.display()))?;
         let mut w = std::io::BufWriter::with_capacity(1 << 20, file);
-        w.write_all(b"window.__OB_DETAIL__=")?;
+        w.write_all(b"window.__OBS_DETAIL__=")?;
         omnibundlescope_core::report::write_detail(graph, &mut w)
             .with_context(|| format!("writing {}", data_path.display()))?;
         w.write_all(b";\n")?;
