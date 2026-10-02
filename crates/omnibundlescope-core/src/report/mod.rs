@@ -38,8 +38,6 @@ pub const MAX_CHILDREN: usize = 256;
 pub const MAX_ASSETS: usize = 64;
 const OTHER: &str = "other";
 
-/// Grouping dimensions available in the MVP. "Module dependency" (edge view) is
-/// deliberately Phase 2 — see `docs/decisions/ADR-0002`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Dimension {
@@ -173,8 +171,6 @@ pub fn treemap_tree(graph: &crate::model::UnifiedBundleGraph, dim: Dimension) ->
     }
 }
 
-/// Keep the largest `MAX_ASSETS` assets; fold the rest into one node whose size
-/// is their sum, so the picture stays arithmetically honest.
 fn fold_asset_tail(mut nodes: Vec<GroupNode>) -> (Vec<GroupNode>, (u64, u64)) {
     if nodes.len() <= MAX_ASSETS {
         return (nodes, (0, 0));
@@ -267,7 +263,6 @@ pub fn detail_payload(graph: &crate::model::UnifiedBundleGraph) -> serde_json::V
 /// 154,379 modules the intermediate `Value` cost ~550 MB — a `Value` is a tree
 /// of boxed maps and owned strings, roughly an order of magnitude more memory
 /// than the JSON text it produces — and it pushed the full pipeline from 126 MB
-/// to 670 MB, blowing the 200 MB target on the fixture that exists to catch
 /// exactly this. Serialising from a borrowed view of the graph costs one buffer.
 ///
 /// It is a `Detail<'a>` view, not an owned copy: the module id is the map key

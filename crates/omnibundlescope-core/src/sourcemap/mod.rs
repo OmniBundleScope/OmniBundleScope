@@ -241,7 +241,6 @@ pub fn decode(mappings: &str, sources_len: usize) -> Result<Vec<Mapping>> {
             // credits the bytes after the last mapping to that source, and with
             // an index out of range it silently credited nothing. The report
             // then stated a smaller total as ground truth - the exact failure
-            // this tool exists to remove. Found by a property test, not by a
             // fixture.
             if source_index >= i64::try_from(sources_len).unwrap_or(i64::MAX) {
                 return Err(Error::Malformed(format!(
@@ -331,7 +330,6 @@ impl ParsedSourceMap {
     /// to that mapping's source. A map whose last segment owns a lot of bytes
     /// (typically an inlined runtime) is the common case this fixes.
     ///
-    /// # What is deliberately *not* attributed
     ///
     /// The bytes **before** the first mapping. A map that starts at column 0 has
     /// no such gap, so this only matters for maps that start mid-line; crediting

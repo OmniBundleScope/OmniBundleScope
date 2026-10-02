@@ -1,6 +1,5 @@
 // Resolve the OmniBundleScope binary for this platform, preferring a local build.
 //
-// Why a shim instead of a JS implementation: the whole point of the tool is
 // that a 1 GB stats file is parsed in a few seconds inside a fixed memory
 // budget, which is a Rust claim. Re-implementing the hot path in JavaScript
 // would make the npm package a different program with different numbers.

@@ -1,7 +1,6 @@
 // Materialise the asset files a synthetic stats.json claims exist.
 //
 // The stats generator writes ~1,500 assets into the stats document but no bytes
-// on disk. The full pipeline (B3/B4/B8) can only be measured honestly if the
 // files it claims to measure are really there: the size attribution step reads
 // and gzips every asset, so skipping this would turn B3 into a re-run of B1.
 //

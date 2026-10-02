@@ -40,7 +40,6 @@ fn vlq(value: i64) -> String {
 /// Sources are named so that the path join is exercised too: a map writes
 /// `webpack://ns/./src/x.ts` and stats writes `./src/x.ts`.
 ///
-/// The declared generated length is deliberately *not* a parameter: it is not
 /// part of a source map document, so the caller passes it to
 /// `attribute_by_source_in` instead, which is the API under test.
 fn map_with_segments(offsets: &[u32]) -> Vec<u8> {
@@ -83,7 +82,6 @@ proptest! {
     /// tail belongs to the last source, and the total has to come out at the
     /// real file size rather than at the last mapping's offset.
     ///
-    /// The prologue (bytes before the first mapping) is deliberately left
     /// unattributed - see attribution_by_source_in for why guessing it would be
     /// the unsafe direction.
     #[test]

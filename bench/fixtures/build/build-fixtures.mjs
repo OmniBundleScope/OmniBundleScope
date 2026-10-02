@@ -1,7 +1,6 @@
 // Build the real fixtures into the artifacts OmniBundleScope ingests (benchmarks).
 //
 // We build with our own bundler config rather than each project's release
-// config, deliberately (ADR-0005): the fixture must exercise *our* input path
 // and must be reproducible, not depend on whatever a project's CI does this
 // month. Two variants per fixture, because they stress different things:
 //

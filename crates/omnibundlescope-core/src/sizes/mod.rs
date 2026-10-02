@@ -114,10 +114,6 @@ fn propagate_asset_sizes_to_modules(graph: &mut UnifiedBundleGraph) {
         // bundle. Found by a property test, after a lint-driven change had
         // already broken the other half of it.
         //
-        // A mean is the honest choice for a module in several chunks: its bytes
-        // are spread across them, and we do not track a per-chunk split to do
-        // better. For the single-chunk module - which is nearly all of them, and
-        // every fixture here - it is exact.
         let mut sum = 0.0_f64;
         let mut measured_chunks = 0usize;
         for chunk_id in &module.chunks {

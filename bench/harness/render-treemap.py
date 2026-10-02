@@ -69,9 +69,7 @@ LABEL_ROW_H = 42
 # name has to be ellipsised; over-estimating is the safe direction.
 ADVANCE_EM = 0.62
 
-
 # ------------------------------------------------------------------ layout
-
 
 def squarify(items: list[dict], x: float, y: float, w: float, h: float) -> list[dict]:
     """Squarified treemap: Bruls, Huizing & van Wijk (2000).
@@ -133,7 +131,6 @@ def squarify(items: list[dict], x: float, y: float, w: float, h: float) -> list[
 
     return out
 
-
 def assert_valid(rects: list[dict], width: float, height: float, name: str) -> None:
     """Refuse to write a treemap that overlaps itself or leaves a hole.
 
@@ -176,9 +173,7 @@ def assert_valid(rects: list[dict], width: float, height: float, name: str) -> N
             "a treemap that leaves a quarter of the frame empty is a bug"
         )
 
-
 # ------------------------------------------------------------------- input
-
 
 def find_binary(explicit: str | None) -> pathlib.Path:
     """Locate the shipped CLI, honouring the env var the Node harness used."""
@@ -201,7 +196,6 @@ def find_binary(explicit: str | None) -> pathlib.Path:
         "or pass --binary / set OB_BINARY"
     )
 
-
 def run_payload(binary: pathlib.Path, stats: pathlib.Path) -> dict:
     """Ask the tool for its own graph rather than re-parsing the stats file.
 
@@ -218,7 +212,6 @@ def run_payload(binary: pathlib.Path, stats: pathlib.Path) -> dict:
     # `omnibundlescope --mode json` writes a UTF-8 BOM, which `json.loads` rejects.
     return json.loads(result.stdout.decode("utf-8-sig"))
 
-
 def size_of(sizes: dict) -> tuple[int, str]:
     """`Module::sizes.effective()`: ground truth, then measurement, then claim.
 
@@ -232,7 +225,6 @@ def size_of(sizes: dict) -> tuple[int, str]:
     if parsed:
         return int(parsed), "parsed"
     return int(sizes.get("stat") or 0), "stat"
-
 
 def groups_by_package(payload: dict) -> list[dict]:
     """Sum every module's bytes into its package, across every asset.
@@ -259,7 +251,6 @@ def groups_by_package(payload: dict) -> list[dict]:
     children.sort(key=lambda c: (-c["size"], c["name"]))
     return children
 
-
 def size_dimension(payload: dict) -> str:
     """The dimension the bytes are in, named rather than assumed.
 
@@ -276,9 +267,7 @@ def size_dimension(payload: dict) -> str:
             return candidate
     return "stat"
 
-
 # ------------------------------------------------------------------ output
-
 
 def mix_toward_white(hex_colour: str, t: float) -> str:
     n = int(hex_colour[1:], 16)
@@ -286,16 +275,13 @@ def mix_toward_white(hex_colour: str, t: float) -> str:
     mixed = tuple(round(c + (255 - c) * t) for c in channels)
     return "#" + "".join(f"{c:02x}" for c in mixed)
 
-
 def fmt_bytes(n: float) -> str:
     if n >= 1048576:
         return f"{n / 1048576:.1f} MB"
     return f"{round(n / 1024)} KB"
 
-
 def esc(text: str) -> str:
     return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
 
 def render(
     children: list[dict],
@@ -358,10 +344,6 @@ def render(
                 )
 
     totals = payload.get("totals") or {}
-    # The input's own file name is deliberately *not* here. It is the one part
-    # that depends on where the file happens to live - `stats.json` locally,
-    # `treemap-stats.json` in CI - and a figure that changes when it is
-    # regenerated somewhere else is a figure the CI diff gate cannot check.
     footer = " \u00b7 ".join(
         [
             label or "bundle",
@@ -375,7 +357,6 @@ def render(
     parts.append(f'<text x="12" y="{height - 12}" fill="{FOOTER_INK}" font-size="11">{esc(footer)}</text>')
     parts.append("</svg>")
     return "\n".join(parts) + "\n", len(rects), len(shown), footer
-
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Render the OmniBundleScope README treemap to SVG.")
@@ -417,7 +398,6 @@ def main() -> int:
     )
     print(f"  {footer}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

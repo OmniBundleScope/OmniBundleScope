@@ -4,7 +4,6 @@
 // Why copies at all: crates.io renders the licence text from files *inside* the
 // published package, and a dual `MIT OR Apache-2.0` crate has no single
 // `license-file` to point at. Every dual-licensed Rust project keeps copies next
-// to each manifest. The failure mode that comes with copies is drift - someone
 // edits the root licence and the published one is a year old - so the copies get
 // a gate, and this is that gate.
 //

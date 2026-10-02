@@ -240,7 +240,6 @@ impl UnifiedBundleGraph {
     /// # Errors
     /// Returns an error when the module sizes and the asset total disagree by
     /// more than `tolerance_ppm` parts per million. A caller that ignores this
-    /// is publishing a number nobody checked.
     pub fn check_size_invariant(&self, tolerance_ppm: u64) -> Result<(), super::Error> {
         if self.totals.size_dimension != SizeDimension::Attributed {
             return Ok(());

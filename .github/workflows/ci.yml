@@ -92,8 +92,6 @@ jobs:
         working-directory: bench
         run: node harness/check-workflows.mjs
 
-      # crates.io renders the licence from files inside the published package,
-      # so each crate carries a copy; this keeps those copies honest.
       - name: licence copies match the canonical files
         working-directory: bench
         run: node harness/check-licenses.mjs
@@ -127,7 +125,6 @@ jobs:
       # reading a field that does not exist, and every rectangle in the committed
       # file was labelled "[object Object]: 3 KB" with 0.3 % of the canvas
       # covered. Nothing compared the image to its generator, so nothing noticed.
-      # The input is generated rather than committed because the honest one is
       # 20 MB of stats.json - so this step is hermetic and runs on every platform.
       - name: the README treemap regenerates
         working-directory: bench
@@ -162,9 +159,6 @@ jobs:
         working-directory: bench
         run: node harness/check-book-links.mjs
 
-      # Reports, does not fail: the placeholders are there to be filled in, and a
-      # red build for something the maintainer is mid-way through doing is a build
-      # nobody reads. The release workflow is where this has to be clean.
       - name: placeholders still to fill in
         working-directory: .
         run: node bench/harness/links.mjs
@@ -346,9 +340,6 @@ jobs:
         run: |
           cargo llvm-cov --all-targets --workspace --summary-only \
             | tee coverage.txt
-      # A coverage number with no floor tells you nothing: it goes down silently
-      # and nobody notices until a bug ships. 70 % is where this is today, and
-      # the ratchet is the point - it must not fall.
       - name: enforce the coverage floor
         run: |
           set -euo pipefail

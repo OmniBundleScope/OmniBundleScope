@@ -4,7 +4,6 @@
 //   1. Never fail an install silently. If the download does not happen, the
 //      shim prints the reason and the fix.
 //   2. Verify the checksum. A binary fetched over the network and then executed
-//      is the exact thing supply-chain hygiene exists to prevent.
 //   3. Skip the work when a usable binary is already present (a local cargo
 //      build, or OMNIBUNDLESCOPE_BIN), so `npm i` in a dev checkout is instant.
 //   4. No new dependencies: node:crypto and node:https are enough.

@@ -75,9 +75,6 @@ pub fn analyse(
         if let Some(module) = graph.modules.get_mut(&id) {
             module.sources = sources;
             module.sizes.attributed = Some(attributed);
-            // Saturating: a negative delta means the bundler over-estimated, and a
-            // wrapped subtraction would report the opposite.
-            // costs nothing and cannot be wrong.)
             module.attribution_delta =
                 attributed.cast_signed().saturating_sub(module.sizes.stat.cast_signed());
             outcome.attributed_modules += 1;
@@ -90,7 +87,6 @@ pub fn analyse(
     // Only the largest `GHOSTS_IN_SUMMARY` are kept. A 1 GB stats file can
     // declare 445,602 unmapped modules, and keeping one entry per module made a
     // "summary" that was 47 MB of the report payload and 47 MB of the heap —
-    // the exact failure the 400 MB target exists to catch. The count and the byte
     // total are always exact; the list is a sample, and says how much it dropped.
     let mut ghosts: Vec<GhostModule> = Vec::new();
     let mut ghost_total = 0usize;

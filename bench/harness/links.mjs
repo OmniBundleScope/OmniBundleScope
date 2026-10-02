@@ -42,7 +42,6 @@ const INVENTED = [
 //
 // Split in two on purpose. A command inside a fenced block is an instruction; the
 // same words in a sentence can be the opposite - "`npx omnibundlescope` does not work
-// yet" is the honest sentence this gate exists to encourage. A badge URL carries no
 // such ambiguity, so it is matched anywhere.
 //
 // Only the front pages are scanned: `docs/` describes the npm one-liner as the
@@ -238,7 +237,6 @@ const broken = empty.length + unknown.length + inventedHits.length + unavailable
 // --for narrows what must be filled in to the channels actually being published.
 // Without it, deferring crates.io would block the GitHub release and the npm
 // package too, which is backwards: those two are how anybody installs the thing,
-// and a crate nobody has published yet is not what stops them.
 //
 //   node bench/harness/links.mjs --deny --for github,npm
 const forFlag = process.argv.indexOf('--for');

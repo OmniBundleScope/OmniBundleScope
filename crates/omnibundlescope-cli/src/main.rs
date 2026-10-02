@@ -652,7 +652,6 @@ fn apply_excludes(graph: &mut UnifiedBundleGraph, patterns: &[String]) {
 
 /// Minimal anchored-substring matcher for `--exclude`.
 ///
-/// Deliberately not a regex engine: a full regex dependency in the hot path of a
 /// CLI is not worth the bytes, and `--exclude` in every tool we replace is a
 /// plain substring or a simple glob. Treated as a case-insensitive substring,
 /// with `*` treated as a wildcard, and documented as such.
@@ -947,8 +946,6 @@ mod report {
         report.with_file_name(name)
     }
 
-    /// `</script>` inside an inlined JSON island would end the tag early;
-    /// escaping the slash is the standard fix and costs nothing.
     fn escape_for_script_tag(s: &str) -> String {
         s.replace("</", "<\\/")
     }

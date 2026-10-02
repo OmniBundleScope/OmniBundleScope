@@ -99,8 +99,6 @@ impl<'de> Visitor<'de> for StatsVisitor {
                     map.next_value_seed(ModulesInto { modules: &mut graph.modules })?;
                 }
                 _ => {
-                    // entrypoints, errors, warnings, and the hundreds of MB of
-                    // `source` strings we deliberately do not want.
                     map.next_value::<IgnoredAny>()?;
                 }
             }

@@ -7,7 +7,6 @@
 // moment a file is renamed. This walks the Markdown, resolves each relative
 // target against the file it appears in, and reports the ones that dangle.
 //
-// Skipped deliberately: absolute URLs (checked by mdbook-linkcheck in CI for the
 // book, and by the network otherwise), bare anchors, and images inside HTML that
 // mdbook rewrites.
 

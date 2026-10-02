@@ -20,7 +20,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # The gate: an unsigned binary nobody should install is worse than no binary.
   verify:
     name: verify the tag
     runs-on: ubuntu-latest
