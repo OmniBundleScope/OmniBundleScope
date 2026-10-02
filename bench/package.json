@@ -19,6 +19,6 @@
     "esbuild": "^0.28.2",
     "webpack": "^5.111.1",
     "webpack-cli": "^7.2.3",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^5.4.2"
   }
 }
