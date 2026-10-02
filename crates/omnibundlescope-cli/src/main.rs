@@ -11,8 +11,8 @@
 //!   source maps  ⧗ source map ingest
 //!   fusion  ⧗ fusion, ghost/hidden detection
 //!   report  ✅ report shell (self-built, inlined, offline)
-//! The CLI never invents a number it has not measured: unmeasured dimensions are
-//! reported as 0 and the dimension in use is stated in the summary line.
+//! A dimension that was not measured reports 0, and the summary line names the
+//! one in use.
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -143,10 +143,8 @@ fn run(cli: &Cli) -> Result<ExitCode> {
 
     let graph = match &found {
         Input::File(path) => {
-            // Sniff the head for the artifact shape, then stream the file.
-            // Never `fs::read` here: that would put the file size on top of the
-            // memory floor, which is the failure mode this project exists to
-            // remove (measured: 1 GB read + parse = 6.4 GB RSS before this fix).
+            // Sniff the head for the shape, then stream. Never `fs::read`: that puts
+            // the file size on top of the memory floor.
             let head = read_head(path, 512 * 1024)?;
             let name = file_name(path);
             let tool = sniff_tool(&head);
@@ -296,11 +294,8 @@ fn run(cli: &Cli) -> Result<ExitCode> {
             let label =
                 payload.get("target").and_then(|v| v.as_str()).unwrap_or("bundle").to_string();
 
-            // The contract says a report must state the dimension it *used*, not
-            // the one that was requested: a partial source map downgrades
-            // `attributed` to `parsed`, and claiming otherwise is exactly the
-            // kind of lie this tool exists to remove. Decided *before* writing,
-            // because the old code wrote the report and then rewrote it.
+            // The report states the dimension it used, not the requested one: a
+            // partial source map downgrades `attributed` to `parsed`.
             let used = match graph.totals.size_dimension {
                 omnibundlescope_core::model::SizeDimension::Stat => "stat",
                 omnibundlescope_core::model::SizeDimension::Parsed => "parsed",
@@ -373,9 +368,7 @@ fn run(cli: &Cli) -> Result<ExitCode> {
         }
     }
 
-    // A budget breach is exit 1 (the CI gate). A budget *config* problem is
-    // reported on stderr and the analysis still runs, so a typo in a rule does
-    // not hide the rest of the report — but it never counts as a pass.
+    // A breach is exit 1. A config problem is exit 3, and still reports on stderr.
     if budget_config_error {
         return Ok(ExitCode::from(3));
     }
@@ -385,13 +378,12 @@ fn run(cli: &Cli) -> Result<ExitCode> {
 /// The payload the shell consumes.
 ///
 /// Two pieces on purpose (`docs/en/04-benchmark-plan.md` §6):
-/// - `trees`: one two-level treemap per dimension, sizes only. This is what
-///   makes the HTML small enough to open; the previous "dump every module"
-///   shape produced a 125.6 MB file and ~24 s of generation for 154k modules.
-/// - `detail`: per-module facts (reasons, sources, per-dimension sizes), emitted
-///   as a **companion script**, because a 125 MB inline island is what we are
-///   avoiding and because `fetch()` cannot load a sibling file from `file://`
-///   in a browser. A `<script src>` can, so the detail data is a JS assignment.
+/// - `trees`: one two-level treemap per dimension, sizes only. The previous
+///   "dump every module" shape produced a 125.6 MB file and ~24 s of
+///   generation for 154k modules.
+/// - `detail`: per-module facts, emitted as a **companion script**. `fetch()`
+///   cannot load a sibling from `file://`; a `<script src>` can, so the detail
+///   is a JS assignment rather than raw JSON.
 ///
 /// Both are deterministic (sorted keys, no timestamps) so parity tests can diff
 /// them.
@@ -448,11 +440,9 @@ fn human_bytes(n: u64) -> String {
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct BudgetConfig {
-    /// No `#[serde(default)]`: a config that omits `limits` is a config that
-    /// disables the gate, and a size gate that can be switched off by deleting one
-    /// key is not a gate. `deny_unknown_fields` closes the same hole from the other
-    /// side, because the failure mode this prevents is a typo - `rules` instead of
-    /// `limits` - which used to parse into an empty list and pass every build.
+    /// Neither `default` nor a missing key: a config that omits `limits` would
+    /// disable the gate, and `rules` instead of `limits` used to parse as an
+    /// empty list and pass.
     limits: Vec<BudgetLimit>,
 }
 
@@ -502,15 +492,8 @@ fn dimension_name(dimension: Option<&str>) -> String {
 /// Evaluate the budget. Returns the diagnostics and whether the build passed.
 ///
 /// Two rules that are easy to get wrong and are therefore explicit:
-/// - a `match` that matches nothing is an **error**, not a no-op: a typo in a
-///   budget rule must not silently pass CI;
-/// - a breach is reported against the dimension actually used, and the summary
-///   line says which one, so a limit is never compared against a different
-///   measurement than the one a human sees.
-///
-/// The three scopes differ only in what they sum, so they share one pass; the
-/// length comes from that, not from a chain of helpers that would each need the
-/// graph and the config anyway.
+/// - a `match` that matches nothing is an error, so a typo cannot pass CI;
+/// - a breach is reported against the dimension actually used.
 #[allow(clippy::too_many_lines)]
 fn evaluate_budget(
     graph: &UnifiedBundleGraph,
@@ -518,10 +501,8 @@ fn evaluate_budget(
 ) -> (Vec<anyhow::Error>, bool, Vec<omnibundlescope_core::model::Diagnostic>) {
     let mut errors = Vec::new();
 
-    // A budget file with no rules is the same failure as a rule that matches
-    // nothing, one level up: the build passes, CI is green, and the reason no size
-    // was checked is that nobody was looking. It is a configuration error, not a
-    // pass.
+    // No rules at all is the same failure as a rule matching nothing: nothing gets
+    // checked and the build goes green.
     if config.limits.is_empty() {
         errors.push(anyhow::anyhow!(
             "budget: the config has no limits, so nothing would be checked. \
@@ -868,11 +849,9 @@ mod report {
     const CSS: &str = include_str!("../../../assets/report/shell.css");
     const JS: &str = include_str!("../../../assets/report/shell.js");
 
-    /// Below this size the per-module detail is inlined and the report stays a
-    /// single file. Above it, the detail moves to `<report>.data.js` and the
-    /// HTML loads it with a `<script>` tag — which works from `file://`, unlike
-    /// `fetch`. Measured: 154,379 modules is ~121 MB of detail, which is a file
-    /// nobody opens.
+    /// Below this the detail is inlined and the report is one file. Above it the
+    /// detail moves to `<report>.data.js`. Measured: 154,379 modules is ~121 MB
+    /// of detail.
     pub const INLINE_LIMIT: usize = 2 * 1024 * 1024;
 
     pub fn render(
@@ -907,11 +886,9 @@ mod report {
 
     /// Write the detail to `<report>.data.js`, then the HTML that loads it.
     ///
-    /// The detail is streamed to disk by the caller, so nothing here holds the
-    /// 36 MB payload in memory: only reports small enough to inline (<=2 MB) are
-    /// read back, and then the companion file is removed so a single-file report
-    /// really is a single file.
-    /// Stream `<report>.data.js`: a JS assignment (not raw JSON) because the
+    /// The caller streams the detail to disk, so nothing here holds the payload in
+    /// memory. Only reports small enough to inline are read back, and then the
+    /// companion file is removed.
     /// shell reads `window.__OB_DETAIL__`, and because a `<script src>` on
     /// `file://` is the only way a report can pull in sibling data at all.
     ///
@@ -950,9 +927,8 @@ mod report {
             let file_name = data_path
                 .file_name()
                 .map_or_else(|| "report.data.js".to_string(), |n| n.to_string_lossy().to_string());
-            // Only the file name, never a path: the report and its data live side
-            // by side, and an absolute path here would break the report the moment
-            // the directory is moved or opened from a different root.
+            // The file name only: an absolute path breaks the report when the
+            // directory moves.
             let mut html = render(payload, target, &[], false)?;
             html = html.replace(DATA_SCRIPT_PLACEHOLDER, &file_name);
             html
