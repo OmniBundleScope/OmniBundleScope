@@ -1,13 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
-/// A node of the treemap the report draws: **sizes only, no module dump**.
-///
-/// This is the fix for the measured bottleneck: serialising 154,379 modules
-/// into the HTML produced a 125.6 MB file and ~24 s of report generation
-/// (`docs/en/04-benchmark-plan.md` §6). The picture a human reads needs a
-/// handful of levels and nothing else; per-module facts belong in the detail
-/// payload, which is emitted separately and loaded only when a node is opened.
+/// A node of the treemap: **sizes only, no module dump**. Per-module facts
+/// belong in the detail payload.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GroupNode {
     pub name: String,

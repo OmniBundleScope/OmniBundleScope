@@ -1,25 +1,16 @@
 //! Ingest a build folder that has no bundler metadata.
 //!
-//! Most bundlers emit `dist/` and nothing else. Vite, Rollup, Parcel, tsup and
-//! a plain esbuild `--outdir` all produce JavaScript and, if you asked for it,
-//! `*.map` - and no `stats.json`, because there is no cross-bundler format for
-//! one. Requiring bundler metadata to produce a report means the tool is
-//! useless for exactly the projects most people build with, so this path reads
-//! the output and its source maps, and nothing else.
+//! Vite, Rollup, Parcel, tsup and a plain esbuild `--outdir` emit `dist/` and
+//! `*.map`, and no `stats.json` - there is no cross-bundler format for one. This
+//! path reads the output and its maps, and nothing else.
 //!
-//! What is genuinely knowable here, and what is not:
+//! What that buys and what it does not:
 //!
-//! - **Sizes are measured, not declared.** Every byte on disk is real, so the
-//!   `parsed` and `gzip` dimensions are exact and `stat` stays zero - there is
-//!   nobody to declare anything.
-//! - **Attribution comes from the source maps.** Bytes map back to original
-//!   source paths without any bundler metadata, which is the whole reason source
-//!   maps exist. The report groups by source file.
-//! - **Ghost code cannot be detected.** A ghost is a module the bundler
-//!   declared and shipped but no map explains; with no declared graph there is
-//!   nothing to compare against, and reporting zero ghosts would be inventing a
-//!   clean bill of health. [`crate::fusion::analyse_sources_only`] says so with a
-//!   diagnostic instead.
+//! - Sizes are measured, so `parsed` and `gzip` are exact and `stat` stays zero.
+//! - Attribution comes from the maps: each source becomes a module, so the report
+//!   groups by source file.
+//! - Ghost code needs a declared graph, so it is reported as undetectable
+//!   (`OBS0051`) rather than as zero.
 
 use crate::error::{Error, Result};
 use crate::model::{
