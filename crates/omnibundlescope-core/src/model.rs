@@ -1,7 +1,5 @@
-//! The unified bundle graph — the single contract every areas codes against.
-//!
-//! This mirrors `docs/contracts/report-schema.json` and `docs/contracts/unified-graph.md`.
-//! Field renames or semantic changes require a new ADR (contracts owns this file).
+//! The unified bundle graph. Mirrors `docs/contracts/report-schema.json`; a
+//! breaking change to it needs an ADR.
 
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -18,15 +16,10 @@ pub struct UnifiedBundleGraph {
     pub modules: BTreeMap<String, Module>,
     /// Top-level rollups used by the report shell and the budget gate.
     pub totals: Totals,
-    /// Present once a source map has been fused in.
     pub fusion: Option<FusionSummary>,
-    /// Diagnostics that are warnings, not errors: ghost/hidden code, unmapped
-    /// assets, budget breaches, degraded input.
     pub diagnostics: Vec<Diagnostic>,
 }
 
-/// Where a piece of the graph came from. Determines how much we can trust its
-/// size numbers and whether the fusion engine may correct them.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum InputArtifact {
@@ -38,33 +31,27 @@ pub enum InputArtifact {
     EsbuildMetafile,
     /// rollup-plugin-visualizer style JSON
     VisualizerStats { tool: String },
-    /// A build directory with no bundler metadata: sizes are measured from disk,
-    /// and the source maps are the only attribution available. This is what
-    /// vite, rollup, parcel and tsup hand you unless you configure otherwise.
+    /// A build directory with no bundler metadata.
     DistFolder,
 }
 
 impl InputArtifact {
-    /// Sizes taken from a stats file are estimates; a source map is ground truth
-    /// for per-source byte attribution.
+    /// True for a source map: ground truth for per-source bytes.
     pub fn trusts_exact_sizes(&self) -> bool {
         matches!(self, InputArtifact::SourceMap { .. })
     }
 }
 
-/// A build output file (JS/CSS/asset), the unit the treemap roots at.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Asset {
     pub name: String,
     /// Declared size in bytes.
     pub size: u64,
-    /// Chunks that contribute to this asset.
     pub chunks: Vec<u32>,
     /// `stat` (declared), `parsed` (measured from the file), `gzip`.
     pub sizes: SizeSet,
 }
 
-/// A chunk: the unit of async loading. Mirrors the webpack chunk id space.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Chunk {
     pub id: u32,
@@ -75,16 +62,9 @@ pub struct Chunk {
     pub size: SizeSet,
 }
 
-/// A module: one entry of the dependency graph.
-///
-/// `id` is the join key with the source map (stats `identifier` or
-/// `name` + chunk). When a map disagrees with the stats size, the corrected
-/// value lands in [`ModuleSize::attributed`] and the delta is recorded in
-/// [`Module::attribution_delta`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Module {
-    /// Stable join key: the stats `identifier` when available, else
-    /// `chunk-scoped name`. Documented in the fusion contract.
+    /// Join key with the source map.
     pub id: String,
     pub name: String,
     pub issuer: Option<String>,
@@ -92,16 +72,11 @@ pub struct Module {
     pub reasons: Vec<String>,
     /// npm package the module belongs to, when it lives in `node_modules`.
     ///
-    /// Shared, not owned: the 1 GB fixture has 445,602 modules and 400 packages,
-    /// and three owned strings per module cost ~55 MB — enough to miss the
-    /// 400 MB target for no reason at all.
     pub package: Option<std::sync::Arc<PackageRef>>,
     pub chunks: Vec<u32>,
     pub sizes: SizeSet,
-    /// `map_attributed - stat` in bytes. Non-zero means the bundler's estimate
-    /// was off, which is the whole point of the fusion engine.
+    /// `attributed - stat`, in bytes.
     pub attribution_delta: i64,
-    /// Sources this module maps back to, filled in by the fusion engine.
     pub sources: Vec<SourceRef>,
 }
 
@@ -136,9 +111,7 @@ pub struct SizeSet {
 }
 
 impl SizeSet {
-    /// The size to display. Prefers ground truth, then measurement, then the
-    /// bundler's claim. Never silently mixes dimensions: a report states which
-    /// dimension it used (see `totals.size_dimension`).
+    /// Attributed, else parsed, else stat.
     pub fn effective(&self) -> u64 {
         if let Some(attributed) = self.attributed.filter(|v| *v > 0) {
             return attributed;
