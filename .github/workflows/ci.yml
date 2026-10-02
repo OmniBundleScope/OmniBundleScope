@@ -187,7 +187,7 @@ jobs:
               --stats fixtures/artifacts/webpack/$fx/stats.json \
               --bundle fixtures/artifacts/webpack/$fx
           done
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: parity-results
           path: bench/results/*.json
@@ -273,7 +273,7 @@ jobs:
               echo
             done
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bench-results
           path: bench/results/*
@@ -303,7 +303,7 @@ jobs:
             cargo package -p "$c" --allow-dirty --no-verify 2>&1 | tee -a /tmp/pkg/package.log || true
           done
           cat /tmp/pkg/package.log
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: package-log
@@ -343,7 +343,7 @@ jobs:
           # Not required for forks: an upload token does not exist there, and a
           # red X on every fork PR trains people to ignore the check.
           fail_ci_if_error: false
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: coverage.txt
