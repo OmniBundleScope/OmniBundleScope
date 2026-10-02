@@ -3,11 +3,10 @@
 //
 //   node bench/harness/check-treemap-layout.mjs
 //
-// What this catches, in order of how badly it bit us:
-//   1. overlapping rectangles - a squarify that double-places a row still looks
-//      fine in a thumbnail, which is how the first README image got 39 overlaps
-//   2. rectangles that leave the canvas, or leave a visible hole in it
-//   3. areas that do not match the sizes, i.e. a lie about proportions
+// Catches, in order of how badly each bit:
+//   1. overlapping rectangles - a double-placed row still looks fine in a thumbnail
+//   2. rectangles off the canvas, or leaving a hole in it
+//   3. areas that do not match the sizes
 //   4. the shell's inlined copy drifting from this one
 //
 // Cases are generated rather than hard-coded, because the failure depends on the

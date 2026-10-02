@@ -3,11 +3,8 @@
 
     python bench/harness/make-charts.py
 
-Why a script and not checked-in images: a chart nobody can regenerate is a
-picture of a benchmark that used to be true. This reads the same harness records
-the docs cite and writes a sidecar JSON next to the SVGs listing every plotted
-number with its provenance, so a reader can diff the chart against the record
-instead of trusting it.
+Reads the harness records the docs cite and writes a sidecar JSON next to the
+SVGs listing every plotted number with its provenance.
 
 Two themes are emitted for every chart and the README picks between them with a
 `prefers-color-scheme` <picture>, because a chart designed only for light mode is

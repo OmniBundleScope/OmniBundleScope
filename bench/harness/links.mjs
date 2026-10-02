@@ -4,10 +4,8 @@
 //   node bench/harness/links.mjs --apply    substitute the values into every tracked file
 //   node bench/harness/links.mjs --deny     exit 1 if anything is still a placeholder
 //
-// Why this exists: a README full of plausible URLs for a repository that does not
-// exist is worse than one with visible holes in it. Today every badge on the front
-// page is broken and every "report an issue" link goes nowhere, and nothing says
-// so, because a dead external link is not a build failure.
+// A dead external link is not a build failure, which is how plausible-looking URLs
+// for a repository that does not exist went unnoticed.
 //
 // --deny is what the release workflow uses. A placeholder should be annoying while
 // you are filling them in and impossible to publish with.
