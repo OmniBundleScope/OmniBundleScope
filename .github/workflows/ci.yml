@@ -365,7 +365,7 @@ jobs:
         working-directory: book
         run: mdbook build
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: book/book/html
       - name: deploy to GitHub Pages
