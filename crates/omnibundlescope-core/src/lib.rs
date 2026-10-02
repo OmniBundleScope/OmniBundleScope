@@ -1,31 +1,18 @@
 //! `OmniBundleScope` core: stats ingest, size attribution, source-map parsing, the
 //! fusion engine and the report payload.
 //!
-//! Hard constraint: this crate performs **no IO** and pulls in no CLI/async
-//! runtime. Every byte enters through [`model`] or through the `*_from_*`
-//! constructors of the ingest modules. That is what makes the WASM target in
-//! Phase 2 a packaging change instead of a rewrite.
-//!
-//! What lives where:
-//! - `stats`     stats ingest webpack/rspack `stats.json` streaming ingest
-//! - `sourcemap` source maps source map v3 ingest (zero-allocation VLQ)
-//! - `sizes`     sizes size attribution (stat / parsed / gzip) + attribution tree
-//! - `fusion`    fusion cross-artifact fusion and ghost/hidden code detection
-//! - `report`    report payload (the HTML shell lives in `assets/report`)
-//! - `model`     contracts contract-owned: the unified graph. Changes need an ADR.
+//! No IO, and no CLI or async runtime. Bytes enter through [`model`] or the
+//! `*_from_*` constructors in the ingest modules.
 
-// Lint policy: the workspace sets `clippy::pedantic = warn` and every crate opts
-// in with `[lints] workspace = true`, so CI's
-// `clippy --workspace --all-targets -- -D warnings` gates on pedantic too. It is
-// currently green, and it earned that: it is what found the `u64 as i64` in the
-// attribution delta and the unchecked `f64 as u64` in size scaling, both of
-// which are now correct rather than allowed.
-//
+// Lint policy: the workspace sets `clippy::pedantic = warn` and every crate opts in,
+// so CI's `clippy --workspace --all-targets -- -D warnings` gates on pedantic too.
+// It found the `u64 as i64` in the attribution delta and the unchecked `f64 as u64`
+// in size scaling; both are now correct rather than allowed.
+//!
 // Two groups are allowed on purpose:
-// - `cast_precision_loss` is display math (`bytes as f64 / 1024.0`); a byte
-//   count above 2^53 is 9 petabytes.
-// - `too_many_lines` is `fusion::analyse`: splitting the join would hide the
-//   order its steps depend on (attribute, ghost, hidden, coverage, invariant).
+// - `cast_precision_loss` is display math (`bytes as f64 / 1024.0`).
+// - `too_many_lines` is `fusion::analyse`: splitting it would hide the order its
+//   steps depend on.
 #![allow(clippy::cast_precision_loss, clippy::too_many_lines)]
 #![forbid(unsafe_code)]
 

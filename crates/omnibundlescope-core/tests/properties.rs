@@ -1,17 +1,12 @@
-//! Property tests for the parts of the engine where a wrong answer is plausible
-//! and hard to see: the VLQ decoder, the attribution accounting and the path
-//! join.
+//! Property tests for the VLQ decoder, the attribution accounting and the path
+//! join — the parts where a wrong answer is plausible and hard to see.
 //!
-//! These are deliberately written against the *public* API rather than reaching
-//! into internals. A unit test can assert that `decode_vlq` returns what the
-//! author believed the spec said; only a test that builds a real map and checks
-//! the bytes adds up can catch the spec being misremembered - which is exactly
-//! the bug that shipped once (bytes after the last mapping were dropped).
+//! Written against the public API on purpose: a unit test asserts that
+//! `decode_vlq` returns what the author believed the spec said, and only a real
+//! map adds up to the bytes.
 //!
-//! proptest rather than cargo-fuzz: it runs on stable, needs no nightly
-//! toolchain, and a CI that cannot run the fuzz target will not run it. The
-//! properties are narrow and deterministic, which is what makes a failure
-//! reproducible from the seed in the panic message.
+//! proptest rather than cargo-fuzz: it runs on stable, and a CI that cannot run a
+//! fuzz target will not run it.
 
 use omnibundlescope_core::fusion::suffix_match;
 use omnibundlescope_core::model::{

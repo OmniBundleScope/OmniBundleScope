@@ -1,19 +1,9 @@
-//! stats ingest: webpack / rspack `stats.json` streaming ingest.
+//! Streaming ingest for webpack/rspack `stats.json` and esbuild
+//! `metafile.json`. The document is never materialised as a
+//! `serde_json::Value`; the module arrays are the reason.
 //!
-//! Contract: ingest the file **without materialising the document**. The
-//! reference implementation parses `stats.json` with a custom
-//! `serde_json` seed so the 160k-440k module arrays never exist as one
-//! `serde_json::Value`. Measured on the reference machine (see
-//! `docs/en/01-evidence.md`):
-//!
-//! | input | Node `JSON.parse` floor | `OmniBundleScope` streaming target |
-//! |---|---|---|
-//! | 381 MB / 160,728 modules | 0.94 s / 919 MB RSS | <= 2 s / <= 200 MB |
-//! | 1,049 MB / 441,976 modules | (176.3 s / 1,437 MB for the full WBA run) | <= 3 s / <= 400 MB |
-//!
-//! `stats::ingest` (stats ingest) turns a `stats.json` into the unified graph without
-//! ever materialising the document; `recompute_totals` keeps the rollups honest
-//! after every mutation.
+//! Benchmarks in `docs/en/01-evidence.md`, contract in
+//! `docs/contracts/unified-graph.md`.
 
 mod ingest;
 
@@ -21,9 +11,7 @@ pub use ingest::{
     ingest_bytes, ingest_file, ingest_metafile, ingest_reader, ingest_stats, recompute_totals,
 };
 
-/// Identity fields we keep for every module. Unknown keys are ignored without
-/// allocation (serde's `IgnoredAny`), which is what keeps the parse cheap on
-/// real-world stats files that embed module sources.
+/// Identity fields we keep for every module.
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RawModule {
@@ -75,15 +63,10 @@ pub struct RawChunk {
     pub size: u64,
 }
 
-/// The stable join key used by every other areas.
+/// The stable join key: `identifier`, else `"{chunk_id}:{name}"`.
 ///
-/// Rules (also in `docs/contracts/unified-graph.md`):
-/// 1. `identifier` when present — it is the only field webpack keeps stable
-///    across builds.
-/// 2. otherwise `chunk-scoped name`: `"{chunk_id}:{name}"` because the same
-///    name can legally appear in several chunks.
-/// 3. never a hash of anything mutable; the key must survive a rebuild with no
-///    source change.
+/// A bare name is chunk-scoped because the same name can appear in several
+/// chunks. Never a hash of anything mutable — the key has to survive a rebuild.
 pub fn join_key(identifier: Option<&str>, name: &str, chunk: Option<u32>) -> String {
     match identifier {
         Some(id) if !id.is_empty() => id.to_string(),
@@ -94,12 +77,8 @@ pub fn join_key(identifier: Option<&str>, name: &str, chunk: Option<u32>) -> Str
     }
 }
 
-/// Extract the npm package a module belongs to from a stats `name` like
-/// `./node_modules/preact/compat/src/index.js`, or `None` for application code.
-///
-/// Deliberately simple: a package is the segment (or `@scope/segment` pair)
-/// immediately after a `node_modules/` component. Anything we cannot place is
-/// application code, and the treemap labels it `<app>` rather than guessing.
+/// The npm package a module belongs to, from a stats `name` like
+/// `./node_modules/preact/compat/src/index.js`. `None` for application code.
 pub fn package_of(name: &str) -> Option<(String, String)> {
     let normalized = name.replace('\\', "/");
     let idx = normalized.rfind("node_modules/")?;

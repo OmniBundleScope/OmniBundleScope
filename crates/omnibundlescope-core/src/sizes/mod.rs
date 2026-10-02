@@ -9,25 +9,12 @@ use crate::model::{SizeSet, UnifiedBundleGraph};
 
 /// Measure every asset on disk and fill `parsed` and `gzip`.
 ///
-/// This is the stage the reference tool spends its time in: 25,600 assets
-/// gzipped serially took 2,177 ms, rayon takes 342 ms (6.4x, measured). Parallel
-/// gzip plus reading the file only once is the whole win — there is no
-/// cleverer trick available, and pretending otherwise would be dishonest.
-///
 /// # Errors
-/// Returns an error when an asset cannot be read at all. A **missing** asset is
-/// not an error: stats files routinely list assets that were cleaned up, or you
-/// pointed at the wrong directory, and refusing to produce a report in that case
-/// would make the tool useless on real projects. A missing asset keeps its
-/// declared size, gets an `OBS0002` info diagnostic naming up to five of them, and
-/// the report says which dimension it used.
-///
-/// What it must never become is a silent zero: a zero-sized asset would make the
-/// treemap lie about where the bytes went, which is why the declared size stands
-/// instead of `0`.
+/// Errors only when an asset cannot be read. A **missing** asset is not an error:
+/// stats files list assets that were cleaned up, and it keeps its declared size
+/// with an `OBS0002` diagnostic rather than becoming a zero.
 pub fn attribute_from_disk(graph: &mut UnifiedBundleGraph, dir: &Path) -> Result<()> {
-    // (asset index, name, bytes) — collect the paths first so the parallel pass
-    // does no IO on the critical path of the iterator.
+    // Collect first, so the parallel pass does no IO inside the iterator.
     let targets: Vec<(usize, String, std::path::PathBuf)> = graph
         .assets
         .iter()
@@ -39,9 +26,7 @@ pub fn attribute_from_disk(graph: &mut UnifiedBundleGraph, dir: &Path) -> Result
         .par_iter()
         .map(|(idx, _name, path)| match std::fs::read(path) {
             Ok(bytes) => (*idx, bytes.len() as u64, gzip_size(&bytes)),
-            // A missing asset is a diagnostic, not a failure: build outputs get
-            // cleaned up, and a report that refuses to open because one file is
-            // gone is worse than a report that says so.
+            // Missing asset: diagnostic, not a failure.
             Err(_) => (*idx, 0, 0),
         })
         .collect();
