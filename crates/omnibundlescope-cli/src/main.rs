@@ -746,7 +746,7 @@ mod regex_lite {
 /// B5: parse a source map, attribute its bytes, print the numbers.
 ///
 /// The map is streamed from disk, exactly like the stats path, because the
-/// the source-map-explorer baseline baseline showed this workload reaching 642 MB — a `fs::read` here would
+/// the source-map-explorer baseline showed this workload reaching 642 MB — a `fs::read` here would
 /// put the file size straight back on the floor.
 fn bench_source_map(path: &Path) -> Result<ExitCode> {
     let started = std::time::Instant::now();

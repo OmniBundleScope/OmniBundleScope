@@ -77,8 +77,8 @@ struct RawOffset {
 /// Parse a source map from anything that implements [`std::io::Read`].
 ///
 /// Streaming matters for the same reason it does for stats: a 36 MB map read
-/// with `fs::read` puts 36 MB on the floor before we decode anything, and the
-/// the source-map-explorer baseline baseline shows this workload reaching 642 MB.
+/// with `fs::read` puts 36 MB on the floor before we decode anything; the
+/// baseline workload reaches 642 MB.
 pub fn parse_reader<R: Read>(reader: R) -> Result<ParsedSourceMap> {
     let raw: RawMap = serde_json::from_reader(std::io::BufReader::with_capacity(
         1 << 20,

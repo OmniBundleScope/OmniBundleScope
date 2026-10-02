@@ -257,8 +257,8 @@ pub fn detail_payload(graph: &crate::model::UnifiedBundleGraph) -> serde_json::V
 /// This used to build a `serde_json::Value` first and serialise that. For
 /// 154,379 modules the intermediate `Value` cost ~550 MB — a `Value` is a tree
 /// of boxed maps and owned strings, roughly an order of magnitude more memory
-/// than the JSON text it produces — and it pushed the full pipeline from 126 MB
-/// exactly this. Serialising from a borrowed view of the graph costs one buffer.
+/// than the JSON text it produces, and it pushed the full pipeline from 126 MB to
+/// 670 MB. Serialising from a borrowed view of the graph costs one buffer.
 ///
 /// It is a `Detail<'a>` view, not an owned copy: the module id is the map key
 /// and nothing needs to be cloned to write it.

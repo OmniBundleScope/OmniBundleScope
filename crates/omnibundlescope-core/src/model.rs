@@ -232,7 +232,7 @@ impl UnifiedBundleGraph {
     /// Contract invariant: the sum of module effective sizes matches the total
     /// within `tolerance` (a ratio, e.g. 0.001 for 0.1%).
     ///
-    /// The fusion areas must call this before writing a report; a
+    /// Call this before writing a report; a
     /// violation is a bug in the join keys, not a rounding error. The check is
     /// integer-only: `drift * 1_000_000 <= total * tolerance_ppm`, so even a
     /// multi-terabyte total cannot make the check itself drift.

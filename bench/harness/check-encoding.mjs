@@ -1,33 +1,17 @@
-// Fail on mojibake in any tracked text file.
-//
-// This exists because of a real accident: a shell round-trip read a UTF-8 file
-// as the console's code page and wrote it back, and the damage looked like
-// plausible text in the diff. For a project whose README is in four languages,
-// "the bytes are valid UTF-8 and the text is what was intended" has to be a
-// gate, not a hope.
+// Fail on mojibake and stray control characters in any tracked text file.
 //
 //   node bench/harness/check-encoding.mjs
 //
 // What counts as broken:
-//   - U+FFFD REPLACEMENT CHARACTER: text that was decoded lossily at some point
+//   - U+FFFD REPLACEMENT CHARACTER: text decoded lossily at some point
 //   - C1 controls: what a Latin-1/UTF-8 mix-up leaves behind
 //   - C0 controls other than tab, newline and carriage return
 //   - the classic UTF-8-read-as-CP936/CP1252 fragments, matched literally
-//   - a UTF-8 BOM in a source file, which Rust and Node both tolerate but which
-//     is noise in a diff
+//   - a UTF-8 BOM in a source file
 //
-// The C0 check is here because of a second real accident, and it is the one that
-// mattered: five files were edited through a shell that read a backtick as an
-// escape character, so a Markdown backtick in prose turned into a form feed, a
-// backspace or a bell - each silently eating the character after it. The result
-// was a source file containing a control character, in a comment, where nothing
-// fails to compile and nothing looks wrong in a diff. A gate that checks for
-// mojibake but not for control characters catches the accident it was written for
-// and misses the one that actually happened.
-//
-// Non-ASCII is otherwise fine and expected: the docs are translated, and
-// typographic punctuation (em dash, curly quotes, ellipsis, arrows) is
-// deliberate throughout.
+// The C0 case came from a shell that read a backtick as an escape character: a
+// Markdown backtick in prose became a form feed, in a comment, where nothing
+// failed to compile and nothing looked wrong in a diff.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, relative, resolve } from 'node:path';
